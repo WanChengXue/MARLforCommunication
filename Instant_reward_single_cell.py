@@ -15,8 +15,8 @@ def scheduling_is_legel(user_scheduling_matrix, legal_range):
 
 def rebuild_channel_matrix(channel_matrix):
     bs_antenna_number = channel_matrix.shape[-1] // 2
-    real_part = channel_matrix[:,:,:,:bs_antenna_number]
-    imag_part = channel_matrix[:,:,:,bs_antenna_number:]
+    real_part = channel_matrix[:,:bs_antenna_number]
+    imag_part = channel_matrix[:,bs_antenna_number:]
     return real_part + 1j * imag_part
 
 def select_sub_channel_matrix(channel_matrix, bool_user_scheduling_matrix):
@@ -24,7 +24,7 @@ def select_sub_channel_matrix(channel_matrix, bool_user_scheduling_matrix):
     # channel_matrix的维度为3*20*3*16
     selected_channel_matrix = []
     for sector_index in range(sector_number):
-        selected_channel_matrix.append(channel_matrix[sector_index, bool_user_scheduling_matrix[sector_index]])
+        selected_channel_matrix.append(channel_matrix[bool_user_scheduling_matrix[sector_index]])
     return selected_channel_matrix
 
 def calculate_precoding_matrix_ZF(selected_channel_matrix):
@@ -33,7 +33,7 @@ def calculate_precoding_matrix_ZF(selected_channel_matrix):
     unitary_matrix = []
     for sector_id in range(sector_number):
         # 将这个扇区的信道矩阵拿出来
-        sector_channel_matrix = selected_channel_matrix[sector_id][:, sector_id, :]
+        sector_channel_matrix = selected_channel_matrix[sector_id] 
         pseudo_inverse_matrix = np.linalg.pinv(sector_channel_matrix)
         F_norm_square = np.linalg.norm(pseudo_inverse_matrix, 'fro') 
         precoding_matrix.append(pseudo_inverse_matrix/F_norm_square)
@@ -47,7 +47,7 @@ def calculate_precoding_matrix(selected_channel_matrix):
     unitary_matrix = []
     for sector_id in range(sector_number):
         # 将这个扇区的信道矩阵拿出来
-        sector_channel_matrix = selected_channel_matrix[sector_id][:, sector_id, :]
+        sector_channel_matrix = selected_channel_matrix[sector_id]
         # 进行svd分解
         u, sigma, v = np.linalg.svd(sector_channel_matrix)
         user_number = sigma.shape[0]
@@ -59,18 +59,9 @@ def calculate_precoding_matrix(selected_channel_matrix):
 # @ti.func
 def calculate_single_user_SE(unitary_matrix, precoding_matrix, selected_channel_matrix,sector_index, sector_power, noise_power):
     sector_unitary_matrix = unitary_matrix[sector_index]
-    current_sector_recieve_signal = sector_unitary_matrix.dot(selected_channel_matrix[sector_index][:,sector_index,:]).dot(precoding_matrix[sector_index])
-    sector_list = [i for i in range(len(unitary_matrix))]
-    sector_list.remove(sector_index)
-    inter_sector_interference_value = 0
-    for inter_sector_index in sector_list:
-        inter_sector_recieve_signal = sector_unitary_matrix.dot(selected_channel_matrix[sector_index][:,inter_sector_index,:].dot(precoding_matrix[inter_sector_index]))
-        # 计算inter_cell的干扰
-        current_inter_sector_interference_value = np.sum(np.abs(inter_sector_recieve_signal) **2, -1) * sector_power[inter_sector_index]
-        inter_sector_interference_value += current_inter_sector_interference_value
-    # 计算当前sector下面每一个用户的SINR
+    current_sector_recieve_signal = sector_unitary_matrix.dot(selected_channel_matrix[sector_index]).dot(precoding_matrix[sector_index])
     efficiency_recieve_signal = np.abs(np.diag(current_sector_recieve_signal)) ** 2 * sector_power[sector_index]
-    SINR = efficiency_recieve_signal / (inter_sector_interference_value + noise_power)
+    SINR = efficiency_recieve_signal / (noise_power)
     return np.log(1 + SINR)
 
 # @ti.kernel

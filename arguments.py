@@ -4,7 +4,7 @@ import math
 
 def get_common_args():
     # flag = torch.cuda.is_available()
-    flag = False
+    flag = True
     parser = argparse.ArgumentParser()
     # the environment setting
     parser.add_argument('--user_numbers', type=int, default=20, help='the number of users of single cell')
@@ -24,7 +24,7 @@ def get_common_args():
     parser.add_argument('--cell_number', type=int, default=1, help='the numbers of cell')
     parser.add_argument('--sector_number', type=int, default=3, help='the numbers of sectors per cell')
     parser.add_argument('--total_TTI_length', type=int, default=1100, help='the total TTI length of channel data')
-    parser.add_argument('--TTI_length',type=int,default=200, help='the TTI length')
+    parser.add_argument('--TTI_length',type=int,default=400, help='the TTI length')
     parser.add_argument('--training_data_path', type=str, default="../data_part/preprocess_data", help='the original data folder')
     # 定义rank要不要使用
     parser.add_argument('--PF_start', type=bool, default=False, help='whether we use PF sheduling algorithm')
@@ -40,20 +40,21 @@ def get_common_args():
     parser.add_argument('--koopman_predict_start',type=bool, default=False, help='whether using koopman predictor')
     parser.add_argument('--parameter_sharing',type=bool, default=False, help="whether using parameter sharing")
     # 创建greedy 算法保存的文件夹
-    parser.add_argument('--greedy_folder', type=str, default="../data_part/data/", help='the folder of greedy result')
+    parser.add_argument('--greedy_folder', type=str, default="../data_part/Greedy_result", help='the folder of greedy result')
     # 定义delay 时长
     parser.add_argument('--delay_time', type=int, default=3, help='channel estimation delay time')
-
+    
     args = parser.parse_args()
-    return args
-
-def get_agent_args(args):
     # 计算能够支持最大流的数目
     total_user_antennas = args.user_antennas * args.user_numbers
     max_stream = min(total_user_antennas, args.bs_antennas)
     min_stream = 1
     args.max_stream = max_stream
     args.min_stream = min_stream
+    args.total_user_antennas = total_user_antennas
+    return args
+
+def get_agent_args(args):
     # 定义智能体的数量
     args.n_agents = args.cell_number * args.sector_number
     # 定义观测的维度，信道矩阵的维度，即接收天线的维度乘基站天线的维度
@@ -67,7 +68,7 @@ def get_agent_args(args):
     args.total_obs_matrix_number = args.obs_matrix_number + 1
     args.total_state_matrix_number = args.state_matrix_number  
     args.total_bs_antennas = args.obs_dim2
-    args.total_user_antennas = total_user_antennas
+
     args.weight_factor_number = 32
     return args
 
@@ -90,7 +91,7 @@ def get_transformer_args(args):
 def get_MADDPG_args(args):
     # 如果算法采用MADDPG,则在此定义网络中的参数
     # 定义epoch的数目
-    args.epoches = 1000
+    args.epoches = 5000
     # 定义episode的是数目
     args.episodes = 1
     # 定义batch size每次采样的长度
@@ -100,8 +101,10 @@ def get_MADDPG_args(args):
     # 定义actor网络中的参数,即pointer network中的网络参数
     
     # 首先定义actor网络的lr以及lr_decay
-    actor_lr = 1e-4
-    actor_lr_decay = 1e-5
+    actor_lr = 1e-3
+    actor_lr_decay = 1e-2
+    actor_min_lr = 1e-6
+    args.actor_min_lr = actor_min_lr
     args.actor_lr = actor_lr
     args.actor_lr_decay = actor_lr_decay
     # 定义一层卷积层,将输入的1*5*20*32的矩阵变成 1*20*32的特征矩阵
@@ -128,9 +131,11 @@ def get_MADDPG_args(args):
 
     # 定义critic网络的相关参数
     critic_lr = 1e-2
-    critic_lr_decay = 1e-5
+    critic_lr_decay = 1e-2
+    critic_min_lr = 1e-4
     args.critic_lr = critic_lr
     args.critic_lr_decay = critic_lr_decay
+    args.critic_min_lr = critic_min_lr
     args.update_times = 100
     # 定义preconv layer
     args.critic_pre_stride = 1

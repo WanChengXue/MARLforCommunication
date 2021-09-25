@@ -43,6 +43,8 @@ class Agent:
         self.critic_lr_decay = self.args.critic_lr_decay
         self.actor_lr = self.args.actor_lr
         self.actor_lr_decay = self.args.actor_lr_decay
+        self.actor_min_lr = self.args.actor_min_lr
+        self.critic_min_lr = self.args.critic_min_lr
         self.optimizer_critic = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
         self.optimizer_actor = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
         # 定义critic网络的loss function
@@ -103,7 +105,9 @@ class Agent:
         self.writer.add_scalar(self.critic_loss_path, v_loss.item(), self.update_value_net_count)
         self.update_policy_net_count += 1
         self.update_value_net_count += 1
-
+        self.actor_lr = max(self.actor_min_lr, self.actor_lr * (1-self.actor_lr_decay))
+        self.critic_lr = max(self.critic_min_lr, self.critic_lr * (1-self.critic_lr_decay))
+        
 
     def Learning(self, agent_index=None):
         # first smaple trajectory from replay buffer

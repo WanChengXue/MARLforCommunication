@@ -13,12 +13,13 @@ import time
 import copy
 from multiprocessing import Pool
 import pathlib
+from Instant_Reward import calculate_instant_reward
 
 def multiprocessing_training(index):
     GPU_id = 0
     import torch
     from torch.utils.tensorboard import SummaryWriter
-    # torch.cuda.set_device(GPU_id)
+    torch.cuda.set_device(GPU_id)
     # 开一个多进程
 
     user_number_list = ['10_user','20_user','30_user','40_user']
@@ -69,6 +70,7 @@ def multiprocessing_training(index):
             self.parameter_sharing = self.args.parameter_sharing
             self.data_folder = pathlib.Path(self.args.training_data_path)/(str(self.total_user_antennas) + '_user')/(str(self.velocity)+'KM')/'training_data_10_10.npy'
             self.args.data_folder = self.data_folder
+            self.testing_data_folder = pathlib.Path(self.args.training_data_path)/(str(self.total_user_antennas) + '_user')/(str(self.velocity)+'KM')/'testing_data_10_10.npy'
             self.rewrite_and_make_folder()
             self.args.writer = SummaryWriter(self.args.vision_folder)
             # define the number of agents
@@ -215,216 +217,40 @@ def multiprocessing_training(index):
                     self.agent_list[sector_index].training(self.env.batch_data, Instant_reward, batch_prob_list[sector_index])
                 
                 batch_average_reward.append(np.mean(Instant_reward))
+
             plt.figure()
             plt.plot(batch_average_reward)
             plt.savefig(self.figure_folder + '/learning_curve.png')
+            # 保存数据到本地
+            reward_training_path = self.result_folder + '/Training_rewrad.npy'
+            np.save(reward_training_path, np.array(batch_average_reward))
+            # 保存模型到本地
+            self.save_model(ep)
+            self.testing_model()
 
-        def Simulation_fairness(self):
-            epoch_cumulative_reward =[]
-            epoch_system_capacity = []
-            epoch_edge_user_capacity = []
-            epoch_real_reward = []
-            optimal_reward = 0
-            optimal_edge = 0
-            optimal_capacity = 0
-            for ep in tqdm(range(self.args.epoches)):
-                episode_reward = []
-                self.env.read_training_data()
-                for _ in range(self.args.episodes):
-                    # collect experience2
-                    episodic_reward = self.generate_episode()
-                    average_reward = np.mean(episodic_reward,0)
-                    episode_reward.append(average_reward)
-                # 这个地方对三个值进行平均化处理
-                episode_average_reweard = np.mean(episode_reward,0)
-                average_capacity = episode_average_reweard[0]
-                min_average_capacity = episode_average_reweard[1]
-                average_PF_sum = episode_average_reweard[2]
-                average_real_reward = episode_average_reweard[3]
-                epoch_cumulative_reward.append(average_PF_sum)
-                epoch_system_capacity.append(average_capacity)
-                epoch_edge_user_capacity.append(min_average_capacity)
-                epoch_real_reward.append(average_real_reward)
-                print("Epoch: {}, Current epoch average user reward is: {}, min average reward is: {}, PF sum is: {}, real reward is: {}".format(ep, average_capacity, min_average_capacity, average_PF_sum, average_real_reward))
-                self.learn()
-                if optimal_edge >=0.02:
-                    if optimal_capacity < average_capacity:
-                        optimal_capacity = average_capacity
-                        self.save_model('o')
-                else:
-                    if optimal_capacity < average_capacity and optimal_edge < min_average_capacity:
-                        optimal_capacity = average_capacity
-                        optimal_edge = min_average_capacity
-                        self.save_model('o')
+        def testing(self):
+            self.load_model()
+            self.testing_model()
 
-                if ep % 50 == 0:
-                    self.save_model(ep)
 
-                if self.args.epsilon > self.args.min_epsilon:
-                    self.args.epsilon -= self.args.epsilon_decay
-
-                if self.args.actor_lr < self.args.actor_lr_decay:
-                    self.args.actor_lr = self.args.actor_lr_decay
-                else:
-                    self.args.actor_lr = self.args.actor_lr - self.args.actor_lr_decay
-
-                if self.args.critic_lr < self.args.critic_lr_decay:
-                    self.args.critic_lr = self.args.critic_lr_decay
-                else:
-                    self.args.critic_lr = self.args.critic_lr - self.args.critic_lr_decay
-                # 更新prev网络中的参数
-                if self.prev_policy_start:
-                    if ep % 20 == 0:
-                        if self.parameter_sharing:
-                            self.prev_agent.actor.load_state_dict(self.agent.actor.state_dict())
-                    else:
-                        for i in range(self.agent_number):
-                            self.prev_agent_list[i].actor.load_state_dict(self.agent_list[i].actor.state_dict())
-        
-            self.plot_figure(np.array(epoch_real_reward), np.array(epoch_cumulative_reward).squeeze(), np.array(epoch_system_capacity).squeeze(),np.array(epoch_edge_user_capacity).squeeze())
-        
-        def learn(self):
-            if self.parameter_sharing:
-                for agent_index in range(self.agent_number):
-                    self.agent.Learning(agent_index)
-            else:
-                for agent_id in range(self.agent_number):
-                    self.agent_list[agent_id].Learning()
-
-        def generate_episode(self):
-            # generate a trajectory
-            Channel, Average_reward, Global_channel, Global_reward, Action, Pad = [],[],[],[],[],[]
-            instant_reward, terminate = [], []
-            probs = [[] for _ in range(self.agent_number)]
-            self.env.Reset()
-            terminated = False
-            episode_reward = []
-            while not terminated:
-                episode_channel, episode_average_reward = self.env.get_agent_obs()
-                episode_global_channel, episode_global_reward = self.env.get_state()
-                rank = copy.deepcopy(self.env.user_rank)
-                # 是否需要上一次的策略来辅助判断
-                if self.prev_policy_start:
-                    current_actions = []
-                    current_pad = []
-                    # 这个地方使用当前智能体的参数进行决策
-                    for agent_id in range(self.agent_number):
-                        if self.rank_start:
-                            cell_rank = rank[agent_id]
-                        else:
-                            cell_rank = [1 for _ in range(self.total_user_antennas)]
-                        if self.parameter_sharing:
-                            active_agent = self.agent
-                        else:
-                            active_agent = self.agent_list[agent_id]
-                        action, _ = active_agent.Pick_action([episode_channel[agent_id], episode_average_reward[agent_id]], cell_rank)
-                        # 这个地方补全action
-                        current_actions.append(action)
-                        current_pad.append([])
-                    
-                    current_average_capacity, current_average_min_users, current_PF_sum = self.env.Calculate_reward_with_sequence(current_actions)
-                    # 这个地方使用是一个时刻智能体的参数进行决策
-                    prev_actions = []
-                    prev_pad = []
-                    for agent_id in range(self.agent_number):
-                        if self.rank_start:
-                            cell_rank = rank[agent_id]
-                        else:
-                            cell_rank = [1 for _ in range(self.total_user_antennas)]
-                        if self.parameter_sharing:
-                            active_agent = self.prev_agent
-                        else:
-                            active_agent = self.prev_agent_list[agent_id]
-                        action, _ = active_agent.Pick_action([episode_channel[agent_id], episode_average_reward[agent_id]], cell_rank)
-                        # 这个地方补全action
-                        prev_actions.append(action)
-                        prev_pad.append([])
-                    prev_average_capacity, prev_average_min_users, prev_PF_sum = self.env.Calculate_reward_with_sequence(current_actions)
-                    if current_average_min_users < prev_average_min_users:
-                        # 如果说边缘用户的SE下降了，就使用上一个策略的决策序列
-                        actions = prev_actions
-                        pad = prev_pad
-                    else:
-                        actions = current_actions
-                        pad = current_pad
-                    # 按照这个调度序列去实际调度
-                    # 然后对prob进行添加
-                    for agent_id in range(self.agent_number):
-                        if self.rank_start:
-                            cell_rank = rank[agent_id]
-                        else:
-                            cell_rank = [1 for _ in range(self.total_user_antennas)]
-                        if self.parameter_sharing:
-                            active_agent = self.agent
-                        else:
-                            active_agent = self.agent_list[agent_id]
-                        action = copy.deepcopy(actions[agent_id])
-                        prob = active_agent.Calculate_prob([episode_channel[agent_id], episode_average_reward[agent_id]], cell_rank, action)
-                        probs[agent_id].append(prob)
-                else:
-                    actions = []
-                    pad = []
-                    for agent_id in range(self.agent_number):
-                        if self.rank_start:
-                            cell_rank = rank[agent_id]
-                        else:
-                            cell_rank = [1 for _ in range(self.total_user_antennas)]
-                        if self.parameter_sharing:
-                            active_agent = self.agent
-                        else:
-                            active_agent = self.agent_list[agent_id]
-                        action, prob = active_agent.Pick_action([episode_channel[agent_id], episode_average_reward[agent_id]], cell_rank)
-                        probs[agent_id].append(prob)
-                        # 这个地方补全action
-                        actions.append(action)
-                        pad.append([])
-                average_capacity, average_min_users, PF_sum, terminated = self.env.Step(actions)
-                if self.rank_start:
-                    algrithm_instant_reward = average_capacity
-                elif self.weighted_start:
-                    algrithm_instant_reward = self.weighted_ratio * average_capacity + (1-self.weighted_ratio) * average_min_users
-                elif self.edge_max_start:
-                    algrithm_instant_reward = average_min_users
-                elif self.priority_start:
-                    if 0.05 * average_capacity > average_min_users:
-                        algrithm_instant_reward = 0
-                    else:
-                        algrithm_instant_reward = average_min_users
-                else:
-                    algrithm_instant_reward = PF_sum
-                instant_reward.append(algrithm_instant_reward)
-                episode_reward.append([average_capacity, average_min_users, PF_sum, algrithm_instant_reward])
-                terminate.append(terminated)
-                # instant_reward.append(PF_sum)
-                Channel.append(episode_channel)
-                Average_reward.append(episode_average_reward)
-                Global_channel.append(episode_global_channel)
-                Global_reward.append(episode_global_reward)
-                for agent_id in range(self.agent_number):
-                    action_length = len(actions[agent_id])
-                    actions[agent_id] = actions[agent_id] + (self.args.state_dim1 + 1-action_length) * [-1]
-                    pad[agent_id] +=(1 + action_length) * [1]
-                    pad[agent_id] += (self.args.state_dim1-action_length) * [0]
-                Action.append(actions)
-                Pad.append(pad)
-                
-            for agent_id in range(self.agent_number):
-                episode_batch = {}
-                episode_batch['Channel'] = np.array(Channel)[:,agent_id,:,:]
-                episode_batch['Average_reward'] = np.array(Average_reward)[:,agent_id,:]
-                episode_batch['Global_channel'] = np.array(Global_channel)
-                episode_batch['Global_reward'] = np.array(Global_reward)
-                episode_batch['Action'] = (np.array(Action) + 1)[:,agent_id,:]
-                episode_batch['Pad'] = np.array(Pad)[:,agent_id,:]
-                episode_batch['instant_reward'] = np.array(instant_reward)
-                episode_batch['terminate'] = np.array(terminate)
-                episode_batch['prob'] = probs[agent_id]
+        def testing_model(self):
+            testing_data = np.load(self.testing_data_folder).transpose(4,0,1,2,3)
+            obs = []
+            agent_infer_sequence = []
+            for sector_index in range(self.agent_number):
+                # 每一个元素都是batch_size*20*3*32
+                obs.append(testing_data[:,sector_index,:,:,:])
                 if self.parameter_sharing:
-                    self.agent.Stor_transition_parameter_sharing(episode_batch, agent_id)
+                    scheduling_users, _ = self.agent.Pick_action_Max_SE_batch(obs[sector_index])
                 else:
-                    self.agent_list[agent_id].Store_transition(episode_batch)
-            
-            return episode_reward
+                    scheduling_users, _ = self.agent_list[sector_index].Pick_action_Max_SE_batch(obs[sector_index])
+                agent_infer_sequence.append(scheduling_users)
+            agent_infer_sequence = np.stack(agent_infer_sequence, axis=1)
+            infer_SE = self.env.calculate_batch_instant_rewrd(testing_data, agent_infer_sequence)
+            infer_SE_save_path = self.result_folder + '/infer_SE.npy'
+            np.save(infer_SE_save_path, np.array(infer_SE))
+            infer_sequence_save_path = self.result_folder + '/infer_sequence.npy'
+            np.save(infer_sequence_save_path, np.array(agent_infer_sequence))
 
         def save_model(self, ep):
             # save model parameters
@@ -440,59 +266,15 @@ def multiprocessing_training(index):
                     torch.save(self.agent_list[agent_id].actor.state_dict(), policy_net_path)
                     torch.save(self.agent_list[agent_id].critic.state_dict(), value_net_path)
 
-        def plot_figure(self, Iteration_result, PF_sum, system_capacity, edge_user_capacity):
-            plt.figure()
-            plt.plot(np.arange(self.args.epoches)+1, Iteration_result)
-            save_path = self.args.result_folder + '/' + 'Iteration_result.png'
-            plt.savefig(save_path)
-            plt.close()
-            reward_save_path = self.args.result_folder + '/' + 'Iteration_result.npy'
-            np.save(reward_save_path, np.array(Iteration_result))
-
-            plt.figure()
-            plt.plot(np.arange(self.args.epoches)+1, PF_sum)
-            save_path_PF = self.args.result_folder + '/' + 'PF_sum.png'
-            plt.savefig(save_path_PF)
-            plt.close()
-            PF_save_path = self.args.result_folder + '/' + 'PF_sum.npy'
-            np.save(PF_save_path, PF_sum)
-
-            plt.figure()
-            plt.plot(np.arange(self.args.epoches)+1, system_capacity)
-            save_path_capacity = self.args.result_folder + '/' + 'system_result.png'
-            plt.savefig(save_path_capacity)
-            plt.close()
-            system_capacity_save_path = self.args.result_folder + '/' + 'system_result.npy'
-            np.save(system_capacity_save_path, system_capacity)
-            
-            plt.figure()
-            plt.plot(np.arange(self.args.epoches)+1, edge_user_capacity)
-            save_path_edge_user = self.args.result_folder + '/' + 'edge_user_result.png'
-            plt.savefig(save_path_edge_user)
-            plt.close()
-            edge_user_capacity_save_path = self.args.result_folder + '/' + 'edge_user_result.npy'
-            np.save(edge_user_capacity_save_path, edge_user_capacity)
-
-    # test = Project(Evaluation=True)
-    # test = Project()
-    # test.Simulation()
 
     def training_cell(args):
         test = Project(args)
         test.Simulation_SE_only()
-        # print(args.user_numbers)
+        # print(args.user_numbers
 
     
         
     training_cell(MADDPG_args)
 
-
-
-# pool = Pool(3)
-# process_exp = [0,3,6]
-# for process_id in process_exp:
-#     pool.apply_async(multiprocessing_training, (process_id,))
-# pool.close()
-# pool.join()
 
 multiprocessing_training(4)

@@ -97,7 +97,8 @@ class Environment:
         
     def calculate_batch_instant_rewrd(self, batch_channel, batch_action):
         batch_instant_reward = []
-        for index in range(self.args.TTI_length):
+        sample_number = batch_channel.shape[0]
+        for index in range(sample_number):
             batch_instant_reward.append(calculate_instant_reward(batch_channel[index], batch_action[index], self.legal_range, self.noise_power, self.transmit_power))
         return batch_instant_reward
 
