@@ -95,7 +95,10 @@ class Agent:
         v_loss =  self.critic_loss(v_Value, reward)
         # 更新policy网络
         p_loss = -torch.mean((reward - v_Value.detach()) * prob.unsqueeze(-1))
-        if zero_grad:   attention_model
+        if zero_grad:   
+            self.optimizer_actor.zero_grad()
+            
+        if release_graph: 
             p_loss.backward()
         else:
             p_loss.backward(retain_graph=True)

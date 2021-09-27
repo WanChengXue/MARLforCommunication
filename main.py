@@ -20,6 +20,7 @@ def multiprocessing_training(index):
     import torch
     from torch.utils.tensorboard import SummaryWriter
     torch.cuda.set_device(GPU_id)
+    
     # 开一个多进程
 
     user_number_list = ['10_user','20_user','30_user','40_user']
@@ -33,6 +34,11 @@ def multiprocessing_training(index):
     common_args.user_numbers = user_number
     common_args.user_velocity = velocity_number
     common_args.parameter_sharing = True
+    if common_args.cuda:
+        torch.cuda.manual_seed_all(3122)
+    else:
+        torch.manual_seed(3122)
+    np.random.seed(3122)
     # common_args.attention_start = True
     agent_args = get_agent_args(common_args)
     transformer_args = get_transformer_args(agent_args)

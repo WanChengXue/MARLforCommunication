@@ -8,9 +8,9 @@ from multiprocessing import Pool
 import copy
 import json
 import time
-from Instant_Reward import calculate_instant_reward
+from Env.Instant_Reward import calculate_instant_reward
 import pathlib
-from arguments import get_common_args 
+from Tool.arguments import get_common_args 
 
 class Greedy:
     def __init__(self, args, channel_matrix):

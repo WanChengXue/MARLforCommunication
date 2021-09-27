@@ -1,16 +1,19 @@
 # 这个地方采用贪婪策略结合PF调度计算出最优的调度序列
-from matplotlib.pyplot import axis
 import numpy as np
 from tqdm import tqdm
-import os 
+import sys
+import os
+current_path = os.path.abspath(__file__)
+root_path = '/'.join(current_path.split('/')[:-2])
+sys.path.append(root_path)
 import shutil
 from multiprocessing import Pool
 import copy
 import json
 import time
-from Instant_Reward import calculate_instant_reward
+from Env.Instant_Reward import calculate_instant_reward
 import pathlib
-from arguments import get_common_args 
+from Tool.arguments import get_common_args 
 
 class Greedy:
     def __init__(self, args, channel_matrix):
