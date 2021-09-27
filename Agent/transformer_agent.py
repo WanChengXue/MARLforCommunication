@@ -1,21 +1,19 @@
-from typing import Sequence
 import torch
-from torch._C import Value
+from torch.autograd.grad_mode import F
 import torch.optim as optim
-from torch.nn.parameter import Parameter
+from Model.transformer_model import Decoder, Critic
+# from transformer_model import Transformer
+# from model import Critic
+from Tool.replay_buffer import ReplayBuffer
 
-# from priority_model import Actor, Critic
-# from model import Actor, Critic
-from model_SE import Actor, Critic
-from replay_buffer import ReplayBuffer
-
+# 这个地方的使用transofrmer作为encoder，具体实现按照原本论文来
 class Agent:
     def __init__(self, args, index):
         self.args = args
         self.device = "cuda" if self.args.cuda else "cpu"
         # 定义一个通用的智能体出来
         # self.actor = Transformer(self.args).to(self.device)
-        self.actor = Actor(self.args).to(self.device)
+        self.actor = Decoder(self.args).to(self.device)
         self.critic = Critic(self.args).to(self.device)
         self.index = index
         self.parameter_sharing = self.args.parameter_sharing
@@ -43,101 +41,55 @@ class Agent:
         self.critic_lr_decay = self.args.critic_lr_decay
         self.actor_lr = self.args.actor_lr
         self.actor_lr_decay = self.args.actor_lr_decay
-        self.actor_min_lr = self.args.actor_min_lr
-        self.critic_min_lr = self.args.critic_min_lr
         self.optimizer_critic = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
         self.optimizer_actor = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
         # 定义critic网络的loss function
         self.critic_loss = torch.nn.MSELoss()
         self.eps = 1e-12
-        self.batch_size = self.args.batch_size
-        self.sector_number = self.args.sector_number
-        self.user_number =  self.args.user_numbers
-        self.bs_antennas = self.args.bs_antennas
-
         
-
-    def Pick_action_Max_SE(self, state):
-        # 将网络的输入变成1*3*16*32
-        net_input = torch.FloatTensor(state).to(self.device).transpose(0,1).unsqueeze(0)
-        with torch.no_grad():
-            scheduling_result, _ ,pad_mask = self.actor(net_input)    
-        scheduling_number = torch.sum(pad_mask != 0)
-        Scheduling_sequence = (scheduling_result.squeeze(0).cpu().numpy()-1).tolist()[:scheduling_number-1]
-        return Scheduling_sequence
-
-    def Pick_action_Max_SE_batch(self,state):
-        net_input = torch.FloatTensor(state).to(self.device).transpose(1,2)
-        # with torch.no_grad():
-        _, batch_prob, pad_mask, scheduling_user = self.actor(net_input)
-        # 首先将某些概率变成0，然后进行列叠加，得到联合概率
-        prob = torch.sum(pad_mask * batch_prob, -1)
-        Scheduling_sequence = scheduling_user[:,1:].cpu().numpy()
-        # Scheduling_sequence = (scheduling_result.squeeze(0).cpu().numpy()-1).tolist()[:schedulig_number-1]
-        return Scheduling_sequence, prob
 
     def Pick_action(self, state, rank_priority):
         # 这个函数用来决策动作，state是一个tuple，其中包括信道矩阵H，以及user的average reward向量
         channel_matrix = state[0]
         user_average_reward = state[1]
         channel_matrix = torch.FloatTensor(channel_matrix).to(self.device)
-        user_average_reward = torch.FloatTensor(user_average_reward).to(self.device)
+        user_number = channel_matrix.shape[1]
         modify_rank = torch.FloatTensor(rank_priority).to(self.device)
-        # user_average_reward = torch.FloatTensor(user_average_reward).unsqueeze(1).to(self.device
-        action, prob = self.actor(channel_matrix.unsqueeze(0), user_average_reward.unsqueeze(0))
-        return action, prob
-
-    def training_parameter_sharing(self, batch_data, reward, prob, release_graph, zero_grad):
-        batch_data = torch.FloatTensor(batch_data).to(self.device).transpose(2,3).reshape(self.batch_size, self.sector_number **2, self.user_number, self.bs_antennas*2)
-        reward = torch.FloatTensor(reward).to(self.device).unsqueeze(-1)
-        reward  = reward / (1e-6 + torch.max(reward))
-        v_Value = self.critic(batch_data)
-        v_loss =  self.critic_loss(v_Value, reward)
-        # 更新policy网络
-        p_loss = -torch.mean((reward - v_Value.detach()) * prob.unsqueeze(-1))
-        if zero_grad:   
-            self.optimizer_actor.zero_grad()
-        if release_graph:
-            p_loss.backward()
-        else:
-            p_loss.backward(retain_graph=True)
-
-        if zero_grad:
-            self.optimizer_critic.zero_grad()
+        # user_average_reward = torch.FloatTensor(user_average_reward).unsqueeze(1).to(self.device)
+        prob = self.actor(channel_matrix.unsqueeze(0)).squeeze()
+        # 采样动作
+        if self.Training:
+            # 这个地方引入一些噪声，便于探索
+            noise = torch.rand(user_number, 2).to(self.device)
+            explore_prob = prob*(1-self.epsilon) + noise * self.epsilon
+            dist = torch.distributions.Categorical(explore_prob)
+            action = dist.sample()
+            prob_vector = prob.gather(1,action.unsqueeze(-1)) + self.eps
+            prob = torch.sum(torch.log(prob_vector.squeeze()))
+            action = action.cpu().tolist()
             
-        if release_graph:
-            v_loss.backward()
-            self.optimizer_critic.step()
-            self.optimizer_actor.step()
-            self.writer.add_scalar(self.actor_loss_path, p_loss.item(), self.update_policy_net_count)
-            self.writer.add_scalar(self.critic_loss_path, v_loss.item(), self.update_value_net_count)
-            self.update_policy_net_count += 1
+
+        else:
+            action = torch.argmax(prob, -1)
+            prob_vector = prob.gather(1, action.unsqueeze(-1)).squeeze()
+            prob = torch.sum(prob_vector, -1)
+            action = action.squeeze().cpu().tolist()
+        # 需要将0-1序列变成对应的数字
+        shedule_result = []
+        for user_index, flag in enumerate(action):
+            if flag == 1:
+                shedule_result.append(user_index)
+        return shedule_result, prob
+
+    def Update_value_net(self, target_value, channel_matrix, user_rewrad):
+        for i in range(self.args.update_times):
             self.update_value_net_count += 1
-            self.actor_lr = max(self.actor_min_lr, self.actor_lr * (1-self.actor_lr_decay))
-            self.critic_lr = max(self.critic_min_lr, self.critic_lr * (1-self.critic_lr_decay))
-        
-
-    def training(self, batch_data, reward, prob):
-        batch_data = torch.FloatTensor(batch_data).to(self.device).transpose(2,3).reshape(self.batch_size, self.sector_number **2, self.user_number, self.bs_antennas*2)
-        reward = torch.FloatTensor(reward).to(self.device).unsqueeze(-1)
-        reward  = reward / (1e-6 + torch.max(reward))
-        v_Value = self.critic(batch_data)
-        v_loss =  self.critic_loss(v_Value, reward)
-        self.optimizer_critic.zero_grad()
-        v_loss.backward()
-        self.optimizer_critic.step()
-        # 更新policy网络
-        p_loss = -torch.mean((reward - v_Value.detach()) * prob.unsqueeze(-1))
-        self.optimizer_actor.zero_grad()
-        p_loss.backward()
-        self.optimizer_actor.step()
-        self.writer.add_scalar(self.actor_loss_path, p_loss.item(), self.update_policy_net_count)
-        self.writer.add_scalar(self.critic_loss_path, v_loss.item(), self.update_value_net_count)
-        self.update_policy_net_count += 1
-        self.update_value_net_count += 1
-        self.actor_lr = max(self.actor_min_lr, self.actor_lr * (1-self.actor_lr_decay))
-        self.critic_lr = max(self.critic_min_lr, self.critic_lr * (1-self.critic_lr_decay))
-
+            self.optimizer_critic.zero_grad()
+            approximate_value = self.critic(channel_matrix, user_rewrad)
+            loss = self.critic_loss(target_value, approximate_value)
+            loss.backward()
+            self.optimizer_critic.step()
+            self.writer.add_scalar(self.critic_loss_path, loss.item(), self.update_value_net_count)
 
     def Learning(self, agent_index=None):
         # first smaple trajectory from replay buffer
@@ -160,18 +112,18 @@ class Agent:
         Channel = torch.FloatTensor(Channel).to(self.device).reshape(-1, self.args.obs_matrix_number, self.args.obs_dim1, self.args.obs_dim2)
         Average_reward = torch.FloatTensor(Average_reward).to(self.device).reshape(-1, self.args.state_dim1)
         Global_channel = torch.FloatTensor(Global_channel).to(self.device).reshape(-1, self.args.state_matrix_number, self.args.state_dim1, self.args.state_dim2)
-        Global_reward = torch.FloatTensor(Global_reward).to(self.device).reshape(-1, self.args.n_agents, self.args.state_dim1)
+        Global_reward = torch.FloatTensor(Global_reward).to(self.device).reshape(-1, self.args.cell_number, self.args.state_dim1)
         Instant_reward = torch.FloatTensor(Instant_reward).to(self.device).reshape(-1,1)
         Terminate = torch.FloatTensor(Terminate).to(self.device).reshape(-1)
         Pad = torch.FloatTensor(Pad).to(self.device).reshape(-1, self.args.state_dim1+1)
         # Probs = torch.FloatTensor(Probs).to(self.device).reshape(-1)
         Action = torch.LongTensor(Action).to(self.device).reshape(-1,  self.args.state_dim1+1)
         # reshape all tensor
-        V_value = self.critic(Global_channel, Global_reward).detach()
+        V_value = self.critic(Global_channel).detach()
         advantages = Instant_reward - V_value
         advantages = (advantages-torch.mean(advantages)) / torch.std(advantages) 
         if self.parameter_sharing:
-            self.Update_critic_parameter_sharing(Global_channel, Global_reward ,Instant_reward, agent_index)
+            self.Update_critic_parameter_sharing(Global_channel, Instant_reward, agent_index)
             policy_net_loss = -torch.mean(Probs * advantages)
             if agent_index == 0:
                 self.optimizer_actor.zero_grad()
@@ -190,7 +142,7 @@ class Agent:
             else:
                 policy_net_loss.backward(retain_graph=True)
         else:
-            self.Update_critic_alter(Global_channel, Global_reward, Instant_reward)
+            self.Update_critic_alter(Global_channel, Instant_reward)
             # Update policy net
             self.update_policy_net_count += 1
             policy_net_loss = -torch.mean(Probs * advantages)
@@ -206,8 +158,8 @@ class Agent:
             # self.Soft_update()
             self.Replay_buffer.reset_buffer()
 
-    def Update_critic_parameter_sharing(self, Global_channel, Global_reward ,targets, agent_index):
-        approximate_value = self.critic(Global_channel, Global_reward)
+    def Update_critic_parameter_sharing(self, Global_channel, targets, agent_index):
+        approximate_value = self.critic(Global_channel)
         Value_loss = self.critic_loss(targets, approximate_value)
         if agent_index == 0:
             self.optimizer_critic.zero_grad()
@@ -222,9 +174,9 @@ class Agent:
         else:
             Value_loss.backward(retain_graph=True)
 
-    def Update_critic_alter(self, Global_channel, Global_reward, targets):
+    def Update_critic_alter(self, Global_channel, targets):
         for _ in range(self.args.update_times):
-            approximate_value = self.critic(Global_channel, Global_reward)
+            approximate_value = self.critic(Global_channel)
             value_loss = self.critic_loss(targets, approximate_value)
             self.optimizer_critic.zero_grad()
             value_loss.backward()

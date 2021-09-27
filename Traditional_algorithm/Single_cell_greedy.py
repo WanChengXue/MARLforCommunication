@@ -8,11 +8,11 @@ from multiprocessing import Pool
 import copy
 import json
 import time
-from Instant_reward_single_cell import calculate_instant_reward
+from Env.Instant_reward_single_cell import calculate_instant_reward
 import pathlib
-from arguments import get_common_args 
+from Tool.arguments import get_common_args 
 # 这个地方是三个扇区单独做greedy，需要改动Instant reward函数
-import Instant_Reward as NIR
+import Env.Instant_Reward as NIR
 class Greedy:
     def __init__(self, args, channel_matrix):
         self.args=args

@@ -1,6 +1,6 @@
 
 from functools import total_ordering
-from sko.GA import GA
+# from sko.GA import GA
 # 这个地方采用贪婪策略结合PF调度计算出最优的调度序列
 from matplotlib.pyplot import axis
 import numpy as np
@@ -11,9 +11,9 @@ from multiprocessing import Pool
 import copy
 import json
 import time
-from Instant_Reward import calculate_instant_reward
+from Env.Instant_Reward import calculate_instant_reward
 import pathlib
-from arguments import get_common_args 
+from Tool.arguments import get_common_args 
 import geatpy as ea
 class Greedy(ea.Problem):
     def __init__(self, args, channel_matrix):

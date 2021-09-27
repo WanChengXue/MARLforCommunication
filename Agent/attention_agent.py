@@ -1,9 +1,9 @@
 import torch
 import torch.optim as optim
-from attention_model import Policy, Critic
+from Model.attention_model import Policy, Critic
 # from transformer_model import Transformer
 # from model import Critic
-from replay_buffer import ReplayBuffer
+from Tool.replay_buffer import ReplayBuffer
 
 # 这个地方的使用transofrmer作为encoder，具体实现按照原本论文来
 class Agent:

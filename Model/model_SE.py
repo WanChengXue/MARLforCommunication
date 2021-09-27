@@ -166,3 +166,6 @@ class Critic(nn.Module):
         fc_result = torch.relu(self.layer1(flatten_result))
         V_value = self.output_layer(fc_result)
         return V_value
+
+
+# def Q_network(self, )

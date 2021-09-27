@@ -7,7 +7,7 @@ import os
 import shutil
 from tqdm import tqdm
 
-from arguments import get_common_args, get_agent_args, get_transformer_args, get_MADDPG_args
+from Tool.arguments import get_common_args, get_agent_args, get_transformer_args, get_MADDPG_args
 from Env import Environment
 
 
@@ -37,11 +37,11 @@ def multiprocessing_training(index):
     MADDPG_args = get_MADDPG_args(transformer_args)
     MADDPG_args.epsilon = 0.1
     if MADDPG_args.transformer_start:
-        from transformer_agent import Agent
+        from Agent.transformer_agent import Agent
     elif MADDPG_args.attention_start:
-        from attention_agent import Agent
+        from  Agent.attention_agent import Agent
     else:
-        from agent import Agent
+        from  Agent.agent import Agent
 
     class Project:
         def __init__(self, args, Training=False):

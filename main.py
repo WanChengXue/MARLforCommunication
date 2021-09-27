@@ -7,13 +7,13 @@ import os
 import shutil
 from tqdm import tqdm
 
-from arguments import get_common_args, get_agent_args, get_transformer_args, get_MADDPG_args
-from Env import Environment
+from Tool.arguments import get_common_args, get_agent_args, get_transformer_args, get_MADDPG_args
+from Env.Env import Environment
 import time
 import copy
 from multiprocessing import Pool
 import pathlib
-from Instant_Reward import calculate_instant_reward
+from Env.Instant_Reward import calculate_instant_reward
 
 def multiprocessing_training(index):
     GPU_id = 0
@@ -38,11 +38,11 @@ def multiprocessing_training(index):
     transformer_args = get_transformer_args(agent_args)
     MADDPG_args = get_MADDPG_args(transformer_args)
     if MADDPG_args.transformer_start:
-        from transformer_agent import Agent
+        from Agent.transformer_agent import Agent
     elif MADDPG_args.attention_start:
-        from attention_agent import Agent
+        from Agent.attention_agent import Agent
     else:
-        from agent import Agent
+        from Agent.agent import Agent
 
     class Project:
         def __init__(self, args, Training=True):
