@@ -24,7 +24,7 @@ def get_common_args():
     parser.add_argument('--cell_number', type=int, default=1, help='the numbers of cell')
     parser.add_argument('--sector_number', type=int, default=3, help='the numbers of sectors per cell')
     parser.add_argument('--total_TTI_length', type=int, default=1100, help='the total TTI length of channel data')
-    parser.add_argument('--TTI_length',type=int,default=400, help='the TTI length')
+    parser.add_argument('--TTI_length',type=int,default=200, help='the TTI length')
     parser.add_argument('--training_data_path', type=str, default="../data_part/preprocess_data", help='the original data folder')
     # 定义rank要不要使用
     parser.add_argument('--PF_start', type=bool, default=False, help='whether we use PF sheduling algorithm')
@@ -38,7 +38,7 @@ def get_common_args():
     parser.add_argument('--prev_policy_start', type=bool, default=False, help='whether using prev policy')
     # 定义参数共享
     parser.add_argument('--koopman_predict_start',type=bool, default=False, help='whether using koopman predictor')
-    parser.add_argument('--parameter_sharing',type=bool, default=False, help="whether using parameter sharing")
+    parser.add_argument('--parameter_sharing',type=bool, default=True, help="whether using parameter sharing")
     # 创建greedy 算法保存的文件夹
     parser.add_argument('--greedy_folder', type=str, default="../data_part/Greedy_result", help='the folder of greedy result')
     # 定义delay 时长
@@ -91,7 +91,7 @@ def get_transformer_args(args):
 def get_MADDPG_args(args):
     # 如果算法采用MADDPG,则在此定义网络中的参数
     # 定义epoch的数目
-    args.epoches = 5000
+    args.epoches = 3000
     # 定义episode的是数目
     args.episodes = 1
     # 定义batch size每次采样的长度

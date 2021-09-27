@@ -7,7 +7,7 @@ def compare_capacity():
     greedy_path = pathlib.Path("../data_part/Greedy_result/20_user/30KM/Global_greedy_sum_SE.npy")
     sector_greedy_path = pathlib.Path("../data_part/Greedy_result/20_user/30KM/Sector_greedy_sum_SE.npy")
     individual_greedy_path = pathlib.Path("../data_part/Greedy_result/20_user/30KM/Individual_greedy_sum_SE.npy")
-    infer_path = pathlib.Path("./Pointer_network_folder/Max_SE/Result/20_user_30KM/infer_SE.npy")
+    infer_path = pathlib.Path("./Pointer_network_folder/Max_SE/Sharing_result/20_user_30KM/infer_SE.npy")
 
     plt.figure()
     plt.plot(np.load(greedy_path))
@@ -21,7 +21,7 @@ def compare_capacity():
     greedy_scheduling_path = pathlib.Path("../data_part/Greedy_result/20_user/30KM/Global_greedy_shceduling_sequence.npy")
     sector_scheduling_path = pathlib.Path("../data_part/Greedy_result/20_user/30KM/Sector_greedy_shceduling_sequence.npy")
     individual_scheduling_path = pathlib.Path("../data_part/Greedy_result/20_user/30KM/Individual_greedy_shceduling_sequence.npy")
-    infer_scheduling_path = pathlib.Path("./Pointer_network_folder/Max_SE/Result/20_user_30KM/infer_sequence.npy")
+    infer_scheduling_path = pathlib.Path("./Pointer_network_folder/Max_SE/Sharing_result/20_user_30KM/infer_sequence.npy")
     
     for sector_index in range(3):
         plt.figure()

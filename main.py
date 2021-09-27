@@ -32,7 +32,7 @@ def multiprocessing_training(index):
     common_args = get_common_args()
     common_args.user_numbers = user_number
     common_args.user_velocity = velocity_number
-    common_args.parameter_sharing = False
+    common_args.parameter_sharing = True
     # common_args.attention_start = True
     agent_args = get_agent_args(common_args)
     transformer_args = get_transformer_args(agent_args)
@@ -212,9 +212,20 @@ def multiprocessing_training(index):
                 # end_time = time.time()
                 # print("计算batch的所有用户的SE耗费的时间为：{}".format(end_time-start_time))
                 # 这个地方进行训练
-
                 for sector_index in range(self.sector_number):
-                    self.agent_list[sector_index].training(self.env.batch_data, Instant_reward, batch_prob_list[sector_index])
+                    if self.parameter_sharing:
+                        if sector_index == 0:
+                            zero_grad = True
+                        else:
+                            zero_grad = False
+
+                        if sector_index == (self.sector_number-1):
+                            release_graph = True
+                        else:
+                            release_graph = False
+                        self.agent.training_parameter_sharing(self.env.batch_data, Instant_reward, batch_prob_list[sector_index], release_graph, zero_grad)
+                    else:
+                        self.agent_list[sector_index].training(self.env.batch_data, Instant_reward, batch_prob_list[sector_index])
                 
                 batch_average_reward.append(np.mean(Instant_reward))
 

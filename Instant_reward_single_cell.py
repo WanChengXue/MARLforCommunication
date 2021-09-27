@@ -86,6 +86,7 @@ def calculate_instant_reward(channel_matrix, user_scheduling_matrix, legal_range
         selected_channel_matrix = select_sub_channel_matrix(complex_channel_matrix, bool_scheduling_matrix)
         sector_power = transmite_power/scheduled_user_number
         precoding_channel_matrix, unitary_matrix = calculate_precoding_matrix(selected_channel_matrix)
+        # precoding_channel_matrix, unitary_matrix = calculate_precoding_matrix_ZF(selected_channel_matrix)
         user_instant_SE = calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, unitary_matrix, sector_power, noise_power, sector_number, user_number)
     return np.sum(user_instant_SE)
 

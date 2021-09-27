@@ -87,6 +87,36 @@ class Agent:
         action, prob = self.actor(channel_matrix.unsqueeze(0), user_average_reward.unsqueeze(0))
         return action, prob
 
+    def training_parameter_sharing(self, batch_data, reward, prob, release_graph, zero_grad):
+        batch_data = torch.FloatTensor(batch_data).to(self.device).transpose(2,3).reshape(self.batch_size, self.sector_number **2, self.user_number, self.bs_antennas*2)
+        reward = torch.FloatTensor(reward).to(self.device).unsqueeze(-1)
+        reward  = reward / (1e-6 + torch.max(reward))
+        v_Value = self.critic(batch_data)
+        v_loss =  self.critic_loss(v_Value, reward)
+        # 更新policy网络
+        p_loss = -torch.mean((reward - v_Value.detach()) * prob.unsqueeze(-1))
+        if zero_grad:   
+            self.optimizer_actor.zero_grad()
+        if release_graph:
+            p_loss.backward()
+        else:
+            p_loss.backward(retain_graph=True)
+
+        if zero_grad:
+            self.optimizer_critic.zero_grad()
+            
+        if release_graph:
+            v_loss.backward()
+            self.optimizer_critic.step()
+            self.optimizer_actor.step()
+            self.writer.add_scalar(self.actor_loss_path, p_loss.item(), self.update_policy_net_count)
+            self.writer.add_scalar(self.critic_loss_path, v_loss.item(), self.update_value_net_count)
+            self.update_policy_net_count += 1
+            self.update_value_net_count += 1
+            self.actor_lr = max(self.actor_min_lr, self.actor_lr * (1-self.actor_lr_decay))
+            self.critic_lr = max(self.critic_min_lr, self.critic_lr * (1-self.critic_lr_decay))
+        
+
     def training(self, batch_data, reward, prob):
         batch_data = torch.FloatTensor(batch_data).to(self.device).transpose(2,3).reshape(self.batch_size, self.sector_number **2, self.user_number, self.bs_antennas*2)
         reward = torch.FloatTensor(reward).to(self.device).unsqueeze(-1)
@@ -107,7 +137,7 @@ class Agent:
         self.update_value_net_count += 1
         self.actor_lr = max(self.actor_min_lr, self.actor_lr * (1-self.actor_lr_decay))
         self.critic_lr = max(self.critic_min_lr, self.critic_lr * (1-self.critic_lr_decay))
-        
+
 
     def Learning(self, agent_index=None):
         # first smaple trajectory from replay buffer
