@@ -91,8 +91,8 @@ def simulation(args):
         scheduling_sequence.append(ga_scheduling_sequence)
         SE.append(ga_max_se)
     # 路径格式，data_part/preprocess_data/Greedy_result/用户数目/移动速度/
-    Sum_se_path = args.greedy_folder / 'Global_greedy_sum_SE'
-    Scheduling_path = args.greedy_folder / 'Global_greedy_shceduling_sequence'
+    Sum_se_path = args.greedy_folder / 'GA_sum_SE'
+    Scheduling_path = args.greedy_folder / 'GA_shceduling_sequence'
     np.save(Sum_se_path, np.array(SE))
     np.save(Scheduling_path, np.stack(scheduling_sequence, axis=0))
 
