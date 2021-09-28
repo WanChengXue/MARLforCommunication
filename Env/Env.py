@@ -21,13 +21,13 @@ class Environment:
         self.tau = self.args.tau
         self.TTI_length = self.args.TTI_length
         self.transmit_power = [self.args.transmit_power] * self.agent_number
-        self.noise_spectrum_density = self.args.noise_spectrum_density
-        self.system_bandwidth = self.args.system_bandwidth
-        self.subcarriers_numbers = self.args.subcarrier_numbers
-        self.subcarrier_gaps = self.args.subcarrier_gaps
-        # 计算单个载波的频带宽度
-        self.subcarrier_bandwidth = self.system_bandwidth / self.subcarriers_numbers - self.subcarrier_gaps
-        self.noise_power = self.noise_spectrum_density * self.subcarrier_bandwidth
+        self.noise_power = self.args.noise_spectrum_density
+        # self.system_bandwidth = self.args.system_bandwidth
+        # self.subcarriers_numbers = self.args.subcarrier_numbers
+        # self.subcarrier_gaps = self.args.subcarrier_gaps
+        # # 计算单个载波的频带宽度
+        # self.subcarrier_bandwidth = self.system_bandwidth / self.subcarriers_numbers - self.subcarrier_gaps
+        # self.noise_power = self.noise_spectrum_density * self.subcarrier_bandwidth
         self.data_folder = self.args.data_folder
         # 当使用PF调度的时候，所有用户的average sum rate进行初始化
         self.rank_button = self.args.rank_start
