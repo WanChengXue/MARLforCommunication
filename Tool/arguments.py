@@ -2,12 +2,12 @@ import argparse
 import torch
 import math
 
-def get_common_args():
+def get_common_args(user_numbers):
     # flag = torch.cuda.is_available()
     flag = True
     parser = argparse.ArgumentParser()
     # the environment setting
-    parser.add_argument('--user_numbers', type=int, default=20, help='the number of users of single cell')
+    parser.add_argument('--user_numbers', type=int, default=user_numbers, help='the number of users of single cell')
     parser.add_argument('--user_antennas', type=int, default=1, help='the number of user antennas')
     parser.add_argument('--user_velocity', type=int, default=3, help='the velocity of user movement')
     parser.add_argument('--bs_antennas',type=int, default=16, help='the number of base station antennas')

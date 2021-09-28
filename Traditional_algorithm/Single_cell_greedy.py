@@ -3,6 +3,10 @@ from matplotlib.pyplot import axis
 import numpy as np
 from tqdm import tqdm
 import os 
+import sys
+current_path = os.path.abspath(__file__)
+root_path = '/'.join(current_path.split('/')[:-2])
+sys.path.append(root_path)
 import shutil
 from multiprocessing import Pool
 import copy
@@ -96,7 +100,7 @@ def simulation(args):
 #     args_list = []
 #     for user_index in user_number:
 #         for velocity_index in velocity:
-#             common_args = get_common_args()
+#             common_args = get_common_args(user_number)
 #             common_args.data_folder = common_args.data_folder + user_index +'/' + velocity_index
 #             common_args.greedy_folder = common_args.greedy_folder + user_index + '/' + velocity_index + '/'  + 'Greedy_PF_result/'
 #             common_args.TTI_length = 200
@@ -123,8 +127,8 @@ def main():
     # 修改用户的数量和用户移动速度
     user_number = int(user_index.split('_')[0])
     velocity_number = int(velocity_index.split('K')[0])
-    common_args = get_common_args()
-    common_args.user_numbers = user_number
+    common_args = get_common_args(user_number)
+    # common_args.user_numbers = user_number
     common_args.user_velocity = velocity_number
     common_args.testing_path = pathlib.Path(common_args.training_data_path)/(str(common_args.user_numbers) + '_user')/(str(common_args.user_velocity)+'KM')/'testing_data_10_10.npy'
     common_args.greedy_folder = pathlib.Path(common_args.greedy_folder)/(str(common_args.user_numbers) + '_user')/(str(common_args.user_velocity)+'KM')

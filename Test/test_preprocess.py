@@ -11,7 +11,7 @@ def create_data_folder(data_folder):
     # 这个函数用来判断文件夹存不存在，如果存在，则删除，然后创建，如果不存在，则直接创建
     if os.path.exists(data_folder):
         shutil.rmtree(data_folder)
-    os.makedirs(data_folder)
+    data_folder.mkdir(parents=True, exist_ok=True)
 
 def preprocess_data(active_file, user_antenna_number):
     # 这个文件就是对信道文件进行处理，信道文件是.mat文件
@@ -44,12 +44,12 @@ def preprocess_single_file(folder_name, data_folder, user_antenna_number=2):
         if "CH3D" in file_name:
             target_file_position = folder_name / file_name
             TTI_file_result =  preprocess_data(target_file_position, user_antenna_number)
-            assert TTI_file_result.shape == (3,20,3,32,1000)
+            assert TTI_file_result.shape == (3,30,3,32,1000)
             file_result.append(TTI_file_result)
     print("========== 开始对测试数据集进行处理 ===========")
     testing_episode_data = preprocess_data(folder_name / testing_file, user_antenna_number)
     training_episode_data = np.concatenate(tuple(file_result), -1)
-    assert training_episode_data.shape == (3,20,3,32,10000)
+    assert training_episode_data.shape == (3,30,3,32,10000)
     save_name_traning_file = data_folder / 'traning_data_10_10.npy'
     save_name_testing_file = data_folder / 'testing_data_10_10.npy'
     np.save(save_name_traning_file, training_episode_data)
@@ -64,7 +64,7 @@ if __name__ =='__main__':
     # user_number = ['10_user','20_user','30_user','40_user']
     
     # user_number = ['10_user','20_user','30_user']
-    user_number = ['20_user']
+    user_number = ['30_user']
     # velocity = ['3KM','30KM','90KM']
     velocity = ['30KM']
     source_data_folder = []

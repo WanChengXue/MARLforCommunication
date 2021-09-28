@@ -27,7 +27,7 @@ def multiprocessing_training(index):
     # 修改用户的数量和用户移动速度
     user_number = int(user_index.split('_')[0])
     velocity_number = int(velocity_index.split('K')[0])
-    common_args = get_common_args()
+    common_args = get_common_args(user_number)
     common_args.user_numbers = user_number
     common_args.user_velocity = velocity_number
     common_args.parameter_sharing = False

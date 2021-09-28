@@ -13,9 +13,12 @@ class Agent:
     def __init__(self, args, index):
         self.args = args
         self.device = "cuda" if self.args.cuda else "cpu"
+        self.sector_number = self.args.sector_number
+        self.user_number =  self.args.user_numbers
+        self.bs_antennas = self.args.bs_antennas
         # 定义一个通用的智能体出来
         # self.actor = Transformer(self.args).to(self.device)
-        self.actor = Actor(self.args).to(self.device)
+        self.actor = Actor(self.args, (1, self.sector_number, self.user_number, self.bs_antennas*2)).to(self.device)
         self.critic = Critic(self.args).to(self.device)
         self.index = index
         self.parameter_sharing = self.args.parameter_sharing
@@ -51,9 +54,8 @@ class Agent:
         self.critic_loss = torch.nn.MSELoss()
         self.eps = 1e-12
         self.batch_size = self.args.batch_size
-        self.sector_number = self.args.sector_number
-        self.user_number =  self.args.user_numbers
-        self.bs_antennas = self.args.bs_antennas
+        print(self.actor)
+        print(self.critic)
 
         
 
@@ -97,7 +99,7 @@ class Agent:
         p_loss = -torch.mean((reward - v_Value.detach()) * prob.unsqueeze(-1))
         if zero_grad:   
             self.optimizer_actor.zero_grad()
-            
+
         if release_graph: 
             p_loss.backward()
         else:

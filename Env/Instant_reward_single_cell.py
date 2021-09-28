@@ -19,6 +19,7 @@ def rebuild_channel_matrix(channel_matrix):
     imag_part = channel_matrix[:,bs_antenna_number:]
     return real_part + 1j * imag_part
 
+
 def select_sub_channel_matrix(channel_matrix, bool_user_scheduling_matrix):
     sector_number = bool_user_scheduling_matrix.shape[0]
     # channel_matrix的维度为3*20*3*16
@@ -41,35 +42,35 @@ def calculate_precoding_matrix_ZF(selected_channel_matrix):
     return precoding_matrix, unitary_matrix
 
 
-def calculate_precoding_matrix(selected_channel_matrix):
+def calculate_precoding_matrix(selected_channel_matrix, noise_power, transmit_power):
     sector_number = len(selected_channel_matrix)
     precoding_matrix = []
-    unitary_matrix = []
     for sector_id in range(sector_number):
         # 将这个扇区的信道矩阵拿出来
         sector_channel_matrix = selected_channel_matrix[sector_id]
-        # 进行svd分解
-        u, sigma, v = np.linalg.svd(sector_channel_matrix)
-        user_number = sigma.shape[0]
-        precoding_matrix.append(v[:user_number,:].T.conj())
-        unitary_matrix.append(u.T.conj())
-    return precoding_matrix, unitary_matrix
+        bs_antennas = sector_channel_matrix.shape[-1]
+        sector_channel_matrix_conjugate = sector_channel_matrix.T.conj()
+        pseudo_inverse_matrix = np.linalg.pinv(sector_channel_matrix_conjugate.dot(sector_channel_matrix) + noise_power/transmit_power * np.eye(bs_antennas)).dot(sector_channel_matrix_conjugate)
+        F_norm_square = np.linalg.norm(pseudo_inverse_matrix, 'fro') 
+        precoding_matrix.append(pseudo_inverse_matrix / F_norm_square * np.sqrt(transmit_power))
+    return precoding_matrix
 
 
 # @ti.func
-def calculate_single_user_SE(unitary_matrix, precoding_matrix, selected_channel_matrix,sector_index, sector_power, noise_power):
-    sector_unitary_matrix = unitary_matrix[sector_index]
-    current_sector_recieve_signal = sector_unitary_matrix.dot(selected_channel_matrix[sector_index]).dot(precoding_matrix[sector_index])
-    efficiency_recieve_signal = np.abs(np.diag(current_sector_recieve_signal)) ** 2 * sector_power[sector_index]
-    SINR = efficiency_recieve_signal / (noise_power)
+def calculate_single_user_SE(precoding_matrix, selected_channel_matrix, noise_power):
+    current_sector_recieve_signal = selected_channel_matrix.dot(precoding_matrix)
+    recieve_signal_energy = np.abs(current_sector_recieve_signal) ** 2
+    efficiency_recieve_signal = np.diag(recieve_signal_energy)
+    intra_cell_interference = np.sum(recieve_signal_energy, -1) - efficiency_recieve_signal
+    SINR = efficiency_recieve_signal / (noise_power + intra_cell_interference)
     return np.log(1 + SINR)
 
 # @ti.kernel
-def calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, unitary_matrix, sector_power, noise_power, sector_number, user_number):
+def calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, noise_power, sector_number, user_number):
     user_instant_SE = np.zeros((sector_number, user_number))
     for sector_index in range(sector_number):
         # 计算一下是第几个扇区，以及是第几个用户
-        scheduling_user_instant_SE = calculate_single_user_SE(unitary_matrix, precoding_channel_matrix, selected_channel_matrix, sector_index, sector_power, noise_power)
+        scheduling_user_instant_SE = calculate_single_user_SE(precoding_channel_matrix[sector_index], selected_channel_matrix[sector_index], noise_power)
         user_instant_SE[sector_index,bool_scheduling_matrix[sector_index]] = scheduling_user_instant_SE
         
     return user_instant_SE
@@ -84,10 +85,10 @@ def calculate_instant_reward(channel_matrix, user_scheduling_matrix, legal_range
     if legal_sheduling_bool_flag:
         complex_channel_matrix = rebuild_channel_matrix(channel_matrix)
         selected_channel_matrix = select_sub_channel_matrix(complex_channel_matrix, bool_scheduling_matrix)
-        sector_power = transmite_power/scheduled_user_number
-        precoding_channel_matrix, unitary_matrix = calculate_precoding_matrix(selected_channel_matrix)
+        # sector_power = transmite_power/scheduled_user_number
+        precoding_channel_matrix = calculate_precoding_matrix(selected_channel_matrix, noise_power, transmite_power)
         # precoding_channel_matrix, unitary_matrix = calculate_precoding_matrix_ZF(selected_channel_matrix)
-        user_instant_SE = calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, unitary_matrix, sector_power, noise_power, sector_number, user_number)
+        user_instant_SE = calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, noise_power, sector_number, user_number)
     return np.sum(user_instant_SE)
 
 

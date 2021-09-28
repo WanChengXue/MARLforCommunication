@@ -1,6 +1,6 @@
 # 这个文件用来对信道矩阵进行数据的预处理
 import os
-import multiprocessing
+import pathlib
 from multiprocessing import Pool
 import shutil
 import numpy as np
@@ -11,7 +11,7 @@ def create_data_folder(data_folder):
     # 这个函数用来判断文件夹存不存在，如果存在，则删除，然后创建，如果不存在，则直接创建
     if os.path.exists(data_folder):
         shutil.rmtree(data_folder)
-    os.makedirs(data_folder)
+    data_folder.mkdir(parents=True, exist_ok=True)
 
 def preprocess_data(active_file, user_antenna_number):
     # 这个文件就是对信道文件进行处理，信道文件是.mat文件
@@ -27,74 +27,62 @@ def preprocess_data(active_file, user_antenna_number):
     tilde_H = H_matrix[0,:,:,:,:,:,:,:,:].squeeze()
     # 现在这个tilde_H变量的形状为(3,3,10,3,3,32,50)
     # 现在将对上面这个矩阵进行拆分,一个小区一个小区这样子,那么显然是根据源扇区进行拆分
-    base_station_number = tilde_H.shape[3]
-    cell_number = tilde_H.shape[4]
-    antenna_number = tilde_H.shape[5]
-    TTI_number = tilde_H.shape[6]
-    result = []
-    for bs_index in range(base_station_number):
-        for cell_index in range(cell_number):
-            temp_result = tilde_H[bs_index,cell_index,:,:,:,:,:].squeeze()
-            # 这个temp_result的维度是user_numbers * 3*3 *32*50
-            # temp_result_reshape = temp_result.reshape(real_user_number, user_antenna_number,  base_station_number, TTI_number)
-            result.append(np.concatenate((np.real(temp_result), np.imag(temp_result)), axis=3)) 
-            # 得到一个长度为三的列表，列表中的每一个元素都是长度为user_numbers *3* 3*32*50的矩阵
+    result = np.concatenate((np.real(tilde_H), np.imag(tilde_H)), axis=3)
+    # 得到一个长度为三的列表，列表中的每一个元素都是长度为user_numbers *3* 3*32*1000的矩阵
     return result
 
 def preprocess_single_file(folder_name, data_folder, user_antenna_number=2):
-    print("Start: ===========" + folder_name + "===========")
+    print("Start: ===========" + str(folder_name) + "===========")
     # 由于每一个文件夹里面有多个个CH开头的mat文件，直接遍历这三个文件
     file_list_len = len(sorted(os.listdir(folder_name)))
     file_list = ["CH3D_"+str(i+1) +'.mat' for i in range(file_list_len)]
+    training_file = file_list[:-1]
+    testing_file = file_list[-1]
     file_result = []
-    for file_name in tqdm(file_list):
+    print("========== 开始对训练数据集进行处理 ===========")
+    for file_name in tqdm(training_file):
         if "CH3D" in file_name:
-            target_file_position = folder_name + '/' + file_name
+            target_file_position = folder_name / file_name
             TTI_file_result =  preprocess_data(target_file_position, user_antenna_number)
+            assert TTI_file_result.shape == (3,30,3,32,1000)
             file_result.append(TTI_file_result)
-    file_number = len(file_result)
-    file_result = np.array(file_result) # (22,9)
-    bs_number = file_result.shape[3]
-    cell_number = file_result.shape[4]
-    # 上面两个变量，一个表示的是CH3D信道文件的数量，另外一个表示的是小区的数目
-    count = 0
-    for bs_index in range(bs_number):
-        for cell_index in range(cell_number):
-            temp_dataset = tuple([file_result[CH_index , count, :, :, :, :, :] for CH_index in range(file_number)])
-            episode_data = np.concatenate(temp_dataset, axis=-1)
-            save_name = data_folder + '/' + '10_10' + '_' + str(bs_index) + '_' + str(cell_index)
-            if os.path.exists(save_name + '.npy'):
-                os.remove(save_name + '.npy')
-            np.save(save_name+ '.npy', episode_data)
-            count += 1
-    print("End: =============" + folder_name + "===========")
-
+    print("========== 开始对测试数据集进行处理 ===========")
+    testing_episode_data = preprocess_data(folder_name / testing_file, user_antenna_number)
+    training_episode_data = np.concatenate(tuple(file_result), -1)
+    assert training_episode_data.shape == (3,30,3,32,10000)
+    save_name_traning_file = data_folder / 'training_data_10_10.npy'
+    save_name_testing_file = data_folder / 'testing_data_10_10.npy'
+    np.save(save_name_traning_file, training_episode_data)
+    np.save(save_name_testing_file, testing_episode_data)
+    
 
 if __name__ =='__main__':
-    source_data_path = '../data_part/source_data/'
+    source_data_path = pathlib.Path("../data_part/Source_data")
     # source_data_path = '../data_part/Koopman_predict_dat/
-    save_data_path = '../data_part/data/'
+    save_data_path = pathlib.Path("../data_part/preprocess_data")
     # save_data_path = '../data_part/predict_data/'
-    user_number = ['10_user','20_user','30_user','40_user']
+    # user_number = ['10_user','20_user','30_user','40_user']
+    
     # user_number = ['10_user','20_user','30_user']
-    # user_number = ['40_user']
-    velocity = ['3KM','30KM','90KM']
+    user_number = ['30_user']
+    # velocity = ['3KM','30KM','90KM']
+    velocity = ['30KM']
     source_data_folder = []
     save_data_folder = []
     for user_index in user_number:
         for velocity_index in velocity:
-            channel_position = source_data_path + user_index + '/' + velocity_index  
-            channel_save_position = save_data_path + user_index + '/' + velocity_index  
+            channel_position = source_data_path / user_index / velocity_index  
+            channel_save_position = save_data_path / user_index / velocity_index  
             source_data_folder.append(channel_position)
             create_data_folder(channel_save_position)
             save_data_folder.append(channel_save_position)
     folder_number = len(source_data_folder)
     workers = np.minimum(os.cpu_count() - 1, folder_number)
     # workers = 1
-    pool = Pool(processes=workers)
-    for folder_index in range(folder_number): 
-        pool.apply_async(preprocess_single_file, (source_data_folder[folder_index], save_data_folder[folder_index]))
-    pool.close()
-    pool.join()
-    # preprocess_single_file(source_data_folder[0],  save_data_folder[0])
+    # pool = Pool(processes=workers)
+    # for folder_index in range(folder_number): 
+    #     pool.apply_async(preprocess_single_file, (source_data_folder[folder_index], save_data_folder[folder_index]))
+    # pool.close()
+    # pool.join()
+    preprocess_single_file(source_data_folder[0],  save_data_folder[0])
     # preprocess_single_file(relative_position[0])

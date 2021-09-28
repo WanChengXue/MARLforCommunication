@@ -9,9 +9,10 @@ import math
 from torch.distributions import Categorical
 
 class Actor(nn.Module):
-    def __init__(self, args):
+    def __init__(self, args, input_shape):
         super(Actor, self).__init__()
         self.args = args
+        self.device = "cuda" if self.args.cuda else "cpu"
         # 定义原始信道矩阵的列数
         self.feature_number = self.args.obs_dim2
         self.drop_out = self.args.drop_out
@@ -23,7 +24,7 @@ class Actor(nn.Module):
         self.hidden_dim = self.args.rnn_hidden
         self.weight_dim = self.args.weight_dim
         self.rnn_input_dim = self.args.rnn_input_dim
-        self.flatten_dim = self.args.flatten_dim
+        # self.flatten_dim = self.args.flatten_dim
         # 定义一个embbeding layer
         self.embbeding_layer = nn.Embedding(3, self.rnn_input_dim)
         # 其中第一个向量表示的是
@@ -31,10 +32,10 @@ class Actor(nn.Module):
         self.Encoder_conv_layer = nn.Conv2d(self.input_channel, self.output_channel, self.kernel_size, self.stride)
         self.Encoder_maxpool_layer = nn.MaxPool2d(self.maxpool_kernel_size, self.stride)
         self.Encoder_flatten = nn.Flatten(start_dim=2)
+        self.flatten_dim = self.output_dimension(input_shape)
         self.Encoder_affine_layer = nn.Linear(self.flatten_dim, self.rnn_input_dim)
         self.Encoder = nn.GRU(self.rnn_input_dim, self.hidden_dim, batch_first=True)
         self.Decoder = nn.GRU(self.rnn_input_dim, self.hidden_dim, batch_first=True)
-        self.device = "cuda" if self.args.cuda else "cpu"
         self.Encoder_init_input = Parameter(torch.randn(1,1,self.hidden_dim))
         # define key matrix W_k and query matrix W_q
         self.W_k = Parameter(torch.randn(1, self.weight_dim, self.hidden_dim))
@@ -45,6 +46,13 @@ class Actor(nn.Module):
         self.drop_rnn_out = nn.Dropout(self.drop_out)
         self.drop_rnn_hidden = nn.Dropout(self.drop_out)
         self.eps = 1e-12
+
+    def output_dimension(self, input_shape):
+        test = torch.rand(*input_shape)
+        Encoder_conv_channel = self.Encoder_conv_layer(test)
+        Encoder_maxpool_channel = self.Encoder_maxpool_layer(Encoder_conv_channel)
+        Encoder_flatten_channel = self.Encoder_flatten(Encoder_maxpool_channel)
+        return Encoder_flatten_channel.shape[-1]
 
     def forward(self, channel_matrix , priority_vector=None, Action=None):
         # user_instant_reward的维度是用户数量乘以1 
@@ -139,12 +147,12 @@ class Critic(nn.Module):
         self.ascend = nn.Linear(self.args.state_dim2, self.args.state_dim2)
         H_in = self.args.state_dim1
         W_in = self.args.state_dim2
-        self.device = "cuda" if self.args.cuda else "cpu"
+        # self.device = "cuda" if self.args.cuda else "cpu"
         self.pre_conv_layer = nn.Conv2d(in_channel, self.args.cell_number, self.pre_kernel_size, self.pre_stride, self.pre_padding)
         in_channel = self.args.cell_number
         conv_layer = nn.ModuleList()
         for layer in range(self.conv_layer_number):
-            conv_layer.append(nn.Conv2d(in_channel, self.kernal_number[layer], self.kernal_size[layer], self.kernal_stride[layer], self.padding_size[layer], self.dilation[layer]).to(self.device))
+            conv_layer.append(nn.Conv2d(in_channel, self.kernal_number[layer], self.kernal_size[layer], self.kernal_stride[layer], self.padding_size[layer], self.dilation[layer]))
             H_out = math.floor((H_in+2*self.padding_size[layer][0]-self.dilation[layer][0]*(self.kernal_size[layer][0]-1)-1)/self.kernal_stride[layer][0]+1)
             W_out = math.floor((W_in+2*self.padding_size[layer][1]-self.dilation[layer][1]*(self.kernal_size[layer][1]-1)-1)/self.kernal_stride[layer][1] + 1)
             H_in = H_out

@@ -99,7 +99,7 @@ def simulation(args):
 #     args_list = []
 #     for user_index in user_number:
 #         for velocity_index in velocity:
-#             common_args = get_common_args()
+#             common_args = get_common_args(user_number)
 #             common_args.data_folder = common_args.data_folder + user_index +'/' + velocity_index
 #             common_args.greedy_folder = common_args.greedy_folder + user_index + '/' + velocity_index + '/'  + 'Greedy_PF_result/'
 #             common_args.TTI_length = 200
@@ -120,14 +120,14 @@ def main():
     user_number_list = ['10_user','20_user','30_user','40_user']
     velocity = ['3KM','30KM','90KM']
     # for index in range(12):
-    index = 4
+    index = 7
     user_index = user_number_list[index // 3]
     velocity_index = velocity[index % 3]
     # 修改用户的数量和用户移动速度
     user_number = int(user_index.split('_')[0])
     velocity_number = int(velocity_index.split('K')[0])
-    common_args = get_common_args()
-    common_args.user_numbers = user_number
+    common_args = get_common_args(user_number)
+    # common_args.user_numbers = user_number
     common_args.user_velocity = velocity_number
     common_args.testing_path = pathlib.Path(common_args.training_data_path)/(str(common_args.user_numbers) + '_user')/(str(common_args.user_velocity)+'KM')/'testing_data_10_10.npy'
     common_args.greedy_folder = pathlib.Path(common_args.greedy_folder)/(str(common_args.user_numbers) + '_user')/(str(common_args.user_velocity)+'KM')
