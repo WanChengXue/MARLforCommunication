@@ -91,7 +91,7 @@ def get_transformer_args(args):
 def get_MADDPG_args(args):
     # 如果算法采用MADDPG,则在此定义网络中的参数
     # 定义epoch的数目
-    args.epoches = 3000
+    args.epoches = 5000
     # 定义episode的是数目
     args.episodes = 1
     # 定义batch size每次采样的长度
@@ -101,7 +101,7 @@ def get_MADDPG_args(args):
     # 定义actor网络中的参数,即pointer network中的网络参数
     
     # 首先定义actor网络的lr以及lr_decay
-    actor_lr = 1e-3
+    actor_lr = 2e-3
     actor_lr_decay = 1e-2
     actor_min_lr = 1e-6
     args.actor_min_lr = actor_min_lr

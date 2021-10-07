@@ -121,7 +121,7 @@ def main():
     user_number_list = ['10_user','20_user','30_user','40_user']
     velocity = ['3KM','30KM','90KM']
     # for index in range(12):
-    index = 4
+    index = 7
     user_index = user_number_list[index // 3]
     velocity_index = velocity[index % 3]
     # 修改用户的数量和用户移动速度

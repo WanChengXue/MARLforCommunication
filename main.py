@@ -34,10 +34,10 @@ def multiprocessing_training(index):
     common_args.user_velocity = velocity_number
     common_args.parameter_sharing = True
     if common_args.cuda:
-        torch.cuda.manual_seed_all(622)
+        torch.cuda.manual_seed_all(22)
     else:
-        torch.manual_seed(622)
-    np.random.seed(622)
+        torch.manual_seed(22)
+    np.random.seed(22)
     # common_args.attention_start = True
     agent_args = get_agent_args(common_args)
     transformer_args = get_transformer_args(agent_args)
@@ -293,4 +293,4 @@ def multiprocessing_training(index):
     training_cell(MADDPG_args)
 
 
-multiprocessing_training(4)
+multiprocessing_training(7)
