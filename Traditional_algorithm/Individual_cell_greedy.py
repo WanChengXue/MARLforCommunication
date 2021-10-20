@@ -21,13 +21,13 @@ class Greedy:
         self.bs_antenna_number = self.args.bs_antennas
         self.user_numbers = self.args.user_numbers
         self.transmit_power = [self.args.transmit_power] * self.agent_number
-        self.noise_spectrum_density = self.args.noise_spectrum_density
-        self.system_bandwidth = self.args.system_bandwidth
-        self.subcarriers_numbers = self.args.subcarrier_numbers
-        self.subcarrier_gaps = self.args.subcarrier_gaps
-        # 计算单个载波的频带宽度
-        self.subcarrier_bandwidth = self.system_bandwidth / self.subcarriers_numbers - self.subcarrier_gaps
-        self.noise_power = self.noise_spectrum_density * self.subcarrier_bandwidth
+        self.noise_power = self.args.noise_spectrum_density
+        # self.system_bandwidth = self.args.system_bandwidth
+        # self.subcarriers_numbers = self.args.subcarrier_numbers
+        # self.subcarrier_gaps = self.args.subcarrier_gaps
+        # # 计算单个载波的频带宽度
+        # self.subcarrier_bandwidth = self.system_bandwidth / self.subcarriers_numbers - self.subcarrier_gaps
+        # self.noise_power = self.noise_spectrum_density * self.subcarrier_bandwidth
         self.legal_range = [self.args.min_stream, self.args.max_stream]
         self.transmit_power = [self.args.transmit_power] * self.agent_number
         self.channel_matrix = channel_matrix
