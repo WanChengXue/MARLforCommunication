@@ -7,7 +7,7 @@ class Actor(nn.Module):
         super(Actor, self).__init__()
         self.args = args
         # 定义原始信道矩阵的列数
-        self.input_channel = self.args.total_obs_matrix_number - 1
+        self.input_channel = self.args.total_obs_matrix_number 
         self.output_channel = self.args.obs_dim1
         self.kernel_size = self.args.actor_kernel_size
         self.stride = self.args.actor_stride
@@ -53,8 +53,8 @@ class Critic(nn.Module):
         # self.reduction = nn.Linear(self.args.state_dim2, self.args.embedding_dim)
         self.ascend = nn.Linear(self.args.state_dim2, self.args.state_dim2)
         # self.device = "cuda" if self.args.cuda else "cpu"
-        self.pre_conv_layer = nn.Conv2d(in_channel, self.args.cell_number, self.pre_kernel_size, self.pre_stride, self.pre_padding)
-        in_channel = self.args.cell_number
+        self.pre_conv_layer = nn.Conv2d(in_channel, self.args.n_agents, self.pre_kernel_size, self.pre_stride, self.pre_padding)
+        in_channel = self.args.n_agents *2 
         conv_layer = []
         for layer in range(self.conv_layer_number):
             conv_layer.append(nn.Conv2d(in_channel, self.kernal_number[layer], self.kernal_size[layer], self.kernal_stride[layer], self.padding_size[layer], self.dilation[layer]))
@@ -62,26 +62,30 @@ class Critic(nn.Module):
         self.conv_layer = nn.ModuleList(conv_layer)
         self.flatten = nn.Flatten()
         conv_output_dim = self.output_dimension(input_shape)
-        self.layer1 = nn.Linear(conv_output_dim, self.args.fc_dim)
+        self.linear_layer = nn.Linear(conv_output_dim, self.args.fc_dim)
         self.output_layer = nn.Linear(self.args.fc_dim, 1)
 
     def output_dimension(self,input_shape):
         test = torch.rand(*input_shape)
-        Encoder_conv_channel = self.Encoder_conv_layer(test)
-        Encoder_maxpool_channel = self.Encoder_maxpool_layer(Encoder_conv_channel)
-        Encoder_flatten_channel = self.Encoder_flatten(Encoder_maxpool_channel)
-        return Encoder_flatten_channel.shape[-1]
+        pre_conv_channel = torch.relu(self.pre_conv_layer(test))
+        argumented_input = torch.cat([pre_conv_channel, pre_conv_channel], 1)
+        conv_result = torch.relu(self.ascend(argumented_input))
+        for layer in range(self.conv_layer_number):
+            conv_result = self.conv_layer[layer](conv_result)
+        flatten_result = self.flatten(conv_result)
+        return flatten_result.shape[-1]
 
 
-    def forward(self, channel):
+    def forward(self, channel, action):
         # 输入的channel是一个81*10*32的信道矩阵，use_instant_reward是一个9*10*1的矩阵
-        # argumented_information = user_instant_reward.unsqueeze(-1).repeat(1,1,1,self.feature_number)
+        # action是一个长度为batch_size * agent numbet * user antennas * 1的一个向量
         pre_conv_channel = torch.relu(self.pre_conv_layer(1e7 *channel))
-        conv_result = torch.relu(self.ascend(pre_conv_channel))
+        argumented_input = torch.cat([pre_conv_channel, action.expand_as(pre_conv_channel)], 1)
+        conv_result = torch.relu(self.ascend(argumented_input))
         for layer in range(self.conv_layer_number):
             conv_result = torch.relu(self.conv_layer[layer](conv_result))
         flatten_result = self.flatten(conv_result)
-        fc_result = torch.relu(self.layer1(flatten_result))
+        fc_result = torch.relu(self.linear_layer(flatten_result))
         V_value = self.output_layer(fc_result)
         return V_value
 

@@ -25,7 +25,9 @@ def multiprocessing_training(index):
     velocity_number = int(velocity_index.split('K')[0])
     common_args = arguments.get_common_args(user_number)
     common_args.user_velocity = velocity_number
-    common_args.commNet_start  = True
+    common_args.maddpg_start = False
+    common_args.commNet_start = False
+    common_args.attention_start = True
     common_args.parameter_sharing = True
     if common_args.cuda:
         torch.cuda.manual_seed_all(22)
@@ -37,14 +39,18 @@ def multiprocessing_training(index):
     if config.maddpg_start:
         from Agent.maddpg_agent import Agent
         config = arguments.get_MADDPG_args(config)
-    if config.transformer_start:
+
+    elif config.transformer_start:
         from Agent.transformer_agent import Agent
         config = arguments.get_transformer_args(config)
+
     elif config.attention_start:
         from Agent.attention_agent import Agent
+
     elif config.commNet_start:
         config = arguments.get_communication_net_args(config)
         from Agent.CommNet_agent import Agent
+
     else:
         from Agent.agent import Agent
 
@@ -67,31 +73,8 @@ def multiprocessing_training(index):
             self.args.writer = SummaryWriter(self.vision_folder)
             # ==========================================================
             self.env = Environment(self.args)
-            if self.args.commNet_start:
-                self.agent = Agent(self.args)
-            else:
-                if self.parameter_sharing:
-                    self.agent = Agent(self.args, 0)   
-                else:
-                    self.agent_list = [Agent(self.args, i) for i in range(self.agent_number)]           
-
-        def load_model(self):
-            if os.path.exists(self.args.model_folder) and os.listdir(self.args.model_folder):
-                if self.parameter_sharing:
-                    policy_net_path = self.args.model_folder + '/'  +  'Agent_' + str(0) +'_policy_net.pkl'
-                    value_net_path = self.args.model_folder + '/' +  'Agent_' + str(0) +'_value_net.pkl'
-                    self.agent.actor.load_state_dict(torch.load(policy_net_path))
-                    self.agent.critic.load_state_dict(torch.load(value_net_path))
-                else:
-                    for agent_id in range(self.agent_number):
-                        policy_net_path = self.args.model_folder +  '/' +  'Agent_' + str(agent_id + 1) +'_policy_net.pkl'
-                        value_net_path = self.args.model_folder + '/' + 'Agent_' + str(agent_id + 1) +'_value_net.pkl'
-                        self.agent_list[agent_id].actor.load_state_dict(torch.load(policy_net_path))
-                        self.agent_list[agent_id].critic.load_state_dict(torch.load(value_net_path)) 
-            else:
-                os.mkdir(self.args.model_folder)
-
-        
+            self.agent = Agent(self.args)
+            
         def Simulation_SE_only(self):
             # 这个函数就是专门正对于Max SE进行采样操作
             batch_average_reward = []
@@ -99,39 +82,10 @@ def multiprocessing_training(index):
                 self.env.Reset_batch()
                 # 将这个channel_data进行划分，得到三个智能体的观测，以及critic的状态
                 obs_list = self.env.get_agent_obs_SE_batch()
-                if self.args.commNet_start:
-                    action_list, batch_prob_list = self.agent.Pick_action_Max_SE_batch(obs_list)
-                else:
-                    action_list = []
-                    batch_prob_list = []
-                    for sector_index in range(self.sector_number):
-                        if self.parameter_sharing:
-                            scheduling_users, prob = self.agent.Pick_action_Max_SE_batch(obs_list[sector_index])
-                        else:
-                            scheduling_users, prob = self.agent_list[sector_index].Pick_action_Max_SE_batch(obs_list[sector_index])
-                        action_list.append(scheduling_users)
-                        batch_prob_list.append(prob)
-                action_list = np.stack(action_list,axis=1)
+                action_list, batch_action = self.agent.Pick_action_Max_SE_batch(obs_list)
+                action_list = np.stack(action_list, axis=1)
                 Instant_reward = self.env.calculate_batch_instant_rewrd(self.env.batch_data, action_list)
-
-                if self.args.commNet_start:
-                    self.agent.training(self.env.batch_data, Instant_reward, batch_prob_list)
-                else:
-                    for sector_index in range(self.sector_number):
-                        if self.parameter_sharing:
-                            if sector_index == 0:
-                                zero_grad = True
-                            else:
-                                zero_grad = False
-
-                            if sector_index == (self.sector_number-1):
-                                release_graph = True
-                            else:
-                                release_graph = False
-                            self.agent.training_parameter_sharing(self.env.batch_data, Instant_reward, batch_prob_list[sector_index], release_graph, zero_grad)
-                        else:
-                            self.agent_list[sector_index].training(self.env.batch_data, Instant_reward, batch_prob_list[sector_index])
-                
+                self.agent.training(self.env.batch_data,Instant_reward, batch_action) 
                 batch_average_reward.append(np.mean(Instant_reward))
 
             plt.figure()
@@ -141,46 +95,53 @@ def multiprocessing_training(index):
             reward_training_path = self.result_folder /'Training_rewrad.npy'
             np.save(reward_training_path, np.array(batch_average_reward))
             # 保存模型到本地
-            self.save_model(ep)
+            self.save_model()
             self.testing_model()
 
         def testing(self):
             self.load_model()
             self.testing_model()
 
-
         def testing_model(self):
             testing_data = np.load(self.testing_data_folder).transpose(4,0,1,2,3)
-            obs = []
-            agent_infer_sequence = []
-            for sector_index in range(self.agent_number):
-                # 每一个元素都是batch_size*20*3*32
-                obs.append(testing_data[:,sector_index,:,:,:])
-                if self.parameter_sharing:
-                    scheduling_users, _ = self.agent.Pick_action_Max_SE_batch(obs[sector_index])
-                else:
-                    scheduling_users, _ = self.agent_list[sector_index].Pick_action_Max_SE_batch(obs[sector_index])
-                agent_infer_sequence.append(scheduling_users)
-            agent_infer_sequence = np.stack(agent_infer_sequence, axis=1)
+            obs_list = [testing_data[:, agent_index, :, :] for agent_index in range(self.agent_number)]
+            action_list, _ = self.agent.Pick_action_Max_SE_batch(obs_list)
+            agent_infer_sequence = np.stack(action_list, axis=1)
             infer_SE = self.env.calculate_batch_instant_rewrd(testing_data, agent_infer_sequence)
             infer_SE_save_path = self.result_folder /'infer_SE.npy'
             np.save(infer_SE_save_path, np.array(infer_SE))
             infer_sequence_save_path = self.result_folder /'infer_sequence.npy'
             np.save(infer_sequence_save_path, np.array(agent_infer_sequence))
 
-        def save_model(self, ep):
+        def save_model(self):
             # save model parameters
             if self.parameter_sharing:
-                policy_net_path = self.args.model_folder/ (str(ep) + '_Agent_' + str(0) +'_policy_net.pkl')
-                value_net_path = self.args.model_folder /(str(ep) + '_Agent_' + str(0) +'_value_net.pkl')
+                policy_net_path = self.args.model_folder/  'policy_net.pkl'
+                value_net_path = self.args.model_folder / 'value_net.pkl'
                 torch.save(self.agent.actor.state_dict(), policy_net_path)
                 torch.save(self.agent.critic.state_dict(), value_net_path)
             else:
                 for agent_id in range(self.agent_number):
-                    policy_net_path = self.args.model_folder/(str(ep) +  '_Agent_' + str(agent_id + 1) +'_policy_net.pkl')
-                    value_net_path = self.args.model_folder /(str(ep) + '_Agent_' + str(agent_id + 1) + '_value_net.pkl')
-                    torch.save(self.agent_list[agent_id].actor.state_dict(), policy_net_path)
-                    torch.save(self.agent_list[agent_id].critic.state_dict(), value_net_path)
+                    policy_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_policy_net.pkl')
+                    torch.save(self.agent.actor[agent_id].state_dict(), policy_net_path)
+                value_net_path = self.args.model_folder /('value_net.pkl')
+                torch.save(self.agent.critic.state_dict(), value_net_path)
+
+        def load_model(self):
+            if os.path.exists(self.args.model_folder) and os.listdir(self.args.model_folder):
+                if self.parameter_sharing:
+                    policy_net_path = self.args.model_folder/  'policy_net.pkl'
+                    value_net_path = self.args.model_folder / 'value_net.pkl'
+                    self.agent.actor.load_state_dict(torch.load(policy_net_path))
+                    self.agent.critic.load_state_dict(torch.load(value_net_path))
+                else:
+                    for agent_id in range(self.agent_number):
+                        policy_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_policy_net.pkl')
+                        self.agent.actor[agent_id].load_state_dict(torch.load(policy_net_path))
+                    value_net_path = self.args.model_folder /('value_net.pkl')
+                    self.agent_list[agent_id].critic.load_state_dict(torch.load(value_net_path)) 
+            else:
+                os.mkdir(self.args.model_folder)
 
 
     def training_cell(args):

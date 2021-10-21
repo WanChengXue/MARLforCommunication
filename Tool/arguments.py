@@ -1,6 +1,5 @@
 import argparse
-import torch
-import math
+
 
 def get_common_args(user_numbers):
     # flag = torch.cuda.is_available()
@@ -37,6 +36,8 @@ def get_common_args(user_numbers):
     parser.add_argument('--attention_start', type=bool, default=False, help='whether attention model start')
     parser.add_argument('--prev_policy_start', type=bool, default=False, help='whether using prev policy')
     parser.add_argument('--commNet_start', type=bool, default=False, help='whether using communication RL')
+    parser.add_argument('--maddpg_start', type=bool, default=False, help='whether using maddpg algorithm')
+    parser.add_argument('--max_SE',type=bool, default=True, help='PF scheduling or MaxSE scheduling')
     # 定义参数共享
     parser.add_argument('--koopman_predict_start',type=bool, default=False, help='whether using koopman predictor')
     parser.add_argument('--parameter_sharing',type=bool, default=True, help="whether using parameter sharing")
@@ -45,7 +46,7 @@ def get_common_args(user_numbers):
     # 定义delay 时长
     parser.add_argument('--delay_time', type=int, default=3, help='channel estimation delay time')
     # 定义epoch的数目
-    parser.add_argument('--epoches', type=int, default=1000, help='Training steps')
+    parser.add_argument('--epoches', type=int, default=5000, help='Training steps')
     parser.add_argument('--episode', type=int, default=200, help='numbers of trajectory samples')
     parser.add_argument('--batch_size', type=int, default=200, help='the numbers of training samples')
     parser.add_argument('--max_buffer_size', type=int, default=200, help='the capacity of replaybuffer')
@@ -71,10 +72,9 @@ def get_agent_args(args):
     # 全局状态的信道矩阵维度和观测矩阵的维度是一样的
     args.obs_matrix_number = args.n_agents
     args.state_matrix_number = args.n_agents * args.n_agents
-    # 这里+1是因为需要加上那个reward向量, 但是容易最大是不需要的
-    args.total_obs_matrix_number = args.obs_matrix_number + 1
+    # 这里+1是因为需要加上那个reward向量, 但是SE最大是不需要的
+    args.total_obs_matrix_number = args.obs_matrix_number if args.max_SE else args.obs_matrix_number + 1
     args.total_state_matrix_number = args.state_matrix_number  
-    args.total_bs_antennas = args.obs_dim2
     args.weight_factor_number = 32
     # 定义策略网络和critic网络中公共部分
 
@@ -100,7 +100,7 @@ def get_agent_args(args):
     args.fc_dim = 32
 
     # 定义actor网络的lr以及lr_decay
-    actor_lr = 2e-3
+    actor_lr = 1e-3
     actor_lr_decay = 1e-2
     actor_min_lr = 1e-6
     args.actor_min_lr = actor_min_lr
