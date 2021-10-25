@@ -25,10 +25,10 @@ def multiprocessing_training(index):
     velocity_number = int(velocity_index.split('K')[0])
     common_args = arguments.get_common_args(user_number)
     common_args.user_velocity = velocity_number
-    common_args.maddpg_start = False
-    common_args.commNet_start = False
-    common_args.attention_start = True
-    common_args.parameter_sharing = True
+    # common_args.maddpg_start = False
+    # common_args.commNet_start = True
+    # common_args.attention_start = True
+    common_args.parameter_sharing = False
     if common_args.cuda:
         torch.cuda.manual_seed_all(22)
     else:

@@ -70,7 +70,7 @@ class Agent:
         batch_data = torch.FloatTensor(batch_data).to(self.device).transpose(2,3).reshape(-1, self.sector_number **2, self.user_number, self.bs_antennas*2)
         reward = torch.FloatTensor(reward).to(self.device).unsqueeze(-1)
         self.writer.add_scalar(self.average_reward, torch.mean(reward).item(), self.update_value_net_count)
-        reward  = (reward - torch.mean(reward))/ (1e-6 + torch.max(reward))
+        reward  = reward/ (1e-6 + torch.max(reward))
         v_Value = self.critic(batch_data)
         v_loss =  self.critic_loss(v_Value, reward)
         self.optimizer_critic.zero_grad()
