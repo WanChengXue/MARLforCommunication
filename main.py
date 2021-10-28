@@ -28,7 +28,7 @@ def multiprocessing_training(index):
     # common_args.maddpg_start = False
     # common_args.commNet_start = True
     # common_args.attention_start = True
-    common_args.parameter_sharing = False
+    common_args.parameter_sharing = True
     if common_args.cuda:
         torch.cuda.manual_seed_all(22)
     else:
@@ -57,6 +57,7 @@ def multiprocessing_training(index):
     class Project:
         def __init__(self, args, Training=True):
             self.args = args
+            self.args.random_steps = 0
             self.args.Training = Training
             self.sector_number = self.args.sector_number
             self.agent_number = self.args.n_agents
@@ -87,7 +88,7 @@ def multiprocessing_training(index):
                 Instant_reward = self.env.calculate_batch_instant_rewrd(self.env.batch_data, action_list)
                 self.agent.training(self.env.batch_data,Instant_reward, batch_action) 
                 batch_average_reward.append(np.mean(Instant_reward))
-
+                self.args.random_steps += 1
             plt.figure()
             plt.plot(batch_average_reward)
             plt.savefig(self.figure_folder /'learning_curve.png')

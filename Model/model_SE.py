@@ -7,7 +7,7 @@ from torch.nn.parameter import Parameter
 import numpy as np
 import math
 from torch.distributions import Categorical
-
+from Tool import utils
 class Actor(nn.Module):
     def __init__(self, args, input_shape):
         super(Actor, self).__init__()
@@ -108,7 +108,11 @@ class Actor(nn.Module):
             # 这个prob_vector的维度是batch_size * 21
             prob_vector = torch.softmax(Weight_vector, -1)
             dist = Categorical(prob_vector)
-            sheduling_user = dist.sample()
+            if self.args.random_steps < self.args.warm_start:
+                # 首先需要找出来没有被选择过的UE,然后随机挑选
+                sheduling_user = torch.LongTensor(utils.random_sample(mask)).to(self.device)
+            else:
+                sheduling_user = dist.sample()
             terminal_flag = batch_sheduling_result[-1] == 0
             sheduling_user[terminal_flag.squeeze(-1)] = 0
             if antenna_index == self.args.max_stream:

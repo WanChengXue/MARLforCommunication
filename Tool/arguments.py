@@ -50,6 +50,7 @@ def get_common_args(user_numbers):
     parser.add_argument('--episode', type=int, default=200, help='numbers of trajectory samples')
     parser.add_argument('--batch_size', type=int, default=200, help='the numbers of training samples')
     parser.add_argument('--max_buffer_size', type=int, default=200, help='the capacity of replaybuffer')
+    parser.add_argument('--warm_start', type=int, default=200, help='random action step')
     args = parser.parse_args()
     # 计算能够支持最大流的数目
     total_user_antennas = args.user_antennas * args.user_numbers

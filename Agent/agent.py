@@ -92,11 +92,11 @@ class Agent:
             else:
                 self.optimizer_actor[agent_index].zero_grad()
                 p_loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_norm_grad)
+                torch.nn.utils.clip_grad_norm_(self.actor[agent_index].parameters(), self.max_norm_grad)
                 self.optimizer_actor[agent_index].step()
             self.writer.add_scalar(self.actor_loss_path[agent_index], p_loss.item(), self.update_policy_net_count)
         
         self.update_policy_net_count += 1
         self.actor_lr = max(self.actor_min_lr, self.actor_lr * (1-self.actor_lr_decay))
         self.critic_lr = max(self.critic_min_lr, self.critic_lr * (1-self.critic_lr_decay))
-
+        
