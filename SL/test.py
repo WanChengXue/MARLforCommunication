@@ -27,8 +27,9 @@ class SL_project:
         self.legal_range = [self.args.min_stream, self.args.max_stream]
         self.transmit_power = [self.args.transmit_power] * self.n_agents
         self.noise_power = self.args.noise_spectrum_density
+        self.lr=self.args.critic_lr
         self.loss_fn = torch.nn.MSELoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.args.critic_lr, weight_decay=self.args.critic_lr_decay)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), self.lr)
         self.epoch = 1000
         self.iter_per_batch = 10
         self.model_folder = pathlib.Path("./Exp/SL_folder/model")
@@ -45,6 +46,7 @@ class SL_project:
         self.writer = SummaryWriter(self.exp_folder)
         self.count = 0
         self.loss_list = []
+        self.test_loss_list = []
 
     def create_foler(self, folder_name):
         if os.path.exists(folder_name):
@@ -54,8 +56,10 @@ class SL_project:
     def random_batch(self):
         batch_index = np.random.choice(self.total_training_sample, self.args.TTI_length, replace=False)
         batch_data = [self.training_data[:,:,:,:,index] for index in batch_index]
-        self.batch_data= np.stack(batch_data, axis=0)
-        self.batch_action = np.stack([np.random.choice(2, (self.args.n_agents, self.args.obs_dim1)) for _ in range(self.args.TTI_length)], axis=0)
+        batch_data= np.stack(batch_data, axis=0)
+        batch_action = np.stack([np.random.choice(2, (self.args.n_agents, self.args.obs_dim1)) for _ in range(self.args.TTI_length)], axis=0)
+        return batch_data, batch_action
+
 
     def calculate_batch_instant_rewrd(self, batch_channel, batch_action):
         batch_instant_reward = []
@@ -65,52 +69,130 @@ class SL_project:
         return batch_instant_reward
 
     def generate_data(self):
-        self.random_batch()
-        self.label_value = self.calculate_batch_instant_rewrd(self.batch_data, self.batch_action)
+        # 预先生成一千零一个batch,然后将其中1000个作为训练
+        self.batch_data = []
+        self.batch_action = []
+        self.batch_label_value = []
+        print("================ 正在生成训练数据和测试数据 ===================")
+        for _ in tqdm(range(self.args.data_batch_number)):
+            single_batch_data, single_batch_action = self.random_batch()
+            self.batch_data.append(single_batch_data)
+            self.batch_action.append(single_batch_action)
+            label_value = self.calculate_batch_instant_rewrd(single_batch_data, single_batch_action)
+            self.batch_label_value.append(label_value)
+        print("================ 正在生成测试数据 ================")
+        self.testing_batch_data = []
+        self.testing_batch_action = []
+        self.testing_batch_label_value = []
+        for _ in tqdm(range(self.args.data_batch_number//10)):
+            testing_batch_data, test_batch_action = self.random_batch()
+            testing_label_value = self.calculate_batch_instant_rewrd(testing_batch_data, test_batch_action)
+            self.testing_batch_data.append(testing_batch_data)
+            self.testing_batch_action.append(test_batch_action)
+            self.testing_batch_label_value.append(testing_label_value)
 
     def training(self):
-        state = torch.FloatTensor(self.batch_data).to(self.device).transpose(2,3).reshape(-1, self.args.sector_number **2, self.args.obs_dim1, self.args.obs_dim2)
-        action = torch.FloatTensor(self.batch_action).to(self.device)
-        label_value = torch.FloatTensor(self.label_value).to(self.device).unsqueeze(-1)
-        # print(label_value)
-        for _ in range(self.iter_per_batch):
+        # batch_loss_list = []
+        batch_mse_loss = []
+        for batch_index in range(self.args.data_batch_number):
+            state = torch.FloatTensor(self.batch_data[batch_index]).to(self.device).transpose(2,3).reshape(-1, self.args.sector_number **2, self.args.obs_dim1, self.args.obs_dim2)
+            action = torch.FloatTensor(self.batch_action[batch_index]).to(self.device)
+            label_value = torch.FloatTensor(self.batch_label_value[batch_index]).to(self.device).unsqueeze(-1)
             predict_value = self.model(state, action)
-            loss = self.loss_fn(predict_value, label_value)
+            mse_loss = self.loss_fn(predict_value, label_value)
+            # loss = torch.mean((predict_value-label_value) / torch.clamp(0.5*(predict_value+label_value), 0.05))
             self.optimizer.zero_grad()
-            loss.backward()
+            mse_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.max_norm_grad)
             self.optimizer.step()
-            self.writer.add_scalar("./Loss_vale", loss.item(), self.count)
-            self.count += 1
-            self.loss_list.append(loss.item())
-            # print(loss.item())
-            
-        
+            # batch_loss_list.append(loss.item())
+            batch_mse_loss.append(mse_loss.item())
+                # print(loss.item())
+        # epoch_average_loss = np.mean(batch_loss_list)  
+        epoch_average_MSE_loss = np.mean(batch_mse_loss)
+        # self.writer.add_scalar("Training/Test_loss_value", epoch_average_loss, self.count)
+        self.writer.add_scalar("Training/Test_MSE_loss_value", epoch_average_MSE_loss, self.count)
+        self.count += 1
+        self.loss_list.append(epoch_average_MSE_loss)
 
 
-    def save_model(self):
-        model_path = self.model_folder/'model.pkl'
+    def save_model(self, ep):
+        model_path = self.model_folder/('epoch_' + str(ep) + '_model.pkl')
         torch.save(self.model.state_dict(), model_path)
 
-    def load_model(self):
-        model_path = self.model_folder/'model.pkl'
+    def load_model(self, ep):
+        model_path = self.model_folder/('epoch_' + str(ep) + '_model.pkl')
         self.model.load_state_dict(torch.load(model_path))
 
     def simulation(self):
-        for _ in tqdm(range(self.epoch)):
-            self.generate_data()
+        self.generate_data()
+        print("============ 进入测试阶段 ==============")
+        for ep in tqdm(range(self.epoch)):
             self.training()
-        self.save_model()
+            self.testing_model()
+            if ep % 20 == 0:
+                print("保存模型, 模型的路径为: {}".format(self.model_folder/('epoch_' + str(ep) + '_model.pkl')))
+                self.save_model(ep)
+            
+            if ep > 200 and ep %50 ==0:
+                self.lr = self.lr / 2
         plt.figure()
         plt.plot(self.loss_list)
         plt.savefig(self.figure_folder/'learning_curve.png')
         plt.close()
+        
+        plt.figure()
+        plt.plot(self.test_loss_list)
+        plt.savefig(self.figure_folder/'testing_curve.png')
+        plt.close()
 
+
+
+    def testing_model(self):
+        # batch_loss_list = []
+        batch_mse_loss = []
+        for batch_index in range(self.args.data_batch_number//10):
+            state = torch.FloatTensor(self.testing_batch_data[batch_index]).to(self.device).transpose(2,3).reshape(-1, self.args.sector_number **2, self.args.obs_dim1, self.args.obs_dim2)
+            action = torch.FloatTensor(self.testing_batch_action[batch_index]).to(self.device)
+            label_value = torch.FloatTensor(self.testing_batch_label_value[batch_index]).to(self.device).unsqueeze(-1)
+            with torch.no_grad():
+                predict_value = self.model(state, action)
+                # loss = torch.mean((predict_value-label_value) / torch.clamp(0.5*(predict_value+label_value), 0.05))
+                mse_loss = self.loss_fn(predict_value, label_value)
+            # batch_loss_list.append(loss.item())
+            batch_mse_loss.append(mse_loss.item())
+        # epoch_average_loss = np.mean(batch_loss_list)   
+        epoch_average_MSE_loss = np.mean(batch_mse_loss)
+        # self.writer.add_scalar("Testing/Test_loss_value", epoch_average_loss, self.count-1)
+        self.writer.add_scalar("Testing/Test_MSE_loss_value", epoch_average_MSE_loss, self.count-1)
+        self.test_loss_list.append(epoch_average_MSE_loss)
+
+    def compare_curve(self):
+        real_value_list = []
+        predict_value_list = []
+        for batch_index in range(self.args.data_batch_number//10):
+            state = torch.FloatTensor(self.testing_batch_data[batch_index]).to(self.device).transpose(2,3).reshape(-1, self.args.sector_number **2, self.args.obs_dim1, self.args.obs_dim2)
+            action = torch.FloatTensor(self.testing_batch_action[batch_index]).to(self.device)
+            with torch.no_grad():
+                predict_value = self.model(state, action)
+            real_value_list += self.testing_batch_label_value[batch_index]
+            predict_value_list += predict_value.cpu().tolist()    
+        plt.figure()
+        plt.plot(predict_value_list, label='predict_value')
+        plt.plot(real_value_list, label='real_value')
+        plt.legend(loc="upper right")
+        plt.savefig(self.figure_folder/'test_result.png')
+        plt.close()
 
 def main():
     args = arguments.get_common_args(20)
     args.user_velocity = 30
     args.mode = 'train'
+    args.TTI_length = 256
+    args.data_batch_number = 20
     config = arguments.get_agent_args(args)
     test_project = SL_project(config)
     test_project.simulation()
+    test_project.compare_curve()
+    
 main()
