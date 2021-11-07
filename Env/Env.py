@@ -155,7 +155,25 @@ class Environment:
 
     def get_agent_obs_SE_batch(self):
         obs = []
-        for sector_index in range(self.agent_number):
-            # 每一个元素都是batch_size*20*3*32
-            obs.append(self.batch_data[:,sector_index,:,:,:])
+        if self.args.ablation_experiment:
+            for sector_index in range(self.agent_number):
+                # 每一个元素都是batch_size*20*3*32
+                if self.args.independent_learning:
+                    obs.append(self.batch_data[:, sector_index,sector_index,:,:])
+                else:
+                    sub_obs = []
+                    for sub_sector_index in range(self.agent_number):
+                        if sector_index == sub_sector_index:
+                            sub_obs.append(self.batch_data[:, sector_index, :, sub_sector_index, :])
+                        else:
+                            sub_obs.append(np.zeros(self.user_num, self.total_antennas))
+
+                    obs.append(np.stack(sub_obs, 1))
+                # obs.append(self.batch_data[:,sector_index,:,:,:])
+        else:
+            for sector_index in range(self.agent_number):
+                if self.args.independent_learning:
+                    obs.append(self.batch_data[:, sector_index, : sector_index, :])
+                else:
+                    obs.append(self.batch_data[:,sector_index,:,:,:])
         return obs

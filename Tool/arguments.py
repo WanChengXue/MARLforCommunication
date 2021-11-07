@@ -10,7 +10,7 @@ def get_common_args(user_numbers):
     parser.add_argument('--user_antennas', type=int, default=1, help='the number of user antennas')
     parser.add_argument('--user_velocity', type=int, default=3, help='the velocity of user movement')
     parser.add_argument('--bs_antennas',type=int, default=16, help='the number of base station antennas')
-    parser.add_argument('--cuda', type=bool, default=flag, help='whether to use the GPU')
+    parser.add_argument('--cuda', type=bool, default=False, help='whether to use the GPU')
     parser.add_argument('--gamma', type=float, default=0.95, help='discount ratio')
     parser.add_argument('--noise_spectrum_density', type=float, default=3.1623e-20, help='the noise power')
     parser.add_argument('--subcarrier_numbers', type=int, default=50, help='the number of subcarriers')
@@ -25,7 +25,10 @@ def get_common_args(user_numbers):
     parser.add_argument('--total_TTI_length', type=int, default=1100, help='the total TTI length of channel data')
     parser.add_argument('--TTI_length',type=int,default=200, help='the TTI length')
     parser.add_argument('--training_data_path', type=str, default="../data_part/preprocess_data", help='the original data folder')
+    parser.add_argument('--mode', type=str, default='train', help='training or testing')
     # 定义算法开关
+    parser.add_argument('--independent_learning', type=bool, default=False, help='whether using independent learning')
+    parser.add_argument('--ablation_experiment', type=bool, default=False, help='whether using ablation experiment')
     parser.add_argument('--PF_start', type=bool, default=False, help='whether we use PF sheduling algorithm')
     parser.add_argument('--rank_start', type=bool, default= False, help='whether start rank priority algorithm')
     parser.add_argument('--weighted_start', type=bool, default=False, help='whether weighted sum algorithm')
@@ -38,6 +41,8 @@ def get_common_args(user_numbers):
     parser.add_argument('--commNet_start', type=bool, default=False, help='whether using communication RL')
     parser.add_argument('--maddpg_start', type=bool, default=False, help='whether using maddpg algorithm')
     parser.add_argument('--max_SE',type=bool, default=True, help='PF scheduling or MaxSE scheduling')
+    parser.add_argument('--beam_size', type= int, default=2, help='the size of beam')
+    parser.add_argument('--decode_sampling_method', type=int, default=0, help='the decode method, 0: sampling, 1: greedy')
     # 定义参数共享
     parser.add_argument('--koopman_predict_start',type=bool, default=False, help='whether using koopman predictor')
     parser.add_argument('--parameter_sharing',type=bool, default=True, help="whether using parameter sharing")
@@ -80,7 +85,7 @@ def get_agent_args(args):
     # 定义策略网络和critic网络中公共部分
 
     # 定义critic网络的相关参数
-    critic_lr = 1e-2
+    critic_lr = 1e-3
     critic_lr_decay = 1e-2
     critic_min_lr = 1e-4
     args.critic_lr = critic_lr
@@ -101,7 +106,7 @@ def get_agent_args(args):
     args.fc_dim = 32
 
     # 定义actor网络的lr以及lr_decay
-    actor_lr = 1e-3
+    actor_lr = 1e-2
     actor_lr_decay = 1e-2
     actor_min_lr = 1e-6
     args.actor_min_lr = actor_min_lr

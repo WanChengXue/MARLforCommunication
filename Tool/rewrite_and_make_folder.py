@@ -9,6 +9,8 @@ def create_folder(folder_name):
     folder_name.mkdir(parents=True, exist_ok=True)
     
 def rewrite_and_make_folder(args):
+    if args.independent_learning:
+        model_matrix_path = pathlib.Path("./Exp/Independent_learning_folder")
     if args.transformer_start:
         model_matrix_path = pathlib.Path("./Exp/Transformer_folder")
     elif args.attention_start:
@@ -40,12 +42,18 @@ def rewrite_and_make_folder(args):
     if args.parameter_sharing:
         Matrix_model_folder = algorithm_matrix_path /'Sharing_model' 
         Matrix_vision_folder = algorithm_matrix_path / 'Sharing_exp'
-        Matrix_result_folder = algorithm_matrix_path / 'Sharing_result'
+        if args.ablation_experiment:
+            Matrix_result_folder = algorithm_matrix_path/ 'Ablation_sharing_result'
+        else:
+            Matrix_result_folder = algorithm_matrix_path / 'Sharing_result'
         Matrix_figure_folder = algorithm_matrix_path / 'Sharing_figure' 
     else:
         Matrix_model_folder = algorithm_matrix_path / 'Model' 
         Matrix_vision_folder = algorithm_matrix_path / 'Exp'
-        Matrix_result_folder = algorithm_matrix_path / 'Result'
+        if args.ablation_experiment:
+            Matrix_result_folder = algorithm_matrix_path/ 'Ablation_result'
+        else:
+            Matrix_result_folder = algorithm_matrix_path / 'Result'
         Matrix_figure_folder = algorithm_matrix_path / 'Figure' 
 
 
@@ -55,14 +63,18 @@ def rewrite_and_make_folder(args):
     figure_folder = Matrix_figure_folder / (str(args.total_user_antennas) + '_user_' + str(args.user_velocity) + 'KM')
     # 这个函数将对ArgumentParser中的一些参数进行重新写入,包括Exp,Model,result这三个文件夹
 
-    if args.Training:
+    if args.mode=='train':
         create_folder(model_folder)
         create_folder(result_folder)
         create_folder(figure_folder)
     else:
         Matrix_vision_folder = Matrix_vision_folder /'_eval'
         vision_folder = Matrix_vision_folder /(str(args.total_user_antennas) + '_user_' + str(args.user_velocity) + 'KM')
+    
+    if args.ablation_experiment:
+        create_folder(result_folder)
     create_folder(vision_folder)
+    
     args.model_folder = model_folder
     args.vision_folder = vision_folder
     args.result_folder = result_folder

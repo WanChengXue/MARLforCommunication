@@ -108,9 +108,12 @@ class Actor(nn.Module):
             # 这个prob_vector的维度是batch_size * 21
             prob_vector = torch.softmax(Weight_vector, -1)
             dist = Categorical(prob_vector)
-            if self.args.random_steps < self.args.warm_start:
-                # 首先需要找出来没有被选择过的UE,然后随机挑选
-                sheduling_user = torch.LongTensor(utils.random_sample(mask)).to(self.device)
+            if self.args.Training:
+                if self.args.random_steps < self.args.warm_start:
+                    # 首先需要找出来没有被选择过的UE,然后随机挑选
+                    sheduling_user = torch.LongTensor(utils.random_sample(mask)).to(self.device)
+                else:
+                    sheduling_user = dist.sample()
             else:
                 sheduling_user = dist.sample()
             terminal_flag = batch_sheduling_result[-1] == 0

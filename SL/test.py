@@ -23,6 +23,10 @@ class SL_project:
         self.total_training_sample = self.training_data.shape[-1]
         self.n_agents = args.cell_number * args.sector_number
         self.device = "cuda" if self.args.cuda else "cpu"
+        if self.device:
+            torch.cuda.manual_seed_all(22)
+        else:
+            torch.manual_seed(22)
         self.model = Model(self.args, (1, args.total_state_matrix_number, args.state_dim1, args.obs_dim2)).to(self.device)
         self.legal_range = [self.args.min_stream, self.args.max_stream]
         self.transmit_power = [self.args.transmit_power] * self.n_agents
@@ -30,8 +34,8 @@ class SL_project:
         self.lr=self.args.critic_lr
         self.loss_fn = torch.nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), self.lr)
-        self.epoch = 1000
-        self.iter_per_batch = 10
+        torch.optim.lr_scheduler.ExponentialLR(optimizer=self.optimizer, gamma=0.99)
+        self.epoch = 2000
         self.model_folder = pathlib.Path("./Exp/SL_folder/model")
         self.figure_folder = pathlib.Path("./Exp/SL_folder/figure")
         self.result_folder = pathlib.Path("./Exp/SL_folder/result")
@@ -68,6 +72,12 @@ class SL_project:
             batch_instant_reward.append(calculate_instant_reward(batch_channel[index], batch_action[index], self.legal_range, self.noise_power, self.transmit_power))
         return batch_instant_reward
 
+    def training_set_label_value_normalization(self):
+        mean_value = np.mean(self.batch_label_value)
+        std_value = np.std(self.batch_label_value)
+        self.mean_value = mean_value
+        self.std_value = std_value
+
     def generate_data(self):
         # 预先生成一千零一个batch,然后将其中1000个作为训练
         self.batch_data = []
@@ -80,6 +90,7 @@ class SL_project:
             self.batch_action.append(single_batch_action)
             label_value = self.calculate_batch_instant_rewrd(single_batch_data, single_batch_action)
             self.batch_label_value.append(label_value)
+        # self.training_set_label_value_normalization()
         print("================ 正在生成测试数据 ================")
         self.testing_batch_data = []
         self.testing_batch_action = []
@@ -99,7 +110,8 @@ class SL_project:
             action = torch.FloatTensor(self.batch_action[batch_index]).to(self.device)
             label_value = torch.FloatTensor(self.batch_label_value[batch_index]).to(self.device).unsqueeze(-1)
             predict_value = self.model(state, action)
-            mse_loss = self.loss_fn(predict_value, label_value)
+            # normalized_label_value = (label_value - self.mean_value)/self.std_value
+            mse_loss = self.loss_fn(label_value, predict_value)
             # loss = torch.mean((predict_value-label_value) / torch.clamp(0.5*(predict_value+label_value), 0.05))
             self.optimizer.zero_grad()
             mse_loss.backward()
@@ -111,7 +123,7 @@ class SL_project:
         # epoch_average_loss = np.mean(batch_loss_list)  
         epoch_average_MSE_loss = np.mean(batch_mse_loss)
         # self.writer.add_scalar("Training/Test_loss_value", epoch_average_loss, self.count)
-        self.writer.add_scalar("Training/Test_MSE_loss_value", epoch_average_MSE_loss, self.count)
+        self.writer.add_scalar("Training/Normalized_mse_loss_value", epoch_average_MSE_loss, self.count)
         self.count += 1
         self.loss_list.append(epoch_average_MSE_loss)
 
@@ -130,12 +142,10 @@ class SL_project:
         for ep in tqdm(range(self.epoch)):
             self.training()
             self.testing_model()
-            if ep % 20 == 0:
+            if ep>200 and ep % 20 == 0:
                 print("保存模型, 模型的路径为: {}".format(self.model_folder/('epoch_' + str(ep) + '_model.pkl')))
                 self.save_model(ep)
-            
-            if ep > 200 and ep %50 ==0:
-                self.lr = self.lr / 2
+
         plt.figure()
         plt.plot(self.loss_list)
         plt.savefig(self.figure_folder/'learning_curve.png')
@@ -157,6 +167,7 @@ class SL_project:
             label_value = torch.FloatTensor(self.testing_batch_label_value[batch_index]).to(self.device).unsqueeze(-1)
             with torch.no_grad():
                 predict_value = self.model(state, action)
+                # unnormalized_value = self.std_value * (predict_value + self.mean_value)
                 # loss = torch.mean((predict_value-label_value) / torch.clamp(0.5*(predict_value+label_value), 0.05))
                 mse_loss = self.loss_fn(predict_value, label_value)
             # batch_loss_list.append(loss.item())
@@ -164,7 +175,7 @@ class SL_project:
         # epoch_average_loss = np.mean(batch_loss_list)   
         epoch_average_MSE_loss = np.mean(batch_mse_loss)
         # self.writer.add_scalar("Testing/Test_loss_value", epoch_average_loss, self.count-1)
-        self.writer.add_scalar("Testing/Test_MSE_loss_value", epoch_average_MSE_loss, self.count-1)
+        self.writer.add_scalar("Testing/MSE_loss_value", epoch_average_MSE_loss, self.count-1)
         self.test_loss_list.append(epoch_average_MSE_loss)
 
     def compare_curve(self):
@@ -188,7 +199,7 @@ def main():
     args = arguments.get_common_args(20)
     args.user_velocity = 30
     args.mode = 'train'
-    args.TTI_length = 256
+    args.TTI_length = 2560
     args.data_batch_number = 20
     config = arguments.get_agent_args(args)
     test_project = SL_project(config)
