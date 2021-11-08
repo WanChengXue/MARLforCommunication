@@ -28,6 +28,7 @@ def multiprocessing_training(index):
     # common_args.maddpg_start = False
     # common_args.commNet_start = True
     # common_args.attention_start = True
+    common_args.independent_learning = True
     common_args.parameter_sharing = True
     if common_args.cuda:
         torch.cuda.manual_seed_all(22)
@@ -50,6 +51,8 @@ def multiprocessing_training(index):
     elif config.commNet_start:
         config = arguments.get_communication_net_args(config)
         from Agent.CommNet_agent import Agent
+    elif config.independent_learning:
+        from Agent.Independent_agent import Agent
 
     else:
         from Agent.agent import Agent
@@ -105,7 +108,10 @@ def multiprocessing_training(index):
 
         def testing_model(self):
             testing_data = np.load(self.testing_data_folder).transpose(4,0,1,2,3)
-            obs_list = [testing_data[:, agent_index, :, :] for agent_index in range(self.agent_number)]
+            if self.args.independent_learning:
+                obs_list = [testing_data[:, agent_index, :, agent_index, :] for agent_index in range(self.agent_number)]
+            else:
+                obs_list = [testing_data[:, agent_index, :, :, :] for agent_index in range(self.agent_number)]
             action_list, _ = self.agent.Pick_action_Max_SE_batch(obs_list)
             agent_infer_sequence = np.stack(action_list, axis=1)
             infer_SE = self.env.calculate_batch_instant_rewrd(testing_data, agent_infer_sequence)
@@ -117,16 +123,22 @@ def multiprocessing_training(index):
         def save_model(self):
             # save model parameters
             if self.parameter_sharing:
-                policy_net_path = self.args.model_folder/  'policy_net.pkl'
-                value_net_path = self.args.model_folder / 'value_net.pkl'
-                torch.save(self.agent.actor.state_dict(), policy_net_path)
-                torch.save(self.agent.critic.state_dict(), value_net_path)
+                    policy_net_path = self.args.model_folder/  'policy_net.pkl'
+                    value_net_path = self.args.model_folder / 'value_net.pkl'
+                    torch.save(self.agent.actor.state_dict(), policy_net_path)
+                    torch.save(self.agent.critic.state_dict(), value_net_path)
             else:
                 for agent_id in range(self.agent_number):
                     policy_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_policy_net.pkl')
                     torch.save(self.agent.actor[agent_id].state_dict(), policy_net_path)
-                value_net_path = self.args.model_folder /('value_net.pkl')
-                torch.save(self.agent.critic.state_dict(), value_net_path)
+                    if self.args.independent_learning:
+                        value_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_value_net.pkl')
+                        torch.save(self.agent.critic[agent_id].state_dict(), value_net_path)
+                    else:
+                        if agent_id == 0:
+                            value_net_path = self.args.model_folder /('value_net.pkl')
+                            torch.save(self.agent.critic.state_dict(), value_net_path)
+
 
         def load_model(self):
             if os.path.exists(self.args.model_folder) and os.listdir(self.args.model_folder):
@@ -139,8 +151,13 @@ def multiprocessing_training(index):
                     for agent_id in range(self.agent_number):
                         policy_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_policy_net.pkl')
                         self.agent.actor[agent_id].load_state_dict(torch.load(policy_net_path))
-                    value_net_path = self.args.model_folder /('value_net.pkl')
-                    self.agent_list[agent_id].critic.load_state_dict(torch.load(value_net_path)) 
+                    if self.args.independent_learning:
+                        value_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_value_net.pkl')
+                        self.agent.critic[agent_id].load_state_dict(torch.load(value_net_path))
+                    else:
+                        if agent_id ==0:
+                            value_net_path = self.args.model_folder /('value_net.pkl')
+                            self.agent.critic.load_state_dict(torch.load(value_net_path))
             else:
                 os.mkdir(self.args.model_folder)
 

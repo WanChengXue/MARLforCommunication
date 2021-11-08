@@ -107,7 +107,7 @@ def multiprocessing_training(index):
                             
                     obs_list.append(np.stack(sub_obs, 2))
             else:
-                obs_list = [testing_data[:, agent_index, :, :] for agent_index in range(self.agent_number)]
+                obs_list = [testing_data[:, agent_index, :, agent_index,:] for agent_index in range(self.agent_number)]
             action_list, _ = self.agent.Pick_action_Max_SE_batch(obs_list)
             agent_infer_sequence = np.stack(action_list, axis=1)
             infer_SE = self.env.calculate_batch_instant_rewrd(testing_data, agent_infer_sequence)
@@ -137,9 +137,9 @@ def multiprocessing_training(index):
 
     def testing_cell(args):
         test = Project(args)
-        # test.testing_model()
+        test.testing_model()
         # print(args.user_numbers
-        test.test_agent()
+        # test.test_agent()
     testing_cell(config)
 
 

@@ -6,7 +6,7 @@ from torch.nn.parameter import Parameter
 from torch.distributions import Categorical
 from Tool import utils
 class Actor(nn.Module):
-    def __init__(self, args, input_shape):
+    def __init__(self, args):
         super(Actor, self).__init__()
         self.args = args
         self.device = "cuda" if self.args.cuda else "cpu"
@@ -61,7 +61,7 @@ class Actor(nn.Module):
         Decoder_hidden_vector = Encoder_hidden_vector
         # 定义mask,将已经出现过的用户的概率设置为0
         mask = torch.zeros(batch_size, total_len).to(self.device)
-        batch_sheduling_result = -1*torch.ones(batch_size,1) 
+        batch_sheduling_result = -1*torch.ones(batch_size,1).to(self.device)
         batch_prob_result = 0
         selected_mask = torch.zeros(batch_size, self.args.max_stream+1).to(self.device)
         beam = [(batch_sheduling_result, batch_prob_result, selected_mask, mask, Input_decoder, Decoder_hidden_vector)]
@@ -105,18 +105,12 @@ class Actor(nn.Module):
                 terminal_flag = beam_element[0][:,-1] == 0
                 # 如果说,当前这个beam中,有些batch的调度结果为0,就是说上一次调度过程中,这个batch就是直接终止了,因此,不需要对这个batch进行再次的拓展
                 for beam_index in range(self.args.beam_size):      
-                    beam_candinate_index[:,beam_index][terminal_flag.squeeze(-1)] = 0
+                    beam_candinate_index[:,beam_index][terminal_flag] = 0
                     # beam_candinate_prob[:,beam_index][terminal_flag.squeeze(-1)] = 1
                     if antenna_index == self.args.max_stream:
                         # 这个地方的意思是说,如果遍历到了最后一次决策,那么所有的决策结果都是0,并且将这个决策概率也对应上
                         beam_candinate_index[:,beam_index] = 0
-                        beam_candinate_prob[:,beam_index] = prob_vector[:,0]
-                    if beam_index == 0:
-                        # 这里的想法是说,如果当前这个index是序号是0,对于某些上一次已经是terminal的点而言,就第1一个beam保留这个概率,其余的beam概率都设置的很小
-                        # 这样的话,进行topk操作之时,就只比较一次
-                        
-                    
-                    # 这段操作是说,将原本这个batch size * user number的mask中某些值进行翻转,如果这个用户这次被选择了,对应位置就由0变成1
+
                     mask = beam_element[3].clone()
                     mask.scatter_(1, beam_candinate_index[:,beam_index].unsqueeze(1), 1)
                     # ============================================================================================================== #
@@ -125,10 +119,14 @@ class Actor(nn.Module):
                     selected_mask = beam_element[2].clone()
                     # 这里使用了torch.logical_not函数,传入一个布尔向量,然后取反,由于terminal_flag表示,只有这个batch中出现了0才为True,否则为False
                     # 因此这个地方的意思是说,将那些没有终止的点,所对应的selected_mask的值设置为1,这里是因为取了索引操作,没有什么问题
-                    selected_mask[:,antenna_index][torch.logical_not(terminal_flag.squeeze(-1))] = 1
+                    selected_mask[:,antenna_index][torch.logical_not(terminal_flag)] = 1
                     # 接下来的几行表示,首先将这个当前beam的用户调度向量与root node的用户调度集合进行合并, 然后是修改对应的概率
                     batch_sheduling_result = torch.cat([beam_element[0], beam_candinate_index[:,beam_index].unsqueeze(1)], -1)
-                    batch_prob_result = beam_element[1] + (selected_mask[:,antenna_index]*torch.log(beam_candinate_prob[:,beam_index])).unsqueeze(1)
+                    # 这样一来,对于那些已经是terminate的beam而言, 其拓展出来的第一个beam,就保留这个概率,其余的beam就将这个概率缩减1e12
+                    if beam_index == 0:
+                        batch_prob_result = beam_element[1] + (torch.logical_not(terminal_flag)*torch.log(beam_candinate_prob[:,beam_index])).unsqueeze(-1)
+                    else:
+                        batch_prob_result = beam_element[1] + torch.log(beam_candinate_prob[:,beam_index]).unsqueeze(1) - terminal_flag.unsqueeze(-1) * 1e12
                     # 接下来生成一个selected index矩阵,用来提取数据输入到下一次的PN网络中
                     selected_index = torch.zeros(batch_size, total_len).to(self.device).bool()
                     selected_index.scatter_(1, beam_candinate_index[:,beam_index].unsqueeze(-1), True)  
@@ -136,7 +134,6 @@ class Actor(nn.Module):
                     Input_decoder = Input_encoder[selected_index].unsqueeze(1)
                     beam_candinate.append((batch_sheduling_result, batch_prob_result, selected_mask, mask, Input_decoder, Decoder_hidden_vector))
                     joint_prob_list.append(batch_prob_result)
-
                 # 这个地方我需要根据这个beam_candinate列表中的数据, 进行一次排序操作
             joint_prob = torch.cat(joint_prob_list, -1)
             topk_prob, topk_index = torch.topk(joint_prob, self.args.beam_size)
@@ -159,7 +156,7 @@ class Actor(nn.Module):
                     single_decoder_hidden_vecotor.append(active_single_point[5][:, batch, :].unsqueeze(0))
                 beam.append((torch.cat(single_point_scheduling_result, 0), torch.cat(single_prob_result, 0), torch.cat(single_selected_mask, 0), torch.cat(single_mask, 0), torch.cat(single_input_decoder, 0), torch.cat(single_decoder_hidden_vecotor, 1)))
         # 这个beam[0][0]表示的是调度结果, beam[0][1]表示的是联合概率向量,beam[0][3]其实用不太到,因为这个是batch_size * 17的一个列表, 最后是一个batch_size * 
-        return beam[0][0], beam[0][1], beam[0][2], beam[0][3]
+        return beam[0][1], beam[0][3]
             
 
 class Critic(nn.Module):
@@ -184,7 +181,7 @@ class Critic(nn.Module):
 
     def forward(self, channel):
         # 输入的是一个batch size * user_Numbers * transmit antenna的矩阵
-        tensor_input = torch.FloatTensor(1e6*channel)
+        tensor_input = 1e6*channel
         first_linear_layer = torch.relu(self.linear_layer(tensor_input))
         second_linear_layer = torch.relu(self.linear_layer_2(first_linear_layer))
         flatten_layer = self.flatten_layer(second_linear_layer)

@@ -173,7 +173,7 @@ class Environment:
         else:
             for sector_index in range(self.agent_number):
                 if self.args.independent_learning:
-                    obs.append(self.batch_data[:, sector_index, : sector_index, :])
+                    obs.append(self.batch_data[:, sector_index, :, sector_index, :])
                 else:
                     obs.append(self.batch_data[:,sector_index,:,:,:])
         return obs

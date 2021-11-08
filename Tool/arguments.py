@@ -1,16 +1,15 @@
 import argparse
-
+import torch
 
 def get_common_args(user_numbers):
-    # flag = torch.cuda.is_available()
-    flag = True
+    flag = torch.cuda.is_available()
     parser = argparse.ArgumentParser()
     # the environment setting
     parser.add_argument('--user_numbers', type=int, default=user_numbers, help='the number of users of single cell')
     parser.add_argument('--user_antennas', type=int, default=1, help='the number of user antennas')
     parser.add_argument('--user_velocity', type=int, default=3, help='the velocity of user movement')
     parser.add_argument('--bs_antennas',type=int, default=16, help='the number of base station antennas')
-    parser.add_argument('--cuda', type=bool, default=False, help='whether to use the GPU')
+    parser.add_argument('--cuda', type=bool, default=flag, help='whether to use the GPU')
     parser.add_argument('--gamma', type=float, default=0.95, help='discount ratio')
     parser.add_argument('--noise_spectrum_density', type=float, default=3.1623e-20, help='the noise power')
     parser.add_argument('--subcarrier_numbers', type=int, default=50, help='the number of subcarriers')
@@ -51,7 +50,7 @@ def get_common_args(user_numbers):
     # 定义delay 时长
     parser.add_argument('--delay_time', type=int, default=3, help='channel estimation delay time')
     # 定义epoch的数目
-    parser.add_argument('--epoches', type=int, default=5000, help='Training steps')
+    parser.add_argument('--epoches', type=int, default=1000, help='Training steps')
     parser.add_argument('--episode', type=int, default=200, help='numbers of trajectory samples')
     parser.add_argument('--batch_size', type=int, default=200, help='the numbers of training samples')
     parser.add_argument('--max_buffer_size', type=int, default=200, help='the capacity of replaybuffer')

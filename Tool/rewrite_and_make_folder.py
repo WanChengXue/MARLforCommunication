@@ -11,7 +11,7 @@ def create_folder(folder_name):
 def rewrite_and_make_folder(args):
     if args.independent_learning:
         model_matrix_path = pathlib.Path("./Exp/Independent_learning_folder")
-    if args.transformer_start:
+    elif args.transformer_start:
         model_matrix_path = pathlib.Path("./Exp/Transformer_folder")
     elif args.attention_start:
         model_matrix_path = pathlib.Path("./Exp/Attention_folder")
