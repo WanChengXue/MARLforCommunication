@@ -41,7 +41,7 @@ def get_common_args(user_numbers):
     parser.add_argument('--maddpg_start', type=bool, default=False, help='whether using maddpg algorithm')
     parser.add_argument('--max_SE',type=bool, default=True, help='PF scheduling or MaxSE scheduling')
     parser.add_argument('--beam_size', type= int, default=2, help='the size of beam')
-    parser.add_argument('--decode_sampling_method', type=int, default=0, help='the decode method, 0: sampling, 1: greedy')
+    parser.add_argument('--decoder_sampling', type=int, default=0, help='the decode method, 0: sampling, 1: greedy')
     # 定义参数共享
     parser.add_argument('--koopman_predict_start',type=bool, default=False, help='whether using koopman predictor')
     parser.add_argument('--parameter_sharing',type=bool, default=True, help="whether using parameter sharing")
