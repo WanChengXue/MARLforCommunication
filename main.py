@@ -28,7 +28,7 @@ def multiprocessing_training(index):
     # common_args.maddpg_start = False
     # common_args.commNet_start = True
     # common_args.attention_start = True
-    common_args.independent_learning = True
+    common_args.multi_head_input = True
     common_args.parameter_sharing = True
     if common_args.cuda:
         torch.cuda.manual_seed_all(22)
@@ -53,6 +53,11 @@ def multiprocessing_training(index):
         from Agent.CommNet_agent import Agent
     elif config.independent_learning:
         from Agent.Independent_agent import Agent
+
+    elif config.multi_head_input:
+        config.obs_matrix_number = config.state_matrix_number
+        config.TTI_length = 100
+        from Agent.multi_head_agent import Agent
 
     else:
         from Agent.agent import Agent
@@ -86,15 +91,21 @@ def multiprocessing_training(index):
                 self.env.Reset_batch()
                 # 将这个channel_data进行划分，得到三个智能体的观测，以及critic的状态
                 obs_list = self.env.get_agent_obs_SE_batch()
-                action_list, batch_action = self.agent.Pick_action_Max_SE_batch(obs_list)
+                if self.args.multi_head_input:
+                    action_list, batch_action, v_value_list = self.agent.Pick_action_Max_SE_batch(obs_list)
+                else:
+                    action_list, batch_action = self.agent.Pick_action_Max_SE_batch(obs_list)
                 action_list = np.stack(action_list, axis=1)
                 Instant_reward = self.env.calculate_batch_instant_rewrd(self.env.batch_data, action_list)
-                self.agent.training(self.env.batch_data,Instant_reward, batch_action) 
+                if self.args.multi_head_input:
+                    self.agent.training(Instant_reward, batch_action, v_value_list) 
+                else:
+                    self.agent.training(self.env.batch_data,Instant_reward, batch_action) 
                 batch_average_reward.append(np.mean(Instant_reward))
                 self.args.random_steps += 1
-            plt.figure()
-            plt.plot(batch_average_reward)
-            plt.savefig(self.figure_folder /'learning_curve.png')
+            # plt.figure()
+            # plt.plot(batch_average_reward)
+            # plt.savefig(self.figure_folder /'learning_curve.png')
             # 保存数据到本地
             reward_training_path = self.result_folder /'Training_rewrad.npy'
             np.save(reward_training_path, np.array(batch_average_reward))
@@ -108,11 +119,38 @@ def multiprocessing_training(index):
 
         def testing_model(self):
             testing_data = np.load(self.testing_data_folder).transpose(4,0,1,2,3)
-            if self.args.independent_learning:
+            if self.args.multi_head_input:
+                batch_action = []
+                for i in range(2):
+                    obs_list = []
+                    for sector_index in range(self.agent_number):
+                        sub_obs = []
+                        extra_obs = []
+                        sub_sector_index = sector_index
+                        for _ in range(self.agent_number):
+                            index = sub_sector_index % self.agent_number
+                            sub_obs.append(testing_data[i*500:(i+1)*500, sector_index, :, index, :])
+                            if index == sector_index:
+                                sub_sector_index += 1
+                                continue
+                            else:
+                                # 其中extra_obs中的每一个元素的维度都是batch_size * 20 * 3* 32
+                                extra_obs.append(testing_data[i*500:(i+1)*500, index, :, :, :].transpose(0,2,1,3))
+                                sub_sector_index += 1
+                        # stack之后得到的数据维度为batch size * 3 * user number
+                        stack_sub_obs = np.stack(sub_obs, 1)
+                        obs_list.append(np.concatenate([stack_sub_obs] + extra_obs, 1)) 
+                    with torch.no_grad():
+                        action_list, _, __ = self.agent.Pick_action_Max_SE_batch(obs_list)
+                    batch_action.append(action_list)
+                action_list = [np.concatenate([batch_action[0][agent_index], batch_action[1][agent_index]], 0) for agent_index in range(self.agent_number)]
+            elif self.args.independent_learning:
                 obs_list = [testing_data[:, agent_index, :, agent_index, :] for agent_index in range(self.agent_number)]
+                action_list, _ = self.agent.Pick_action_Max_SE_batch(obs_list)
             else:
                 obs_list = [testing_data[:, agent_index, :, :, :] for agent_index in range(self.agent_number)]
-            action_list, _ = self.agent.Pick_action_Max_SE_batch(obs_list)
+                action_list, _ = self.agent.Pick_action_Max_SE_batch(obs_list)
+            
             agent_infer_sequence = np.stack(action_list, axis=1)
             infer_SE = self.env.calculate_batch_instant_rewrd(testing_data, agent_infer_sequence)
             infer_SE_save_path = self.result_folder /'infer_SE.npy'
@@ -123,41 +161,58 @@ def multiprocessing_training(index):
         def save_model(self):
             # save model parameters
             if self.parameter_sharing:
+                if self.args.multi_head_input:
+                    actor_critic_net_path = self.args.model_folder/'actor_critic_net.pkl'
+                    torch.save(self.agent.actor_critic.state_dict(), actor_critic_net_path)
+                else:
                     policy_net_path = self.args.model_folder/  'policy_net.pkl'
                     value_net_path = self.args.model_folder / 'value_net.pkl'
                     torch.save(self.agent.actor.state_dict(), policy_net_path)
                     torch.save(self.agent.critic.state_dict(), value_net_path)
             else:
                 for agent_id in range(self.agent_number):
-                    policy_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_policy_net.pkl')
-                    torch.save(self.agent.actor[agent_id].state_dict(), policy_net_path)
-                    if self.args.independent_learning:
-                        value_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_value_net.pkl')
-                        torch.save(self.agent.critic[agent_id].state_dict(), value_net_path)
+                    if self.args.multi_head_input:
+                        actor_critic_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_actor_critic_net.pkl')
+                        torch.save(self.agent.actor_critic[agent_id].state_dict(), actor_critic_net_path)
                     else:
-                        if agent_id == 0:
-                            value_net_path = self.args.model_folder /('value_net.pkl')
-                            torch.save(self.agent.critic.state_dict(), value_net_path)
+                        torch.save(self.agent.actor_critic.state_dict(), actor_critic_net_path)
+                        policy_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_policy_net.pkl')
+                        torch.save(self.agent.actor[agent_id].state_dict(), policy_net_path)
+                        if self.args.independent_learning:
+                            value_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_value_net.pkl')
+                            torch.save(self.agent.critic[agent_id].state_dict(), value_net_path)
+                        else:
+                            if agent_id == 0:
+                                value_net_path = self.args.model_folder /('value_net.pkl')
+                                torch.save(self.agent.critic.state_dict(), value_net_path)
 
 
         def load_model(self):
             if os.path.exists(self.args.model_folder) and os.listdir(self.args.model_folder):
                 if self.parameter_sharing:
-                    policy_net_path = self.args.model_folder/  'policy_net.pkl'
-                    value_net_path = self.args.model_folder / 'value_net.pkl'
-                    self.agent.actor.load_state_dict(torch.load(policy_net_path))
-                    self.agent.critic.load_state_dict(torch.load(value_net_path))
+                    if self.args.multi_head_input:
+                        actor_critic_net_path = self.args.model_folder/'actor_critic_net.pkl'
+                        self.agent.actor_critic.load_state_dict(torch.load(actor_critic_net_path))
+                    else:
+                        policy_net_path = self.args.model_folder/  'policy_net.pkl'
+                        value_net_path = self.args.model_folder / 'value_net.pkl'
+                        self.agent.actor.load_state_dict(torch.load(policy_net_path))
+                        self.agent.critic.load_state_dict(torch.load(value_net_path))
                 else:
                     for agent_id in range(self.agent_number):
-                        policy_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_policy_net.pkl')
-                        self.agent.actor[agent_id].load_state_dict(torch.load(policy_net_path))
-                    if self.args.independent_learning:
-                        value_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_value_net.pkl')
-                        self.agent.critic[agent_id].load_state_dict(torch.load(value_net_path))
-                    else:
-                        if agent_id ==0:
-                            value_net_path = self.args.model_folder /('value_net.pkl')
-                            self.agent.critic.load_state_dict(torch.load(value_net_path))
+                        if self.args.multi_head_input:
+                            actor_critic_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_actor_critic_net.pkl')
+                            self.agent.actor_critic.load_state_dict(torch.load(actor_critic_net_path))
+                        else:
+                            policy_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_policy_net.pkl')
+                            self.agent.actor[agent_id].load_state_dict(torch.load(policy_net_path))
+                            if self.args.independent_learning:
+                                value_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_value_net.pkl')
+                                self.agent.critic[agent_id].load_state_dict(torch.load(value_net_path))
+                            else:
+                                if agent_id ==0:
+                                    value_net_path = self.args.model_folder /('value_net.pkl')
+                                    self.agent.critic.load_state_dict(torch.load(value_net_path))
             else:
                 os.mkdir(self.args.model_folder)
 

@@ -31,7 +31,75 @@ class Actor(nn.Module):
         self.drop_rnn_hidden = nn.Dropout(self.drop_out)
         self.eps = 1e-12
 
-    def forward(self, channel_matrix , priority_vector=None, Action=None):
+    def forward(self, channel_matrix):
+        # 输入的channel_matrix的维度是batch_size * 20 * 32
+        # 信道矩阵输入的维度是1*9*用户数目*32， user_instant_reward的维度是用户数目 *1 的一个向量
+        batch_size = channel_matrix.shape[0]
+        seq_len = channel_matrix.shape[1]
+        total_len = seq_len + 1  
+        bos_token_encoder = [[0]] * batch_size
+        bos_token_decoder = [[1]] * batch_size
+        # 维度是batch_size * 1 * flatten_dim
+        bos_vector = self.embbeding_layer(torch.LongTensor(bos_token_encoder).to(self.device))
+        deocder_bos_vector = self.embbeding_layer(torch.LongTensor(bos_token_decoder).to(self.device))
+        # 先过一个线性层,升维
+        linear_transformation = torch.tanh(self.linear_layer(channel_matrix * 1e6))
+        Encoder_linear_data =  torch.relu(linear_transformation)
+        Input_encoder = torch.cat([bos_vector, Encoder_linear_data], 1)
+        Init_encoder = torch.zeros(1, batch_size, self.hidden_dim).to(self.device)
+        # 计算key矩阵,也就是Encoder得到的隐状态矩阵,维度是batch_size * (1+antenna_numbers) * hidden_dim
+        Encoder_hidden_result, Encoder_hidden_vector = self.Encoder(Input_encoder, Init_encoder)
+        # Extend key matrix, query matrix, weight vector
+        Extend_key = self.W_k.repeat(batch_size, 1, 1)
+        Extend_query = self.W_q.repeat(batch_size, 1, 1)
+        Extend_weight_vector = self.Weight_vector.repeat(batch_size, 1, 1)
+        # 计算key matrix, 通过一层affine transformation batch_size * weight_dim * total_seq 
+        Key_matrix = torch.bmm(Extend_key, Encoder_hidden_result.permute(0,2,1))
+        # 初始化Decoder的输入
+        Input_decoder = deocder_bos_vector
+        # 初始化Decoder的隐状态输入 1*batch_size * hidden_dim
+        Decoder_hidden_vector = Encoder_hidden_vector
+        # 定义mask,将已经出现过的用户的概率设置为0
+        mask = torch.zeros(batch_size, total_len).to(self.device)
+        batch_sheduling_result = [-1*torch.ones(batch_size).to(self.device)]
+        batch_prob_result = []
+        selected_mask = torch.zeros(batch_size, self.args.max_stream+1).to(self.device)
+        for antenna_index in range(self.args.max_stream+1):
+            # 第一步使用Decoder进行解码操作
+            Decoder_output_vector, Decoder_hidden_vector = self.Decoder(Input_decoder, Decoder_hidden_vector) 
+            Query_vector = torch.bmm(Extend_query, Decoder_output_vector.permute(0,2,1))
+            # 计算相似矩阵 (batch_size * 32 * 21)
+            Similar_matrix = torch.tanh(Key_matrix + Query_vector)
+            # 计算权重向量 batch_size * 1 * (word_num + 1)
+            Weight_vector = torch.relu(torch.bmm(Extend_weight_vector.permute(0,2,1), Similar_matrix)).squeeze(1)
+            Weight_vector = Weight_vector - 1e7 * mask
+            # 这个prob_vector的维度是batch_size * 21
+            prob_vector = torch.softmax(Weight_vector, -1)
+            dist = Categorical(prob_vector)
+            if self.args.Training:
+                if self.args.random_steps < self.args.warm_start:
+                    # 首先需要找出来没有被选择过的UE,然后随机挑选
+                    sheduling_user = torch.LongTensor(utils.random_sample(mask)).to(self.device)
+                else:
+                    sheduling_user = dist.sample()
+            else:
+                sheduling_user = dist.sample()
+            terminal_flag = batch_sheduling_result[-1] == 0
+            sheduling_user[terminal_flag] = 0
+            if antenna_index == self.args.max_stream:
+                sheduling_user[:] = 0
+            # 将Mask中的某一些值变成1
+            mask.scatter_(1, sheduling_user.unsqueeze(1), 1)
+            selected_mask[:,antenna_index][torch.logical_not(terminal_flag)] = 1
+            batch_sheduling_result.append(sheduling_user)
+            batch_prob_result.append(dist.log_prob(sheduling_user).unsqueeze(1))
+            selected_index = torch.zeros(batch_size, total_len).to(self.device).bool()
+            selected_index.scatter_(1, sheduling_user.unsqueeze(-1), True)  
+            Input_decoder = Input_encoder[selected_index].unsqueeze(1)
+        return  torch.sum(torch.cat(batch_prob_result, -1) * selected_mask, -1).unsqueeze(-1), mask
+        
+
+    def beam_forward(self, channel_matrix , priority_vector=None, Action=None):
         # 输入的channel_matrix的维度是batch_size * 20 * 32
         # 信道矩阵输入的维度是1*9*用户数目*32， user_instant_reward的维度是用户数目 *1 的一个向量
         batch_size = channel_matrix.shape[0]
@@ -95,12 +163,15 @@ class Actor(nn.Module):
                         beam_candinate_prob = torch.cat(beam_candinate_prob, -1)
                     else:
                         if self.args.decoder_sampling == 0:
-                            beam_candinate_prob, beam_candinate_index = torch.topk(prob_vector, self.args.beam_size)
+                            sorted_beam_index = torch.multinomial(prob_vector, self.args.beam_size)
+                            beam_candinate_prob = torch.gather(prob_vector, dim=-1, index=sorted_beam_index)
+                            beam_candinate_index = sorted_beam_index.clone()
                         else:
-                            beam_candinate_index = torch.multinomial(prob_vector, self.args.beam_size)
-                            beam_candinate_prob = torch.gather(prob_vector, dim=-1, index=beam_candinate_index)
+                            beam_candinate_prob, sorted_beam_index = torch.topk(prob_vector, self.args.beam_size)
+                            beam_candinate_index = sorted_beam_index.clone()
                 else:
-                    beam_candinate_prob, beam_candinate_index = torch.topk(prob_vector, self.args.beam_size)
+                    beam_candinate_prob, sorted_beam_index = torch.topk(prob_vector, self.args.beam_size)
+                    beam_candinate_index = sorted_beam_index.clone()
                 # 如果说这个antenna_index的值达到了最大的stream,然后,就需要修改两个地方
                 terminal_flag = beam_element[0][:,-1] == 0
                 # 如果说,当前这个beam中,有些batch的调度结果为0,就是说上一次调度过程中,这个batch就是直接终止了,因此,不需要对这个batch进行再次的拓展

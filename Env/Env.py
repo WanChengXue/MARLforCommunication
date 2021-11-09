@@ -170,6 +170,25 @@ class Environment:
 
                     obs.append(np.stack(sub_obs, 1))
                 # obs.append(self.batch_data[:,sector_index,:,:,:])
+        elif self.args.multi_head_input:
+            for sector_index in range(self.agent_number):
+                sub_obs = []
+                extra_obs = []
+                sub_sector_index = sector_index
+                for _ in range(self.agent_number):
+                    index = sub_sector_index % self.agent_number
+                    sub_obs.append(self.batch_data[:, sector_index, :, index, :])
+                    if index == sector_index:
+                        sub_sector_index += 1
+                        continue
+                    else:
+                        # 其中extra_obs中的每一个元素的维度都是batch_size * 20 * 3* 32
+                        extra_obs.append(self.batch_data[:, index, :, :, :].transpose(0,2,1,3))
+                        sub_sector_index += 1
+                # stack之后得到的数据维度为batch size * 3 * user number
+                stack_sub_obs = np.stack(sub_obs, 1)
+                obs.append(np.concatenate([stack_sub_obs] + extra_obs, 1))    
+
         else:
             for sector_index in range(self.agent_number):
                 if self.args.independent_learning:

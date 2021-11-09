@@ -26,6 +26,7 @@ def get_common_args(user_numbers):
     parser.add_argument('--training_data_path', type=str, default="../data_part/preprocess_data", help='the original data folder')
     parser.add_argument('--mode', type=str, default='train', help='training or testing')
     # 定义算法开关
+    parser.add_argument('--multi_head_input', type=bool, default=False, help='distinguish the agent input')
     parser.add_argument('--independent_learning', type=bool, default=False, help='whether using independent learning')
     parser.add_argument('--ablation_experiment', type=bool, default=False, help='whether using ablation experiment')
     parser.add_argument('--PF_start', type=bool, default=False, help='whether we use PF sheduling algorithm')
@@ -50,8 +51,8 @@ def get_common_args(user_numbers):
     # 定义delay 时长
     parser.add_argument('--delay_time', type=int, default=3, help='channel estimation delay time')
     # 定义epoch的数目
-    parser.add_argument('--epoches', type=int, default=1000, help='Training steps')
-    parser.add_argument('--episode', type=int, default=200, help='numbers of trajectory samples')
+    parser.add_argument('--epoches', type=int, default=3000, help='Training steps')
+    parser.add_argument('--episode', type=int, default=100, help='numbers of trajectory samples')
     parser.add_argument('--batch_size', type=int, default=200, help='the numbers of training samples')
     parser.add_argument('--max_buffer_size', type=int, default=200, help='the capacity of replaybuffer')
     parser.add_argument('--warm_start', type=int, default=200, help='random action step')

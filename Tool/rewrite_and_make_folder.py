@@ -19,6 +19,8 @@ def rewrite_and_make_folder(args):
         model_matrix_path = pathlib.Path("./Exp/CommNet_folder")
     elif args.maddpg_start:
         model_matrix_path = pathlib.Path("./Exp/Maddpg_folder")
+    elif args.multi_head_input:
+        model_matrix_path =  pathlib.Path("./Exp/Multi_head_input_folder")
     else:
         model_matrix_path = pathlib.Path("./Exp/Pointer_network_folder")
 

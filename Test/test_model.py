@@ -37,7 +37,7 @@ def multiprocessing_training(index):
     common_args.mode = 'train'
     # common_args.ablation_experiment = True
     common_args.parameter_sharing = True
-    common_args.independent_learning = True
+    common_args.multi_head_input = True
     if common_args.cuda:
         torch.cuda.manual_seed_all(22)
     else:
@@ -61,6 +61,8 @@ def multiprocessing_training(index):
         from Agent.CommNet_agent import Agent
     elif config.independent_learning:
         from Agent.Independent_agent import Agent
+    elif config.multi_head_input:
+        from Agent.multi_head_agent import Agent
 
     else:
         from Agent.agent import Agent
@@ -89,9 +91,9 @@ def multiprocessing_training(index):
 
 
         def test_agent(self):
-            scheduling_res = self.agent.Pick_action_Max_SE_batch([np.zeros((3,20,32)) for i in range(3)])
-            v_value = self.agent.critic(np.zeros((3,20,32)))
-
+            # scheduling_res = self.agent.Pick_action_Max_SE_batch([np.zeros((3,20,32)) for i in range(3)])
+            # v_value = self.agent.critic(np.zeros((3,20,32)))
+            self.agent.Pick_action_Max_SE_batch([np.zeros((3,20,3,32)) for i in range(3)])
         def testing_model(self):
             testing_data = np.load(self.testing_data_folder).transpose(4,0,1,2,3)
             if self.args.ablation_experiment:
@@ -137,9 +139,9 @@ def multiprocessing_training(index):
 
     def testing_cell(args):
         test = Project(args)
-        test.testing_model()
+        # test.testing_model()
         # print(args.user_numbers
-        # test.test_agent()
+        test.test_agent()
     testing_cell(config)
 
 

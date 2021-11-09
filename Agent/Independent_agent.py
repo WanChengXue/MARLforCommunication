@@ -20,23 +20,23 @@ class Agent:
             self.Replay_buffer = [ReplayBuffer(self.args) for _ in range(self.agent_number)]
             self.actor = Actor(self.args).to(self.device)
             self.optimizer_actor = optim.Adam(self.actor.parameters(), lr=args.actor_lr)
-            torch.optim.lr_scheduler.ExponentialLR(optimizer=self.optimizer_actor, gamma=0.99)
+            torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer_actor, T_max=50)
             print("============ policy network 的网络结构为: ==========")
             print(self.actor)
             self.critic = Critic(self.args, (1, args.state_dim1, args.obs_dim2)).to(self.device)
             self.optimizer_critic = optim.Adam(self.critic.parameters(), lr=args.critic_lr)
-            torch.optim.lr_scheduler.ExponentialLR(optimizer=self.optimizer_critic, gamma=0.99)
+            torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer_critic, T_max=50)
             print("============ value network 的网络结构为: ===========")
             print(self.critic)
         else:
             self.Replay_buffer = ReplayBuffer(self.args)
             self.actor = [Actor(self.args).to(self.device) for _ in range(self.agent_number)]
             self.optimizer_actor = [optim.Adam(self.actor[agent_index].parameters(), lr=args.actor_lr) for agent_index in range(self.agent_number)]
-            self.critic = [Critic(self.args).to(self.device) for _ in range(self.agent_number)]
+            self.critic = [Critic(self.args, (1, args.state_dim1, args.obs_dim2)).to(self.device) for _ in range(self.agent_number)]
             self.optimizer_critic = [optim.Adam(self.critic[agent_index].parameters(), lr=args.critic_lr) for agent_index in range(self.agent_number)]
             for agent_index in range(self.agent_number):
-                torch.optim.lr_scheduler.ExponentialLR(optimizer=self.optimizer_critic[agent_index], gamma=0.99)
-                torch.optim.lr_scheduler.ExponentialLR(optimizer=self.optimizer_actor[agent_index], gamma=0.9)
+                torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer_critic[agent_index], T_max=50)
+                torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer_actor[agent_index], T_max=50)
             print("============ policy network 的网络结构为: ==========")
             print(self.actor[0])
             print("============ value network 的网络结构为: ===========")
@@ -124,5 +124,5 @@ class Agent:
                 self.optimizer_critic[agent_index].step()
             self.writer.add_scalar(self.critic_loss_path[agent_index], v_loss.item(), self.update_count)
             self.writer.add_scalar(self.actor_loss_path[agent_index], policy_loss.item(), self.update_count)
-
+        self.update_count += 1
         
