@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import torchvision
 def conv3x3(in_Planes, out_planes, stride=1, groups=1, dilation=1):
     return nn.Conv2d(in_Planes, out_planes, kernel_size=3, stride=stride, padding=dilation, \
                     groups = groups, bias=False, dilation=dilation)
@@ -14,27 +14,33 @@ class BasicBlock(nn.Module):
         super(BasicBlock, self).__init__()
         # 强化学习不需要normalization操作,因此
         self.conv1 = conv3x3(inplanes, planes, stride)
-        self.relu = nn.ReLU()
+        self.bn1 = nn.BatchNorm2d(planes)
+        # self.relu = nn.ELU()
+        self.activate_function = nn.Tanh()
         self.conv2 = conv3x3(planes, planes)
+        self.bn2 = nn.BatchNorm2d(planes)
         self.downsample = downsample
         self.stride = stride
 
     def forward(self, x):
         identity = x
         out = self.conv1(x)
-        out = self.relu(out)
+        # out = self.bn1(out)
+        out = self.activate_function(out)
+        
         out = self.conv2(out)
+        # out = self.bn2(out)
         if self.downsample is not None:
             # 这个意思是说,如果传入的数据和传出来的数据维度不一样,需要进行一次额外的卷积操作
             identity = self.downsample(x)
         out += identity
-        out = self.relu(out)
+        out = self.activate_function(out)
         return out
 
 class resnet_34(nn.Module):
     def __init__(self):
         super(resnet_34, self).__init__()
-        self.layers = [3,4,6,3]
+        self.layers = [2,2,2,2]
         self.inplanes = 64
         # 构建第一个卷积层
         self.conv_1 = nn.Conv2d(3, 64, 7, 2, padding=3, bias=False)
