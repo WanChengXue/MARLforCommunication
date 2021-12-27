@@ -47,17 +47,22 @@ class data_server(basic_server):
             self.root_subscriber.connect(root_gpu_address)
             self.root_subscriber.setsockopt_string(zmq.SUBSCRIBE, "")
             self.poller.register(self.root_subscriber, zmq.POLLIN)
+
         self.batch_size = self.policy_config["batch_size"]
         self.traj_len = self.policy_config["traj_len"]
         self.pool_capacity = self.policy_config["pool_capacity"]
         if self.test_mode:
             self.pool_capacity = 256
+
         self.traing_set = TrainingSet(self.batch_size, max_capacity=self.pool_capacity)
         self.recv_training_instance_count = 0
         self.start_training = False
         self.socket_time_list = []
         self.parse_data_time_list = []
-        
+        # 定义一个变量,表示如果当前时间大于这个时间,就要进行日志的打印
+        self.next_print_log_time = time.time()
+
+
         # 和plasma 相关的一些变量
         plasma_location = self.config_dict['plasma_server_location']
         plasma_id = generate_plasma_id(self.global_rank, self.data_server_local_rank)
@@ -85,5 +90,34 @@ class data_server(basic_server):
             
             cur_recv_total = 0
             start_process_time = time.time()
+            # 接收数据, 数据加载, 保存到训练集中
             for raw_data in raw_data_list:
-                all_data = pickle.loads(lz4.frame.deco)
+                all_data = pickle.loads(lz4.frame.decompress(raw_data))
+                self.traing_set.append_instance(all_data)
+                cur_recv_total += len(all_data)
+            
+            self.recv_training_instance_count += cur_recv_total
+            self.traing_set.fit_max_size()
+
+            # 考察一下这次有没有数据被接收,看一下这次解析数据消耗了多少时间
+            if len(raw_data_list) > 0:
+                self.parse_data_time_list.append(time.time()-start_process_time)
+            
+            del raw_data_list
+
+        # 日志是每一分钟打印一次的,因此
+        if time.time() > self.next_print_log_time:
+            self.next_print_log_time += 60
+            self.send_log({"data_server/dataserver_recv_instance_per_min/{}".format(self.policy_name): self.recv_training_instance_count})
+            self.send_log({"data_server/dataserver_socket_time_per_min/{}".format(self.policy_name): self.socket_time_list})
+        
+        self.parse_data_time_list = []
+        self.socket_time_list = []
+        self.recv_training_instance_count = 0
+    
+    def sampling_data(self):
+        if self.global_rank == 0:
+            self.logger_handler.info("============== 开始采样 ===============")
+        start_time = time.time()
+        # 这个地方随机采样出一个索引列表
+        
