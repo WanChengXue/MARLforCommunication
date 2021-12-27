@@ -6,6 +6,7 @@ import pickle
 import numpy as np
 import pyarrow.plasma as plasma
 import argparse
+import lz4
 
 from learner.basic_server import basic_server
 from utils.config_parse import parse_config
@@ -85,4 +86,4 @@ class data_server(basic_server):
             cur_recv_total = 0
             start_process_time = time.time()
             for raw_data in raw_data_list:
-                
+                all_data = pickle.loads(lz4.frame.deco)
