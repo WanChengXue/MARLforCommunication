@@ -3,7 +3,7 @@ import pickle
 import zmq
 import time
 
-from learner.basic_server import basic_server
+from Learner.basic_server import basic_server
 from utils import setup_logger
 from utils.zmq_utils import zmq_nonblocking_multipart_recv, zmq_nonblocking_recv
 

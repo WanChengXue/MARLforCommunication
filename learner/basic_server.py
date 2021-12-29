@@ -25,5 +25,25 @@ class basic_server:
             p = pickle.dumps(self.cached_log_list)
             self.log_sender.send(p)
             self.cached_log_list = []
+
+    def send_statistic(self, info, prefix, suffix=None):
+        # 这个prefix表示的是字符串的前缀，suffix表示的是后缀信息
+        if isinstance(info, dict):
+            for key, value in info:
+                self.send_statistic(value, "{}/{}".format(prefix, key), suffix)
+            
+        elif isinstance(info, (tuple, list)):
+            for i, value in enumerate(info):
+                self.send_statistic(value, "{}_{}".format(prefix, i), suffix)
+        
+        else:
+            if suffix is not None:
+                key = "{}/{}".format(prefix, suffix)
+
+            else:
+                key = prefix
+            self.send_log({key: info})
+
+            
         
     

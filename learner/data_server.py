@@ -7,8 +7,9 @@ import numpy as np
 import pyarrow.plasma as plasma
 import argparse
 import lz4
+from zmq.sugar.constants import socket_types
 
-from learner.basic_server import basic_server
+from Learner.basic_server import basic_server
 from utils.config_parse import parse_config
 from utils import setup_logger
 from utils.data_utils import TrainingSet
@@ -55,6 +56,7 @@ class data_server(basic_server):
             self.pool_capacity = 256
 
         self.traing_set = TrainingSet(self.batch_size, max_capacity=self.pool_capacity)
+        # 定义一些相关数据指标
         self.recv_training_instance_count = 0
         self.start_training = False
         self.socket_time_list = []
@@ -121,3 +123,12 @@ class data_server(basic_server):
         start_time = time.time()
         # 这个地方随机采样出一个索引列表
         
+    def run(self):
+        self.logger_handler.info("================= 数据服务启动，对应的是第{}张卡，数据服务索引为{} ==============".format(self.local_rank, self.data_server_local_rank))
+        self.logger_handler.info("================= 这个数据服务启动之后，对应的plasma id为: {} =================".format(self.plasma_data_id))
+        while True:
+            sockets = dict(self.poller.poll(timeout=100))
+            if self.test_mode:
+                pass
+            else:
+                self.receive_data(sockets)

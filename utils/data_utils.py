@@ -33,3 +33,7 @@ class TrainingSet:
 
     def slice(self, index_list, remove=False):
         pass
+
+
+def convert_data_format_to_torch():
+    pass    

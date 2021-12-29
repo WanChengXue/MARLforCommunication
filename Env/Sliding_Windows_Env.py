@@ -2,13 +2,19 @@
 import numpy as np
 import os
 import copy
+import pathlib
+import random
 
-from yaml import parse
+import gym
 from Instant_Reward import calculate_instant_reward
 from utils.config_parse import parse_config
 
-class Environment:
-    def __init__(self, config_path):
+class Environment(gym.Env):
+    '''
+    定义一个环境，这个环境通过随机数种子，任意选择一个载波（1-50）信道，然后从中截取一段固定长度的TTI信道作为模拟环境
+    信道的起始位置TTI也不是固定的，需要通过这个随机数种子计算出来。
+    '''
+    def __init__(self, config_path, random_seed=None):
         self.config_dict = parse_config(config_path)
         # ================ 定义工程参数 =================
         self.user_nums = self.config_dict['user_nums']
@@ -20,183 +26,106 @@ class Environment:
         self.sliding_windows_length = self.config_dict['sliding_windows_length']
         self.transmit_power = self.config_dict['transmit_power']
         self.noise_power = self.config_dict['noise_power']
-        self.training_data_path = self.config_dict['training_data_path']
-        self.eval_data_path = self.config_dict['eval_data_path']
+        self.velocity = self.config_dict['velocity']
         self.eval_mode = self.config_dict['eval_mode']
-        # =============================================
-        if self.eval_mode:
-            # 如果是评估模式,就加载评估数据
-            self.eval_data = np.load(self.eval_data_path)
+        self.save_data_folder = self.config_dict['save_data_folder']
+        self.subcarrier_nums = self.config_dict['subcarrier_nums']
+        self.delay_time_window = self.config_dict['delay_time_window']
+        self.training_data_total_TTI_length = self.config_dict['training_data_total_TTI_length']
+        self.eval_data_total_TTI_length = self.config_dict['eval_data_total_TTI_length']
+        self.root_path = pathlib.Path('/'.join(os.path.realpath(__path__).split('/')[:-2]))
+        self.min_user_average_se  = self.config_dict['min_user_average_se']
+        self.max_user_pf_value = self.config_dict['max_user_pf_value']
+        # ================ 组合出来的到的路径就是数据进行读取的地址 ===================
+        self.load_data_path = self.root_path / self.save_data_folder / (str(self.user_nums)+'_user') / (str(self.velocity)+'KM')
+        # ======================================================================
+        if random_seed is None:
+            self.random_seed = random.randint(0, 1000000)
         else:
-            self.training_data = np.load(self.traning_)
+            self.random_seed  = random_seed
+        self.TTI_count = 0
         
         self.training_data_path = self.args.data_folder
         self.training_data = np.load(self.training_data_path)
         self.total_training_sample = self.training_data.shape[-1]
         self.legal_range = [self.args.min_stream, self.args.max_stream]
 
-    def read_testing_data(self):
-        # variable file_index is the index of current file
-        testing_set = []
-        file_list = sorted(os.listdir(self.data_folder))
-        total_file = int(len(file_list) / self.agent_number)
-        # Read chanel data set
-        for i in range(total_file):
-            temp_file = []
-            for agent_index in range(self.agent_number):
-                temp_file.append(self.data_folder + "/" + file_list[i*self.agent_number + agent_index])
-            testing_set.append(temp_file)
-        return testing_set
+    def load_training_data(self):
+        # 载入训练数据,根据随机数种子来看，首先是对随机数取余数，看看读取哪个载波
+        load_subcarrier_index = self.random_seed % self.subcarrier_nums
+        loaded_file_name = self.load_data_path / ('training_channel_file_' +str(load_subcarrier_index) + '.npy')
+        channel_data = np.load(loaded_file_name)
+        # 需要随机生成一个随机数，作为开始采样的位置
+        max_start_TTI = self.training_data_total_TTI_length - self.sliding_windows_length
+        start_TTI = np.random.choice(max_start_TTI, 1).item()
+        end_TTI = start_TTI + self.sliding_windows_length
+        self.simulation_channel = channel_data[:,:,:,:,:,:,:,start_TTI:end_TTI]
 
-    def Reset(self):
-        self.count = 0
-        # TTI_count represent the time index of current channel file
-        batch_index = np.random.choice(self.total_training_sample, self.args.TTI_length, replace=False)
-        self.batch_index = batch_index
-        
-        TTI_data = self.random_sample_data()
-        self.current_state = TTI_data
-        return TTI_data
+    def load_eval_data(self):
+        # 载入eval数据集
+        load_subcarrier_index = self.random_seed % self.subcarrier_nums
+        loaded_file_name = self.load_data_path / ('eval_channel_file_' + str(load_subcarrier_index) + '.npy')
+        self.simulation_channel = np.load(loaded_file_name)
 
-    def random_sample_data(self):
-        TTI_index = self.batch_index[self.count]
-        self.count += 1
-        return self.training_data[:,:,:,:,TTI_index]
-        
+    def reset(self, random_seed = None):
+        if random_seed is not None:
+            self.random_seed = random_seed
 
-    def Reset_batch(self):
-        batch_index = np.random.choice(self.total_training_sample, self.args.TTI_length, replace=False)
-        batch_data = [self.training_data[:,:,:,:,index] for index in batch_index]
-        self.batch_data= np.stack(batch_data, axis=0)
-
-    def Calculate_init_average_user_sum_rate(self):
-        # 这个函数用来计算再初始时刻，每个用户的平均sum rate，具体就是将第一个TTI的数据拿过来，挨个计算一次
-        Init_user_average_reward = np.zeros((self.agent_number, self.total_antennas)) 
-        for cell_index in range(self.agent_number):
-            # 将用户的信道拿出来
-            cell_id = cell_index // self.sector_number
-            sector_id = cell_index % self.sector_number
-            user_channel = self.TTI_data[cell_index][:,cell_id, sector_id, :]
-            # 遍历所有的用户即可
-            for user_index in range(self.total_antennas):
-                single_user_channel = user_channel[user_index,:].reshape(1,self.bs_antenna_number)
-                sum_rate = np.log(1+np.linalg.norm(single_user_channel)**2 * self.transmit_power/self.noise_power)
-                Init_user_average_reward[cell_index, user_index] = sum_rate
-        return Init_user_average_reward
-
-    def Evaluate_mode(self, agent_data_list):
-        self.TTI_count = 0
-        self.episode_data = []
-        for agent_index in range(self.agent_number):
-                self.episode_data.append(np.load(agent_data_list[agent_index]))
-        self.file_index += 1
-        self.Read_TTI_data()
-        self.Calculate_average_reward()
-        
-    def calculate_batch_instant_rewrd(self, batch_channel, batch_action):
-        batch_instant_reward = []
-        sample_number = batch_channel.shape[0]
-        for index in range(sample_number):
-            batch_instant_reward.append(calculate_instant_reward(batch_channel[index], batch_action[index], self.legal_range, self.noise_power, self.transmit_power))
-        return batch_instant_reward
-
-
-    def Step(self, sequence):
-        # 这个sequence是一个序列,需要变成0-1 string
-        action = np.zeros((self.agent_number, self.total_antennas))
-        for cell_index in range(self.agent_number):
-            cell_action = sequence[cell_index]
-            for user_index in range(self.total_antennas):
-                if user_index in cell_action:
-                    action[cell_index][user_index] = 1
-
-        terminated = False
-        instant_reward = calculate_instant_reward(self.current_state, action, self.legal_range, self.noise_power, self.transmit_power)
-        
-        if self.args.Training:
-            self.current_state = self.random_sample_data()
-            if self.count == self.TTI_length-1:
-                terminated = True
+        # 定义所有小区所有用户的初始用户奖励向量
+        init_se = np.zeros((self.cell_nums, self.user_nums))
+        channel_matrix = self.simulation_channel[:,:,:,:,:,:,:,self.TTI_count]
+        if self.eval_mode:
+            # 如果是评估模式,就加载评估数据
+            self.load_eval_data()
         else:
-            if self.count == self.args.total_TTI_length:
-                terminated = True
-            
-        return instant_reward, terminated
-
-    def get_agent_obs(self):
-        # apart channel matrix and average reward
-        channel = []
-        average_reward = []
-        for agent_id in range(self.agent_number):
-            agent_channel = []
-            for index in range(self.agent_number):
-                # 添加九个信道矩阵,其中意思表达的是当前基站收到的信号是什么,最好加上一个one hot编码,表示的是当前智能体的index
-                cell_id = index // self.sector_number
-                sector_id = index % self.sector_number
-                agent_channel.append(copy.deepcopy(self.source_channel[agent_id][:,cell_id,sector_id,:]))
-            channel.append(agent_channel)
-            average_reward.append(copy.deepcopy(self.average_reward[agent_id, :]))
-        return channel, average_reward
-
-    def get_state(self):
-        global_channel = []
-        global_reward = copy.deepcopy(self.average_reward)
-        for agent_id in range(self.agent_number):
-            for index in range(self.agent_number):
-                cell_id = index // self.sector_number
-                sector_id = index % self.sector_number
-                global_channel.append(copy.deepcopy(self.source_channel[agent_id][:,cell_id,sector_id,:]))
-        return global_channel, global_reward 
-
-
-
-    def get_agent_obs_SE(self):
-        obs = []
-        for sector_index in range(self.agent_number):
-            # 每个元素都是20 × 3 × 32
-            obs.append(self.current_state[sector_index, :, :, :])
-        return obs
-
-    def get_agent_obs_SE_batch(self):
-        obs = []
-        if self.args.ablation_experiment:
-            for sector_index in range(self.agent_number):
-                # 每一个元素都是batch_size*20*3*32
-                if self.args.independent_learning:
-                    obs.append(self.batch_data[:, sector_index,sector_index,:,:])
-                else:
-                    sub_obs = []
-                    for sub_sector_index in range(self.agent_number):
-                        if sector_index == sub_sector_index:
-                            sub_obs.append(self.batch_data[:, sector_index, :, sub_sector_index, :])
-                        else:
-                            sub_obs.append(np.zeros(self.user_num, self.total_antennas))
-
-                    obs.append(np.stack(sub_obs, 1))
-                # obs.append(self.batch_data[:,sector_index,:,:,:])
-        elif self.args.multi_head_input:
-            for sector_index in range(self.agent_number):
-                sub_obs = []
-                extra_obs = []
-                sub_sector_index = sector_index
-                for _ in range(self.agent_number):
-                    index = sub_sector_index % self.agent_number
-                    sub_obs.append(self.batch_data[:, sector_index, :, index, :])
-                    if index == sector_index:
-                        sub_sector_index += 1
-                        continue
-                    else:
-                        # 其中extra_obs中的每一个元素的维度都是batch_size * 20 * 3* 32
-                        extra_obs.append(self.batch_data[:, index, :, :, :].transpose(0,2,1,3))
-                        sub_sector_index += 1
-                # stack之后得到的数据维度为batch size * 3 * user number
-                stack_sub_obs = np.stack(sub_obs, 1)
-                obs.append(np.concatenate([stack_sub_obs] + extra_obs, 1))    
-
+            self.load_training_data()
+        self.current_channel_matrix = channel_matrix
+        self.current_average_se = init_se
+        state = dict()
+        state['channel_matrix'] = copy.deepcopy(channel_matrix)
+        state['average_se'] = copy.deepcopy(init_se)
+        return state
+        
+    def decide_clip_operation(self):
+        # 这个函数用来判断当前决策需不需要进行clip操作，评判标准是所有用户的平均容量都大于1了
+        if (self.current_average_se > self.min_user_average_se).all():
+            return True
         else:
-            for sector_index in range(self.agent_number):
-                if self.args.independent_learning:
-                    obs.append(self.batch_data[:, sector_index, :, sector_index, :])
-                else:
-                    obs.append(self.batch_data[:,sector_index,:,:,:])
-        return obs
+            return False
+
+    def step(self, action_list):
+        instant_se = calculate_instant_reward(self.current_state, action_list)
+        # 计算PF因子，这里会出现一个问题哈，算法最开始运行的那段时间，reward会特别的大，因此需要进行clamp操作，就给1。只有当所有的用户平均容量都到了1以上，才进行解锁
+        if self.decide_clip_operation():
+            proportional_factor = np.clip(instant_se / (1e-6 + self.current_average_se), 0, self.max_user_pf_value)
+        else:
+            proportional_factor = instant_se / (1e-6 + self.current_average_se)
+
+        # 更新平均se矩阵
+        self.current_average_se = (1-1/self.delay_time_window) * self.current_average_se + 1/self.delay_time_window * instant_se
+        self.TTI_count += 1
+        # 会碰到越界的情况，如果说当前的数据已经结束了，那么读取新的状态会报错
+        terminate = self.is_terminal()
+        if not terminate:
+            self.current_state = self.simulation_channel[:,:,:,:,:,:,:,self.TTI_count]
+        next_state = dict()
+        next_state['channel_matrix'] = copy.deepcopy(self.current_state)
+        next_state['averae_se'] = copy.deepcopy(self.current_average_se)
+        return next_state, proportional_factor, terminate
+
+
+    def is_terminal(self):
+        if self.eval_mode:
+            if self.TTI_count == self.eval_data_total_TTI_length:
+                return True
+            else:
+                return False
+        else:
+            if self.TTI_count == self.sliding_windows_length:
+                return True
+            else:
+                return False
+
+
+
+    
