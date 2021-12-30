@@ -1,151 +1,169 @@
-import torch
 import torch.nn as nn
-# import torch.nn.parameter as Parameter
+import torch
+from torch.nn.modules.normalization import LayerNorm
 from torch.distributions import Categorical
 
-class Policy(nn.Module):
-    def __init__(self, args, input_shape):
-        super(Policy, self).__init__()
-        self.args = args
-        self.args = args
-        self.device = "cuda" if self.args.cuda else "cpu"
-        # 定义原始信道矩阵的列数
-        self.feature_number = self.args.obs_dim2
-        self.drop_out = self.args.drop_out
-        self.input_channel = self.args.total_obs_matrix_number 
-        self.output_channel = self.args.obs_dim1
-        self.kernel_size = self.args.actor_kernel_size
-        self.stride = self.args.actor_stride
-        self.maxpool_kernel_size = self.args.actor_maxpool_kernel_size
-        self.hidden_dim = self.args.rnn_hidden
-        # self.rnn_input_dim = self.args.rnn_input_dim
-        # 定义一下权重矩阵的行数
-        self.embbeding_layer = nn.Embedding(3, self.hidden_dim)
-        self.weight_factor_number = self.args.weight_dim
-        self.Encoder_conv_layer = nn.Conv2d(self.input_channel, self.output_channel, self.kernel_size, self.stride)
-        self.Encoder_maxpool_layer = nn.MaxPool2d(self.maxpool_kernel_size, self.stride)
-        self.Encoder_flatten = nn.Flatten(start_dim=2)
-        self.flatten_dim = self.output_dimension(input_shape)
-        self.Encoder_affine_layer = nn.Linear(self.flatten_dim, self.hidden_dim)
-        self.GRU = nn.GRUCell(self.hidden_dim, self.hidden_dim)
-        # 定义几个权重向量
-        self.W_a = nn.Parameter(torch.rand(1, self.weight_factor_number, self.hidden_dim*2))
-        self.V_a = nn.Parameter(torch.rand(1, self.weight_factor_number, 1))
-        self.W_c = nn.Parameter(torch.rand(1, self.weight_factor_number, self.hidden_dim*2))
-        self.V_c = nn.Parameter(torch.rand(1, self.weight_factor_number, 1))
-        self.eps = 1e-6
-        # 定义layernorm
-        self.total_seq_len = input_shape[2]+1
-        self.layer_norm = nn.LayerNorm([self.total_seq_len, self.hidden_dim])
-        self.layer_norm_1 = nn.LayerNorm([self.total_seq_len, self.hidden_dim*2])
-        self.layer_norm_2 = nn.LayerNorm([self.total_seq_len, self.hidden_dim*2])
 
-    def output_dimension(self, input_shape):
-        test = torch.rand(*input_shape)
-        Encoder_conv_channel = self.Encoder_conv_layer(test)
-        Encoder_maxpool_channel = self.Encoder_maxpool_layer(Encoder_conv_channel)
-        Encoder_flatten_channel = self.Encoder_flatten(Encoder_maxpool_channel)
-        return Encoder_flatten_channel.shape[-1]
+class transformer_model(nn.Module):
+    def __init__(self, policy_config):
+        super(transformer_model, self).__init__()
+        # 初始化一个encoder
+        self.policy_config = policy_config
+        self.d_model = policy_config.get('d_model', 512)
+        self.nhead = policy_config.get('nhead', 8)
+        self.dim_feedforward = policy_config.get('dim_feedforward', 2048)
+        self.dropout = policy_config.get('dropout', 0.1)
+        self.activation = policy_config.get('activation', torch.functional.F.relu)
+        self.batch_first = True
+        self.layer_norm_eps = policy_config.get('layer_norm_eps',  1e-5)
+        # 定义encoder的层数
+        self.num_encoder_layers = policy_config.get('num_encoder_layers', 6)
+        transformer_encoder_layer = nn.TransformerEncoderLayer(self.d_model, self.nhead, self.dim_feedforward, self.dropout, self.activation, batch_first = self.batch_first)
+        encoder_norm = LayerNorm(self.d_model, eps=self.layer_norm_eps)
+        self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, self.num_encoder_layers, encoder_norm)
+        # 定义解码器部分，这个地方是一个Pointer Network
 
-    def forward(self, input_data, Action=None):
-        batch_size = input_data.shape[0]
-        bos_token_decoder = [[1]] * batch_size
-        eos_vector = self.embbeding_layer(torch.LongTensor(bos_token_decoder).to(self.device))
-        # 初始化Decoder的输入
-        Input_decoder = eos_vector.squeeze(1)
-        Encoder_conv_channel = self.Encoder_conv_layer(input_data*1e6)
-        Encoder_maxpool_channel = self.Encoder_maxpool_layer(Encoder_conv_channel)
-        Encoder_flatten_channel = self.Encoder_flatten(Encoder_maxpool_channel)
-        Embeding_data =  torch.relu(self.Encoder_affine_layer(Encoder_flatten_channel))
-        End_vector = torch.zeros(batch_size, self.hidden_dim).to(self.device)
-        Key_matrix = self.layer_norm(torch.cat([End_vector.unsqueeze(1), Embeding_data], 1))
-        Extend_W_a = self.W_a.expand(batch_size, -1, -1)
-        Extend_V_a = self.V_a.expand(batch_size, -1, -1)
-        Extend_W_c = self.W_c.expand(batch_size, -1, -1)
-        Extend_V_c = self.V_c.expand(batch_size, -1, -1)
-        # 这个地方添加一个向量，得到终止用户的向量
-        Mask = torch.zeros(batch_size, self.total_seq_len).to(self.device)
-        batch_sheduling_result = []
-        batch_sheduling_result.append(-1*torch.ones(batch_size,1))
-        batch_prob_result = []
-        selected_mask = torch.zeros(batch_size, self.args.max_stream+1).to(self.device)
-        hidden_cell_data = torch.mean(Embeding_data, 1)
-        for antenna_index in range(self.args.max_stream+1):
-            Extend_h = hidden_cell_data.unsqueeze(1).expand(-1, self.total_seq_len, -1)
-            Concatenate_embedding_and_h = self.layer_norm_1(torch.cat([Key_matrix, Extend_h], -1))
-            Weight_vector_u = torch.bmm(Extend_V_a.transpose(1,2), torch.tanh(torch.bmm(Extend_W_a, Concatenate_embedding_and_h.transpose(1,2))))
-            c_vector = torch.sum(Key_matrix*Weight_vector_u.transpose(1,2), 1)
-            Extend_c = c_vector.unsqueeze(1).expand(-1, self.total_seq_len, -1)
-            Concatenate_embeding_and_c = self.layer_norm_2(torch.cat([Key_matrix, Extend_c], -1))
-            Weight_vector_u_tilde = torch.bmm(Extend_V_c.transpose(1,2), torch.tanh(torch.bmm(Extend_W_c, Concatenate_embeding_and_c.transpose(1,2)))).squeeze(1)
-            prob_vector = torch.softmax(Weight_vector_u_tilde - 1e7 * Mask, -1)
-            dist = Categorical(prob_vector)
-            sheduling_user = dist.sample()
-            terminal_flag = batch_sheduling_result[-1] == 0
-            sheduling_user[terminal_flag.squeeze(-1)] = 0
-            if antenna_index == self.args.max_stream:
-                sheduling_user[:] = 0
-            # 将Mask中的某一些值变成1
-            Mask.scatter_(1, sheduling_user.unsqueeze(1), 1)
-            selected_mask[:,antenna_index][torch.logical_not(terminal_flag.squeeze(-1))] = 1
-            batch_sheduling_result.append(sheduling_user.unsqueeze(1))
-            batch_prob_result.append(dist.log_prob(sheduling_user).unsqueeze(1))
-            selected_index = torch.zeros(batch_size, self.total_seq_len).to(self.device).bool()
-            selected_index.scatter_(1, sheduling_user.unsqueeze(-1), True) 
-            hidden_cell_data = self.GRU(Input_decoder, hidden_cell_data)
-            Input_decoder = Key_matrix[selected_index]
-        return torch.cat(batch_sheduling_result[1:], -1), torch.cat(batch_prob_result, -1), selected_mask, Mask
+    def forward(self, src):
+        memory = self.transformer_encoder(src)
+        return memory
 
 
-class Critic(nn.Module):
-    def __init__(self, args, input_shape):
-        super(Critic, self).__init__()
-        self.args = args
-        # 定义pre conv layer的参数
-        self.pre_stride = self.args.critic_pre_stride
-        self.pre_kernel_size = self.args.critic_pre_kernel_size
-        self.pre_padding = self.args.critic_pre_padding
-        # 定义实际conv_layer的参数
-        self.kernal_number = self.args.kernal_number
-        self.kernal_size = self.args.kernal_size
-        self.kernal_stride = self.args.kernal_stride
-        self.padding_size = self.args.padding_size
-        self.dilation = self.args.dilation
-        self.conv_layer_number = self.args.layer_number
-        in_channel = self.args.total_state_matrix_number
-        # self.reduction = nn.Linear(self.args.state_dim2, self.args.embedding_dim)
-        self.ascend = nn.Linear(self.args.state_dim2, self.args.state_dim2)
-        # self.device = "cuda" if self.args.cuda else "cpu"
-        self.pre_conv_layer = nn.Conv2d(in_channel, self.args.n_agents, self.pre_kernel_size, self.pre_stride, self.pre_padding)
-        in_channel = self.args.n_agents  
-        conv_layer = []
-        for layer in range(self.conv_layer_number):
-            conv_layer.append(nn.Conv2d(in_channel, self.kernal_number[layer], self.kernal_size[layer], self.kernal_stride[layer], self.padding_size[layer], self.dilation[layer]))
-            in_channel = self.kernal_number[layer]
-        self.conv_layer = nn.ModuleList(conv_layer)
-        self.flatten = nn.Flatten()
-        conv_output_dim = self.output_dimension(input_shape)
-        self.linear_layer = nn.Linear(conv_output_dim, self.args.fc_dim)
-        self.output_layer = nn.Linear(self.args.fc_dim, 1)
-
-    def output_dimension(self,input_shape):
-        test = torch.rand(*input_shape)
-        pre_conv_channel = torch.relu(self.pre_conv_layer(test))
-        conv_result = torch.relu(self.ascend(pre_conv_channel))
-        for layer in range(self.conv_layer_number):
-            conv_result = self.conv_layer[layer](conv_result)
-        flatten_result = self.flatten(conv_result)
-        return flatten_result.shape[-1]
+class transformer_pointer_network_decoder(nn.Module):
+    def __init__(self, policy_config):
+        super(transformer_pointer_network_decoder, self).__init__()
+        self.policy_config = policy_config
+        self.d_model = policy_config.get('d_model', 512)
+        self.nhead = policy_config.get('nhead', 8)
+        self.dim_feedforward = policy_config.get('dim_feedforward', 2048)
+        self.dropout = policy_config.get('dropout', 0.1)
+        self.activation = policy_config.get('activation', torch.functional.F.relu)
+        self.batch_first = True
+        self.device = policy_config.get('device', 'cpu')
+        self.hidden_dim = policy_config['hidden_dim'] * 3
+        # 这个action dim其实就是用户数目 + 1
+        self.action_dim = policy_config['action_dim']
+        self.layer_norm_eps = policy_config.get('layer_norm_eps',  1e-5)
+        decoder_layer = nn.TransformerDecoderLayer(self.d_model, self.nhead, self.dim_feedforward, self.dropout, self.activation, self.layer_norm_eps, batch_first=self.batch_first)   
+        decoder_norm = LayerNorm(self.d_model, eps=self.layer_norm_eps)
+        # 定义transformer解码器的层数
+        num_decoder_layers = self.policy_config.get('num_decoder_layers', 6)
+        self.decoder = nn.TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm)
+        # 这个所谓的最大解码次数指的是说，我最多循环多少次就要结束解码过程
+        self.max_decoder_time = self.policy_config['max_decoder_time']
+        self.init_decoder = nn.Parameter(torch.rand(1, 1, self.d_model)-0.5)
+        self.affine_layer = nn.Linear(self.d_model, self.action_dim)
+        self.eps = 1e-7
+        self.embedding_layer = nn.Linear(self.hidden_dim, self.d_model)
 
 
-    def forward(self, channel):
-        # 输入的channel是一个81*10*32的信道矩阵，use_instant_reward是一个9*10*1的矩阵
-        # action是一个长度为batch_size * agent numbet * user antennas * 1的一个向量
-        pre_conv_channel = torch.relu(self.pre_conv_layer(1e7 *channel))
-        conv_result = torch.relu(self.ascend(pre_conv_channel))
-        for layer in range(self.conv_layer_number):
-            conv_result = torch.relu(self.conv_layer[layer](conv_result))
-        flatten_result = self.flatten(conv_result)
-        fc_result = torch.relu(self.linear_layer(flatten_result))
-        V_value = self.output_layer(fc_result)
-        return V_value
+    def forward(self, tgt, memory, inference_mode= True, action_list=None):
+        if inference_mode:
+            assert action_list is None
+        else:
+            # 只有在训练模式下才会需要计算entropy
+            conditional_entropy_sum = 0
+            assert action_list is not None
+        batch_size = tgt.shape[0]
+        # 首先对tgt这个矩阵进行升高维度操作
+        embbding_data = torch.relu(self.embedding_layer(tgt))
+        # 上面是说，在推断，采样阶段，是不会传入action list这个列表的，只有在训练阶段才会，并且要计算V值的。
+        mask = torch.zeros(batch_size, self.action_dim).bool().to(self.device)
+        terminate_batch = torch.zeros(batch_size, 1).bool().to(self.device)
+        repeat_init_decoder = self.init_decoder.repeat(batch_size, 1, 1)
+        # 两个矩阵进行合并
+        scheduling_action_list = []
+        log_joint_probs = 0
+        concatenate_data = torch.cat([repeat_init_decoder, embbding_data], axis=1)
+        decoder_input = repeat_init_decoder.clone()
+        for i in range(self.max_decoder_time):
+            # 通过网络直接输出结果
+            transformer_decoder = self.decoder(decoder_input, memory)
+            # 通过线性变换，降维
+            linear_output = self.affine_layer(transformer_decoder)
+            # 我们只取最后的那一个向量就可以了, batchsize * action dim
+            attention_vector = linear_output[:,-1,:]
+            attention_mask = torch.zeros_like(mask, dtype=torch.float)
+            attention_mask.masked_fill_(mask, float("-inf"))
+            attention_vector += attention_mask
+            # 进行softmax操作，得到概率向量
+
+            attn = torch.softmax(attention_vector, dim=-1)
+            if inference_mode:
+                dist = Categorical(attn)
+                scheduling_index = dist.sample().unsqueeze(-1)
+                # 将那些已经结束了的batch的action变成0
+                scheduling_index.masked_fill_(terminate_batch, 0)
+            else:
+                scheduling_index = action_list[:, i]
+                # 计算entropy
+                conditional_entropy = Categorical(attn).entropy().unsqueeze(-1)
+                conditional_entropy.masked_fill_(terminate_batch, 0)
+                conditional_entropy_sum + conditional_entropy
+                # 这个action向量是一个调度序列，直接从attn中取值
+            prob = attn.gather(1, scheduling_index)
+            # 这里会出现log 0的情况，因此增加一个小数, 这是因为前面有的batch结束了，那么就是0，但是这里强制下一次再选出0，就会出现log 0了。
+            log_prob = torch.log(prob + self.eps)
+            # 将那些提前结束的batch的位置，将值变成0
+            log_prob.masked_fill_(terminate_batch, 0)
+            # 修改mask和is terminate mask矩阵
+            mask = mask.scatter(1, scheduling_index, True)
+            # 得到结束了的batch
+            terminate_batch = scheduling_index == 0 
+            # 构建下一次循环的输入, 通过mask选择
+            selected_mask = torch.zeros(batch_size, self.action_dim).bool()
+            selected_mask.scatter_(1, scheduling_index, True)
+            selected_input_data = concatenate_data[selected_mask]
+            decoder_input = torch.cat([decoder_input, selected_input_data.unsqueeze(1)], axis=1)
+            log_joint_probs += log_prob
+            scheduling_action_list.append(scheduling_index)
+            print(attn)
+            print(scheduling_index)
+        print(scheduling_action_list)
+        if inference_mode:
+            return log_joint_probs, scheduling_action_list
+        else:   
+            return log_joint_probs, conditional_entropy_sum
+
+class model(nn.Module):
+    def __init__(self, policy_config):
+        super(model, self).__init__()
+        # 首先需要定义卷积层，嵌入层，将数据变成batch_size * seq_len * 512的形式
+        self.policy_config = policy_config
+        self.embedding_dim = self.policy_config.get('d_model', 512)
+        self.conv_channel = self.policy_config['conv_channel']
+        self.hidden_dim = self.policy_config['hidden_dim']
+        self.conv_layer = nn.Conv2d(self.conv_channel, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
+        self.linear_average_reward_head = nn.Linear(1, self.hidden_dim)
+        self.linear_scheduling_count_head = nn.Linear(1, self.hidden_dim)
+        self.embedding_layer = nn.Linear(3*self.hidden_dim, self.embedding_dim)
+        self.transformer_encoder = transformer_model(self.policy_config)
+        self.pointer_decoder = transformer_pointer_network_decoder(self.policy_config)
+
+    def forward(self, src, action_list=None, inference_mode=True):
+        # 首先这个src中包含了三个部分，信道矩阵部分，维度是batch size * user num * 32
+        # average reward 部分，维度是batch size * user num * 32
+        # 最后是到目前位置，各个用户调度了多少次构成的向量 batch size * user num * 1
+        channel_matrix = src['channel_matrix']
+        average_reward = src['average_reward']
+        scheduling_count = src['scheduling_count']
+        channel_output = torch.relu(self.conv_layer(channel_matrix).squeeze(1))
+        average_reward_output = torch.relu(self.linear_average_reward_head(average_reward))
+        scheduling_count_output = torch.relu(self.linear_scheduling_count_head(scheduling_count))
+        # 拼接在一起构成backbone
+        backbone = torch.cat([channel_output, average_reward_output, scheduling_count_output], -1)
+        embedding_output = torch.relu(self.embedding_layer(backbone))
+        # 送入到Transformer encoder, 可以得到一个bath size * seq len * d_model的矩阵
+        transformer_encoder_output = self.transformer_encoder(embedding_output)
+        res = self.pointer_decoder(backbone.clone(), transformer_encoder_output)
+
+test_config = {}
+test_config['conv_channel'] = 3
+test_config['hidden_dim'] = 32
+test_config['action_dim'] = 21
+test_config['max_decoder_time'] = 16
+test_model = model(test_config)
+test_input = {}
+test_input['channel_matrix'] = torch.rand(2,3,20,32)
+test_input['average_reward'] = torch.rand(2, 20, 1)
+test_input['scheduling_count'] = torch.rand(2, 20, 1)
+output = test_model(test_input)

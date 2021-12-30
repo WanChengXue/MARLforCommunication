@@ -9,6 +9,7 @@ class fetcher:
         self.context = context
         self.config_dict = config_dict
         self.policy_id = self.config_dict['policy_id']
+        self.config_server_address = self.config_dict['config_server_address']
         self.statistic = statistic
         self.policy_config = self.config_dict['learners']
         fetcher_log_name = self.config_dict['log_dir'] + '/fetcher_log'
@@ -74,6 +75,12 @@ class fetcher:
             
             start_time = time.time()
             # 这个地方通过scp命令下载文件, 第一个{}放的是ip地址,第二个{}放的是learner模型存放的位置,第三个{}放的是这个模型下载到本地要存放的位置
-            scp_command =  "sshpass -p Amax1979! scp amax@{}:~/{} {}".format()
+            scp_command =  "sshpass -p Amax1979! scp amax@{}:~/{} {}".format(self.config_server_address, url, self.model_path)
+            os.system(scp_command)
+            
+            return True
+        else:
+            return False
+            
 
 
