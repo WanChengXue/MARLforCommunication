@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+from torch.nn.modules import padding
 from torch.nn.modules.normalization import LayerNorm
 from torch.distributions import Categorical
 
@@ -155,6 +156,41 @@ class model(nn.Module):
         # 送入到Transformer encoder, 可以得到一个bath size * seq len * d_model的矩阵
         transformer_encoder_output = self.transformer_encoder(embedding_output)
         res = self.pointer_decoder(backbone.clone(), transformer_encoder_output)
+
+class critic(nn.Module):
+    # 这个是一个critic类,传入全局的状态,返回对应的v值.因为R是一个向量,传入一个状态batch,前向得到一个v向量
+    def __init__(self, policy_config):
+        super(critic, self).__init__()
+        self.policy_config = policy_config
+        self.embedding_dim = self.policy_config.get('d_model', 512)
+        self.agent_number = self.policy_config['agent_number']
+        self.conv_channel = self.policy_config['conv_channel'] * self.agent_number
+        self.hidden_dim = self.policy_config['hidden_dim']
+        # ======================= 对全局状态进行卷积操作, reward需要进行线性操作, count这个状态也 =====================
+        self.channel_conv_layer = nn.Conv2d(self.conv_channel, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
+        self.average_reward_affine_layer = nn.Linear(1, self.hidden_dim)
+        # 这个地方添加平均pooling 层
+        self.reward_conv_layer = nn.Conv2d(self.agent_number, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
+        self.count_affine_layer = nn.Linear(1, self.hidden_dim)
+        self.count_conv_layer = nn.Conv2d(self.agent_number, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
+        self.linear_average_reward_head = nn.Linear(1, self.hidden_dim)
+        self.linear_scheduling_count_head = nn.Linear(1, self.hidden_dim)
+        self.embedding_layer = nn.Linear(3*self.hidden_dim, self.embedding_dim)
+        self.transformer_encoder = transformer_model(self.policy_config)
+
+    def forward(self, src):
+        # 这个scr表示的是全局信息
+        global_channel_matrix = src['global_channel_matrix']
+        global_average_reward = src['global_average_reward']
+        global_scheduling_count = src['global_scheduling_count']
+        # 这个global channel_matrix的维度是batch size * agent_number * channel_number * user_number * 32
+        conv_global_channel_output  = torch.relu(self.channel_conv_layer(global_channel_matrix).squeeze(1))
+        # global average reward的维度是batch size * agent_number * user_number * 1
+        global_average_reward_output = torch.relu(self.reward_conv_layer(global_average_reward).squeeze(1))
+        conv_global_average_reward_output = self.average_reward_affine_layer(global_average_reward_output)
+        # global_scheduling_count的维度是batch size * agent number * user_number * 1
+        global_scheduling_count_output = torch.relu(self.count_affine_layer(global_scheduling_count))
+
 
 test_config = {}
 test_config['conv_channel'] = 3
