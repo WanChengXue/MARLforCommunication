@@ -12,7 +12,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import zmq
 
 
-from Learner.basic_server import basic_server
+from learner.basic_server import basic_server
 from utils import setup_logger
 from utils.data_utils import convert_data_format_to_torch
 from utils.model_utils import create_model, serialize_model, deserialize_model
@@ -30,6 +30,8 @@ class learner_server(basic_server):
         super(learner_server, self).__init__(args.config_path)
         self.policy_id = args.policy_id
         self.policy_config = self.config_dict['learners']
+        # 这个参数是用来控制,这个算法是不是让所有的智能体共享策略网络的参数
+        self.parameter_sharing = self.policy_config['parameter_sharing']
         self.global_rank = args.rank
         self.world_size = args.world_size
         self.local_rank = self.global_rank % self.policy_config['gpu_num_per_machine']
@@ -109,7 +111,7 @@ class learner_server(basic_server):
         if self.global_rank == 0:
             if time.time() > self.warm_up_time:
                 # 这个is_warmup是说参数暂时不更新，就是为了让智能体见识一下更多的数据
-                training_batch = convert_data_format_to_torch(training_batch)
+                training_batch = convert_data_format_to_torch(training_batch, self.parameter_sharing, self.local_rank)
                 info  = self.algo.step(training_batch)
                 # 将日志发送到log server上面
                 # TODO, 日志发送操作

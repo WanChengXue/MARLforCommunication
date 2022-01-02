@@ -1,8 +1,13 @@
 import torch.nn as nn
 import torch
-from torch.nn.modules import padding
 from torch.nn.modules.normalization import LayerNorm
 from torch.distributions import Categorical
+import sys
+import os
+current_path = os.path.abspath(__file__)
+root_path = '/'.join(current_path.split('/')[:-2])
+sys.path.append(root_path)
+from Model.popart import PopArt
 
 
 class transformer_model(nn.Module):
@@ -121,9 +126,9 @@ class transformer_pointer_network_decoder(nn.Module):
             print(scheduling_index)
         print(scheduling_action_list)
         if inference_mode:
-            return log_joint_probs, scheduling_action_list
+            return [log_joint_probs, scheduling_action_list]
         else:   
-            return log_joint_probs, conditional_entropy_sum
+            return [log_joint_probs, conditional_entropy_sum]
 
 class model(nn.Module):
     def __init__(self, policy_config):
@@ -141,9 +146,7 @@ class model(nn.Module):
         self.pointer_decoder = transformer_pointer_network_decoder(self.policy_config)
 
     def forward(self, src, action_list=None, inference_mode=True):
-        # 首先这个src中包含了三个部分，信道矩阵部分，维度是batch size * user num * 32
-        # average reward 部分，维度是batch size * user num * 32
-        # 最后是到目前位置，各个用户调度了多少次构成的向量 batch size * user num * 1
+        # ===================== 在采样阶段的时候,action list不会传入,并且inference_mode是True
         channel_matrix = src['channel_matrix']
         average_reward = src['average_reward']
         scheduling_count = src['scheduling_count']
@@ -155,7 +158,8 @@ class model(nn.Module):
         embedding_output = torch.relu(self.embedding_layer(backbone))
         # 送入到Transformer encoder, 可以得到一个bath size * seq len * d_model的矩阵
         transformer_encoder_output = self.transformer_encoder(embedding_output)
-        res = self.pointer_decoder(backbone.clone(), transformer_encoder_output)
+        res = self.pointer_decoder(backbone.clone(), transformer_encoder_output, inference_mode, action_list)
+        return res[0], res[1]
 
 class critic(nn.Module):
     # 这个是一个critic类,传入全局的状态,返回对应的v值.因为R是一个向量,传入一个状态batch,前向得到一个v向量
@@ -168,15 +172,22 @@ class critic(nn.Module):
         self.hidden_dim = self.policy_config['hidden_dim']
         # ======================= 对全局状态进行卷积操作, reward需要进行线性操作, count这个状态也 =====================
         self.channel_conv_layer = nn.Conv2d(self.conv_channel, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
-        self.average_reward_affine_layer = nn.Linear(1, self.hidden_dim)
-        # 这个地方添加平均pooling 层
-        self.reward_conv_layer = nn.Conv2d(self.agent_number, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
-        self.count_affine_layer = nn.Linear(1, self.hidden_dim)
-        self.count_conv_layer = nn.Conv2d(self.agent_number, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
+        # 上面通过先行变换,得到的维度是batch size * agent_number * user_number * hidden_size
         self.linear_average_reward_head = nn.Linear(1, self.hidden_dim)
+        # 这个地方通过2d卷积操作,将上面这个矩阵变成一个batch size * user number * hidden size的一个矩阵
+        self.reward_conv_layer = nn.Conv2d(self.agent_number, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
+        # 接下来的两行的处理和上面的两行是一样的,将count信息变成batch size * user number * hidden size
         self.linear_scheduling_count_head = nn.Linear(1, self.hidden_dim)
-        self.embedding_layer = nn.Linear(3*self.hidden_dim, self.embedding_dim)
+        self.count_conv_layer = nn.Conv2d(self.agent_number, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
+        # 这个地方是将上面三个矩阵进行拼接了之后,然后再过一次卷积
+        self.concatenat_conv_layer = nn.Conv2d(3, out_channels= 1, kernel_size=3, stride=1, padding=1, bias=False)
+        self.embedding_layer = nn.Linear(self.hidden_dim, self.embedding_dim)
         self.transformer_encoder = transformer_model(self.policy_config)
+        # 定义一个一维卷积操作
+        self.feature_contraction = nn.Conv1d(self.policy_config['seq_len'], 1, kernel_size=3, stride=1, padding=1 ,bias=False) 
+        # 因此我这个是一个多目标或者说是multi task问题,因此需要引入两个popArt
+        self.popart_head_PF = PopArt(self.embedding_dim, 1)
+        self.popart_head_Edge = PopArt(self.embedding_dim, 1)
 
     def forward(self, src):
         # 这个scr表示的是全局信息
@@ -184,12 +195,25 @@ class critic(nn.Module):
         global_average_reward = src['global_average_reward']
         global_scheduling_count = src['global_scheduling_count']
         # 这个global channel_matrix的维度是batch size * agent_number * channel_number * user_number * 32
-        conv_global_channel_output  = torch.relu(self.channel_conv_layer(global_channel_matrix).squeeze(1))
+        conv_global_channel_output  = torch.relu(self.channel_conv_layer(global_channel_matrix))
         # global average reward的维度是batch size * agent_number * user_number * 1
-        global_average_reward_output = torch.relu(self.reward_conv_layer(global_average_reward).squeeze(1))
-        conv_global_average_reward_output = self.average_reward_affine_layer(global_average_reward_output)
+        glboal_average_reward_output = torch.relu(self.linear_average_reward_head(global_average_reward))
+        conv_global_average_reward_output = torch.relu(self.reward_conv_layer(glboal_average_reward_output))
         # global_scheduling_count的维度是batch size * agent number * user_number * 1
-        global_scheduling_count_output = torch.relu(self.count_affine_layer(global_scheduling_count))
+        global_scheduling_count_output = torch.relu(self.linear_scheduling_count_head(global_scheduling_count))
+        conv_global_scheduling_count_output = torch.relu(self.count_conv_layer(global_scheduling_count_output))
+        # 将上面三个矩阵进行拼接,得到的backbone的维度是batch size * 3 * channel_number*user_number * 32
+        concatenate_information = torch.cat([conv_global_channel_output, conv_global_average_reward_output, conv_global_scheduling_count_output], 1)
+        conv_concatenate_output = torch.relu(self.concatenat_conv_layer(concatenate_information).squeeze(1))
+        # 现在这个矩阵的信息是batch size * user_number * 32, 通过嵌入操作,维度升高到dmodel的维度
+        embbeding_output = self.embedding_layer(conv_concatenate_output)
+        transformer_encoder_output = self.transformer_encoder(embbeding_output)
+        # 通过transformer之后,我得到一个维度为batch size * user number * dmodel的一个矩阵,我现在需要将这个矩阵变成一个二维的矩阵,使用一维卷积
+        backbone = self.feature_contraction(transformer_encoder_output).squeeze(1)
+        # 通过popArt进行计算
+        state_value_PF = self.popart_head_PF(backbone)
+        state_value_Edge = self.popart_head_Edge(backbone)
+        return state_value_PF, state_value_Edge
 
 
 test_config = {}
@@ -197,9 +221,11 @@ test_config['conv_channel'] = 3
 test_config['hidden_dim'] = 32
 test_config['action_dim'] = 21
 test_config['max_decoder_time'] = 16
-test_model = model(test_config)
+test_config['agent_number'] = 3
+test_config['seq_len'] = 20
+test_model = critic(test_config)
 test_input = {}
-test_input['channel_matrix'] = torch.rand(2,3,20,32)
-test_input['average_reward'] = torch.rand(2, 20, 1)
-test_input['scheduling_count'] = torch.rand(2, 20, 1)
+test_input['global_channel_matrix'] = torch.rand(2,9,20,32)
+test_input['global_average_reward'] = torch.rand(2,3, 20, 1)
+test_input['global_average_reward'] = torch.rand(2,3, 20, 1)
 output = test_model(test_input)
