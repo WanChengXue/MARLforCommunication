@@ -216,16 +216,29 @@ class critic(nn.Module):
         return state_value_PF, state_value_Edge
 
 
+# test_config = {}
+# test_config['conv_channel'] = 3
+# test_config['hidden_dim'] = 32
+# test_config['action_dim'] = 21
+# test_config['max_decoder_time'] = 16
+# test_config['agent_number'] = 3
+# test_config['seq_len'] = 20
+# test_model = critic(test_config)
+# test_input = {}
+# test_input['global_channel_matrix'] = torch.rand(2,9,20,32)
+# test_input['global_average_reward'] = torch.rand(2,3, 20, 1)
+# test_input['global_average_reward'] = torch.rand(2,3, 20, 1)
+# output = test_model(test_input)
+
+# 测试一下actor部分的代码
 test_config = {}
 test_config['conv_channel'] = 3
 test_config['hidden_dim'] = 32
 test_config['action_dim'] = 21
 test_config['max_decoder_time'] = 16
-test_config['agent_number'] = 3
-test_config['seq_len'] = 20
-test_model = critic(test_config)
 test_input = {}
-test_input['global_channel_matrix'] = torch.rand(2,9,20,32)
-test_input['global_average_reward'] = torch.rand(2,3, 20, 1)
-test_input['global_average_reward'] = torch.rand(2,3, 20, 1)
-output = test_model(test_input)
+test_input['channel_matrix'] = torch.rand(2, 3, 20, 32)
+test_input['average_reward'] = torch.rand(2, 3, 20, 1)
+test_input['scheduling_count'] = torch.rand(2, 3, 20, 1)
+test_actor = model(test_config)
+output_prob, output_scheduling_list = 

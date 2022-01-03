@@ -12,7 +12,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import zmq
 
 
-from learner.basic_server import basic_server
+from Learner.basic_server import basic_server
 from utils import setup_logger
 from utils.data_utils import convert_data_format_to_torch
 from utils.model_utils import create_model, serialize_model, deserialize_model
@@ -59,9 +59,13 @@ class learner_server(basic_server):
             self.net = DDP(self.net, device_ids=[self.local_rank])
             torch.manual_seed(19930119)
             self.log_handler.info("============== 完成模型的创建 =========")
-            self.optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
+            # --------------------- 定义两个optimizer，一个优化actor，一个优化critic ------------------
+            self.optimizer = {}
+            self.optimizer['actor'] = torch.optim.Adam(self.net.actor.parameters(), lr=self.learning_rate)
+            self.optimizer['critic'] = torch.optim.Adam(self.net.critic.parameters(), lr=self.learning_rate)
             algo_cls = get_algorithm_cls(self.policy_config.get("algorithm", "ppo"))
             self.algo = algo_cls(self.net, self.optimizer, self.policy_config)
+            
 
         self.total_training_steps = 0
         if self.global_rank == 0:
