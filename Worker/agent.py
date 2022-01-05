@@ -1,9 +1,9 @@
-from os import stat
 import pickle
-from posixpath import join
+import lz4
 import torch
 import zmq
 import random
+
 from Worker.policy_fetcher import fetcher
 from utils import setup_logger
 from utils.model_utils import create_model, deserialize_model
@@ -90,9 +90,15 @@ class AgentManager:
         # TODO,需要考虑一下如何给worker进行log的存放
         self.logger = setup_logger()
 
-    def send_data(self):
+    def send_data(self, data):
         # -------- 将采样数据发送出去 -------------
-        pass
+        compressed_data = lz4.frame.compress(pickle.dumps(data))
+        if self.eval_mode:
+            # ----- 如果说eval mode，就将这个数据保存到本地就好 ------
+            pass
+        else:
+            self.data_sender.send(compressed_data)
+
 
     def compute(self, obs_dict):
         # -------- 这个函数是用使用神经网络计算动作，以及动作对应的概率 ---------
@@ -153,4 +159,3 @@ class AgentManager:
     def get_model_info(self):
         return self.model_info
 
-    
