@@ -126,9 +126,9 @@ class transformer_pointer_network_decoder(nn.Module):
             log_joint_probs += log_prob
             scheduling_action_list.append(scheduling_index)
         if inference_mode:
-            return [log_joint_probs, torch.cat(scheduling_action_list, 1)]
+            return [log_joint_probs, torch.exp(log_joint_probs) ,torch.cat(scheduling_action_list, 1)]
         else:   
-            return [log_joint_probs, conditional_entropy_sum]
+            return [log_joint_probs, torch.exp(log_joint_probs), conditional_entropy_sum]
 
 class model(nn.Module):
     def __init__(self, policy_config):
@@ -159,7 +159,7 @@ class model(nn.Module):
         # 送入到Transformer encoder, 可以得到一个bath size * seq len * d_model的矩阵
         transformer_encoder_output = self.transformer_encoder(embedding_output)
         res = self.pointer_decoder(backbone.clone(), transformer_encoder_output, inference_mode, action_list)
-        return res[0], res[1]
+        return res[0], res[1], res[2]
 
 class critic(nn.Module):
     # 这个是一个critic类,传入全局的状态,返回对应的v值.因为R是一个向量,传入一个状态batch,前向得到一个v向量
