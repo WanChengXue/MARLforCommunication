@@ -28,10 +28,10 @@ class sampler_worker:
             self.log_sender = self.context.socket(zmq.PUSH)
             self.log_sender.connect("tcp://{}:{}".format(self.config_dict['log_server_address'], self.config_dict['log_server_port']))
         
-        self.rollout = rollout_sampler(self.config_dict, self.statistic, self.context, self.policy_id)
+        self.rollout = rollout_sampler(args.config_path, self.config_dict, self.statistic, self.context, self.policy_id)
         
     def run(self):
-
+        pass
 
 
 

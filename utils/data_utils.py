@@ -37,9 +37,21 @@ class TrainingSet:
     def slice(self, index_list, remove=False):
         pass
 
+def conver_data_format_to_torch_interference(obs, device_index):
+    # 这个函数是将使用rollout和环境交互后得到的数据传入到网络做预处理，总的来说就是放入到torch上面
+    '''
+        obs['channel_matrix']维度为sector_number * total_antennas * (2*transmit_antennas)
+        obs['average_reward']维度为total_antennas * 1
+        obs['scheduling_count']维度为total_antennas * 1
+    '''
+    torch_format_dict = dict()
+    torch_format_dict['channel_matrix'] = torch.FloatTensor(obs['channel_matrix']).unsqueeze(0).to(device_index)
+    torch_format_dict['average_reward'] = torch.FloatTensor(obs['average_reward']).unsqueeze(0).to(device_index)
+    torch_format_dict['scheduling_count'] = torch.FloatTensor(obs['scheduling_count']).unsqueeze(0).to(device_index)
+    return torch_format_dict
 
-def convert_data_format_to_torch(training_batch, parameter_sharing, device_index):
-    # 这个函数是用来对网络进行更新用的, 由于默认使用的共享网络参数，因此是CTDE方式进行的训练，当然也可以开三个智能体就是了。
+def convert_data_format_to_torch_training(training_batch, parameter_sharing, device_index):
+    # 这个函数是用来将从plasma中获取到的数据变成torch形式, 由于默认使用的共享网络参数，因此是CTDE方式进行的训练，当然也可以开三个智能体就是了。
         '''
         training_batch = {
             'obs': {'agent1': value, 'agent2': value}

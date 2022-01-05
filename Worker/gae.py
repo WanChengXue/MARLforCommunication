@@ -1,4 +1,5 @@
-def gae_estimator():
+import numpy as np
+def gae_estimator(traj_data, gamma, tau, bootstrap_value):
     '''
     这个地方使用了GAE进行估计，现在有的数据有两个:
         首先就是从时刻1到时刻T的instant reward向量， R^n
@@ -6,6 +7,22 @@ def gae_estimator():
         计算TD Error为， \gamma V(s_{t+1}) - V(s_t) + R_t = \delta_t
         计算时刻t的A值为 R(t) + \gamma R_{t+1} + ... + \gamma^{T-t} R_T + \gamma^{T-t+1}V(s_{T+1}) - V(s_t)
         因此按照上面的公式，Q(s_t,a_t)的估计值就是R(t) + \gamma R_{t+1} + ... + \gamma^{T-t} R_T + \gamma^{T-t+1}V(s_{T+1})
+    这个traj_data其实是一个字典数据，traj_data[0]也是一个字典，这个字典里面有的数据为：
+        reward vector，这是瞬时奖励向量
+        state_value，这是使用神经网络估计出来的当前状态的v向量
+        mask，这个是一个标量，用来进行mask操作的，确保terminate的贡献为0
+    使用gae计算的时候，这个state value其实是已经denormalizing之后的值，因此这个计算出来的advantage可以直接乘到概率上面
     '''
-    pass
-    
+    next_step_state_value = bootstrap_value
+    gae = 0
+    # 传入的数据有多少个
+    point_number = len(traj_data)
+    advantages = np.ones((point_number, 2))
+    target_state_value = np.ones((point_number, 2))
+    for step in reversed(range(point_number)):
+        delta = traj_data[step]["reward"] + gamma * next_step_state_value - traj_data[step]['value']
+        gae = delta + gamma * tau * gae * traj_data[step]['mask']
+        advantages[step,:] = gae
+        target_state_value[step, :] = gae + traj_data[step]['value']
+        next_step_state_value = traj_data[step]['value']
+    return advantages, target_state_value

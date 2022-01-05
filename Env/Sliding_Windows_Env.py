@@ -6,6 +6,7 @@ import pathlib
 import random
 
 import gym
+from torch._C import _check_onnx_proto
 from Instant_Reward import calculate_instant_reward
 from utils.config_parse import parse_config
 
@@ -49,6 +50,8 @@ class Environment(gym.Env):
         self.training_data = np.load(self.training_data_path)
         self.total_training_sample = self.training_data.shape[-1]
         self.legal_range = [self.args.min_stream, self.args.max_stream]
+        # ------------ 生成一个cyclic index matrix -------------
+        self.cyclic_index_matrix = np.array([[(i+j)%self.agent_nums for i in range(self.agent_nums)] for j in range(self.agent_nums)])
 
     def load_training_data(self):
         # 载入训练数据,根据随机数种子来看，首先是对随机数取余数，看看读取哪个载波
@@ -59,21 +62,23 @@ class Environment(gym.Env):
         max_start_TTI = self.training_data_total_TTI_length - self.sliding_windows_length
         start_TTI = np.random.choice(max_start_TTI, 1).item()
         end_TTI = start_TTI + self.sliding_windows_length
-        self.simulation_channel = channel_data[:,:,:,:,:,:,:,start_TTI:end_TTI]
+        # ------- 通过squeeze函数之后，得到的仿真信道维度为，3 * 20 * 3 *16 * TTI,表示目的扇区 * 用户数目 * 源扇区 * 基站天线数目
+        self.simulation_channel = (channel_data[:,:,:,:,:,:,:,start_TTI:end_TTI]).squeeze()
 
     def load_eval_data(self):
         # 载入eval数据集
         load_subcarrier_index = self.random_seed % self.subcarrier_nums
         loaded_file_name = self.load_data_path / ('eval_channel_file_' + str(load_subcarrier_index) + '.npy')
-        self.simulation_channel = np.load(loaded_file_name)
+        self.simulation_channel = (np.load(loaded_file_name)).squeeze()
 
     def reset(self, random_seed = None):
         if random_seed is not None:
             self.random_seed = random_seed
 
         # 定义所有小区所有用户的初始用户奖励向量
-        init_se = np.zeros((self.cell_nums, self.user_nums))
-        channel_matrix = self.simulation_channel[:,:,:,:,:,:,:,self.TTI_count]
+        init_se = np.zeros((self.cell_nums, self.user_nums, 1))
+        channel_matrix = self.simulation_channel[:,:,:,:,self.TTI_count]
+        init_scheduling_count = np.zeros((self.cell_nums, self.user_nums, 1)) 
         if self.eval_mode:
             # 如果是评估模式,就加载评估数据
             self.load_eval_data()
@@ -82,8 +87,22 @@ class Environment(gym.Env):
         self.current_channel_matrix = channel_matrix
         self.current_average_se = init_se
         state = dict()
-        state['channel_matrix'] = copy.deepcopy(channel_matrix)
-        state['average_se'] = copy.deepcopy(init_se)
+        # ========== 定义全局状态，以及每一个智能体的状态 =============
+        state['global_channel_matrix'] = copy.deepcopy(channel_matrix)
+        state['global_average_reward'] = copy.deepcopy(init_se)
+        state['global_scheduling_count'] = copy.deepcopy(init_scheduling_count)
+        state['agent_obs'] = dict()
+        # ---------- 定义每一个智能体的状态 ---------------
+        for agent_index in range(self.agent_nums):
+            agent_key = "agent_" + str(agent_index)
+            agent_obs = dict()
+            # -------- 对于channel matrix而言，一定是主cell的信道放在最前面，然后干扰的信道放在后面 --------------
+            agent_channel_matrix = channel_matrix[:,:, agent_index, :]
+            # -------- 调整一下位置，123，231，312 -----------
+            agent_obs['channel_matrix'] = agent_channel_matrix[self.cyclic_index_matrix[agent_index, :], :]
+            agent_obs['average_reward'] = init_se[agent_index, :, :]
+            agent_obs['scheduling_count'] = init_scheduling_count[agent_index, :, :]
+            state['agent_obs'][agent_key] = agent_obs
         return state
         
     def decide_clip_operation(self):
@@ -107,7 +126,7 @@ class Environment(gym.Env):
         # 会碰到越界的情况，如果说当前的数据已经结束了，那么读取新的状态会报错
         terminate = self.is_terminal()
         if not terminate:
-            self.current_state = self.simulation_channel[:,:,:,:,:,:,:,self.TTI_count]
+            self.current_state = self.simulation_channel[:,:,:,:,self.TTI_count]
         next_state = dict()
         next_state['channel_matrix'] = copy.deepcopy(self.current_state)
         next_state['averae_se'] = copy.deepcopy(self.current_average_se)

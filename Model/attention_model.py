@@ -18,7 +18,7 @@ class transformer_model(nn.Module):
         self.d_model = policy_config.get('d_model', 512)
         self.nhead = policy_config.get('nhead', 8)
         self.dim_feedforward = policy_config.get('dim_feedforward', 2048)
-        self.dropout = policy_config.get('dropout', 0.1)
+        self.dropout = policy_config.get('dropout', 0.0)
         self.activation = policy_config.get('activation', torch.functional.F.relu)
         self.batch_first = True
         self.layer_norm_eps = policy_config.get('layer_norm_eps',  1e-5)
@@ -41,7 +41,7 @@ class transformer_pointer_network_decoder(nn.Module):
         self.d_model = policy_config.get('d_model', 512)
         self.nhead = policy_config.get('nhead', 8)
         self.dim_feedforward = policy_config.get('dim_feedforward', 2048)
-        self.dropout = policy_config.get('dropout', 0.1)
+        self.dropout = policy_config.get('dropout', 0.0)
         self.activation = policy_config.get('activation', torch.functional.F.relu)
         self.batch_first = True
         self.device = policy_config.get('device', 'cpu')
@@ -91,6 +91,9 @@ class transformer_pointer_network_decoder(nn.Module):
             attention_mask = torch.zeros_like(mask, dtype=torch.float)
             attention_mask.masked_fill_(mask, float("-inf"))
             attention_vector += attention_mask
+            # 如果说是第一次挑选，一定是不要选择0出来，因此在这里进行mask操作
+            if i == 0:
+                attention_vector[:,0] += float("-inf") 
             # 进行softmax操作，得到概率向量
 
             attn = torch.softmax(attention_vector, dim=-1)
@@ -100,7 +103,7 @@ class transformer_pointer_network_decoder(nn.Module):
                 # 将那些已经结束了的batch的action变成0
                 scheduling_index.masked_fill_(terminate_batch, 0)
             else:
-                scheduling_index = action_list[:, i]
+                scheduling_index = action_list[:, i].unsqueeze(-1)
                 # 计算entropy
                 conditional_entropy = Categorical(attn).entropy().unsqueeze(-1)
                 conditional_entropy.masked_fill_(terminate_batch, 0)
@@ -122,11 +125,8 @@ class transformer_pointer_network_decoder(nn.Module):
             decoder_input = torch.cat([decoder_input, selected_input_data.unsqueeze(1)], axis=1)
             log_joint_probs += log_prob
             scheduling_action_list.append(scheduling_index)
-            print(attn)
-            print(scheduling_index)
-        print(scheduling_action_list)
         if inference_mode:
-            return [log_joint_probs, scheduling_action_list]
+            return [log_joint_probs, torch.cat(scheduling_action_list, 1)]
         else:   
             return [log_joint_probs, conditional_entropy_sum]
 
@@ -215,7 +215,8 @@ class critic(nn.Module):
         state_value_Edge = self.popart_head_Edge(backbone)
         return state_value_PF, state_value_Edge
 
-
+def init():
+    pass
 # test_config = {}
 # test_config['conv_channel'] = 3
 # test_config['hidden_dim'] = 32
@@ -238,7 +239,10 @@ test_config['action_dim'] = 21
 test_config['max_decoder_time'] = 16
 test_input = {}
 test_input['channel_matrix'] = torch.rand(2, 3, 20, 32)
-test_input['average_reward'] = torch.rand(2, 3, 20, 1)
-test_input['scheduling_count'] = torch.rand(2, 3, 20, 1)
+test_input['average_reward'] = torch.rand(2, 20, 1)
+test_input['scheduling_count'] = torch.rand(2, 20, 1)
 test_actor = model(test_config)
-output_prob, output_scheduling_list = 
+output_prob, output_scheduling_list = test_actor(test_input)
+# 再测试一下，当传入一个动作列表，看能够得到对应的概率
+joint_prob, entropy = test_actor(test_input, action_list=output_scheduling_list, inference_mode=False)
+print(joint_prob - output_prob)
