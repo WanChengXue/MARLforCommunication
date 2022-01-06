@@ -39,16 +39,35 @@ class TrainingSet:
 
 def conver_data_format_to_torch_interference(obs_dict):
     # 这个函数是将使用rollout和环境交互后得到的数据传入到网络做预处理，总的来说就是放入到torch上面
-    '''
-        obs['channel_matrix']维度为sector_number * total_antennas * (2*transmit_antennas)
-        obs['average_reward']维度为total_antennas * 1
-        obs['scheduling_count']维度为total_antennas * 1
+    ''' 
+        obs_dict["global_state"] = {}
+            # ------- 这个需要进行permute操作
+            obs_dict["global_state"]['global_channel_matrix']维度为sector_number * total_antennas * sector_number * (2*transmit_antennas)
+            obs_dict["global_state"]['global_average_reward']维度为sector_number * total_antennas * 1
+            obs_dict["global_state"]['global_scheduling_count']维度为sector_number * total_antennas * 1
+
+        obs_dict['agent_obs] = {}
+            obs_dict['agent_obs']['agent_0'] = {}
+            obs_dict['agent_obs']['agent_1'] = {}
+            ...
+
+        obs_dict["agent_obs"]['agent_0']['channel_matrix']维度为sector_number * total_antennas * (2*transmit_antennas)
+        obs_dict["agent_obs"]['agent_0']['average_reward']维度为total_antennas * 1
+        obs_dict["agent_obs"]['agent_0']['scheduling_count']维度为total_antennas * 1
+
+        return: 原样子返回，唯一需要注意的就是，global state里面的信道矩阵需要置换一下维度 ，然后添加batch size维度，所有数据变成CPU类型的就可以了2
     '''
     torch_format_dict = dict()
-    for agent_key in obs_dict.keys():
-        torch_format_dict[agent_key]['channel_matrix'] = torch.FloatTensor(obs_dict[agent_key]['channel_matrix']).unsqueeze(0)
-        torch_format_dict[agent_key]['average_reward'] = torch.FloatTensor(obs_dict[agent_key]['average_reward']).unsqueeze(0)
-        torch_format_dict[agent_key]['scheduling_count'] = torch.FloatTensor(obs_dict[agent_key]['scheduling_count']).unsqueeze(0)
+    torch_format_dict['global_state'] = dict()
+    torch_format_dict['global_state']['channel_matrix'] = torch.FloatTensor(obs_dict['global_state']['global_channel_matrix']).permute(0,2,1,3).unsqueeze(0)
+    torch_format_dict['global_state']['average_reward'] = torch.FloatTensor(obs_dict['global_state']['global_average_reward']).unsqueeze(0)
+    torch_format_dict['global_state']['scheduling_count'] = torch.FloatTensor(obs_dict['global_state']['global_scheduling_count']).unsqueeze(0)
+    torch_format_dict['agent_obs'] = dict()
+    for agent_key in obs_dict['agent_obs'].keys():
+        torch_format_dict['agent_obs'][agent_key] = dict()
+        torch_format_dict['agent_obs'][agent_key]['channel_matrix'] = torch.FloatTensor(obs_dict['agent_obs'][agent_key]['channel_matrix']).unsqueeze(0)
+        torch_format_dict['agent_obs'][agent_key]['average_reward'] = torch.FloatTensor(obs_dict['agent_obs'][agent_key]['average_reward']).unsqueeze(0)
+        torch_format_dict['agent_obs'][agent_key]['scheduling_count'] = torch.FloatTensor(obs_dict['agent_obs'][agent_key]['scheduling_count']).unsqueeze(0)
     return torch_format_dict
 
 def convert_data_format_to_torch_training(training_batch, parameter_sharing, device_index):

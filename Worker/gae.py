@@ -1,6 +1,8 @@
-import numpy as np
+import copy
+
 def gae_estimator(traj_data, gamma, tau, bootstrap_value):
     '''
+    bootstrap_value就是一个(1, 2)的全零numpy类型数据
     这个地方使用了GAE进行估计，现在有的数据有两个:
         首先就是从时刻1到时刻T的instant reward向量， R^n
         其次就是通过采用的v网络，对所有状态的v值估计向量，R^n，以及T+1的状态的V值
@@ -17,12 +19,15 @@ def gae_estimator(traj_data, gamma, tau, bootstrap_value):
     gae = 0
     # 传入的数据有多少个
     point_number = len(traj_data)
-    advantages = np.ones((point_number, 2))
-    target_state_value = np.ones((point_number, 2))
     for step in reversed(range(point_number)):
-        delta = traj_data[step]["reward"] + gamma * next_step_state_value - traj_data[step]['value']
-        gae = delta + gamma * tau * gae * traj_data[step]['mask']
-        advantages[step,:] = gae
-        target_state_value[step, :] = gae + traj_data[step]['value']
-        next_step_state_value = traj_data[step]['value']
-    return advantages, target_state_value
+        current_step_state_value = traj_data[step]['denormalize_current_state_value']
+        delta = traj_data[step]["instant_reward"] + gamma * next_step_state_value - current_step_state_value
+        # np.concatenate(traj_data[step]['denormalize_current_state_value'], 1)是1*2的一个向量
+        gae = delta + gamma * tau * gae * (1-traj_data[step]['done'])
+        advantages = gae
+        target_state_value = gae + current_step_state_value
+        next_step_state_value = current_step_state_value
+        # advantage和target state value放进去
+        traj_data[step]['advantages'] = copy.deepcopy(advantages)
+        traj_data[step]['target_state_value'] = copy.deepcopy(target_state_value)
+    return traj_data

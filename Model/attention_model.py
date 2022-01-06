@@ -126,9 +126,9 @@ class transformer_pointer_network_decoder(nn.Module):
             log_joint_probs += log_prob
             scheduling_action_list.append(scheduling_index)
         if inference_mode:
-            return [log_joint_probs, torch.exp(log_joint_probs) ,torch.cat(scheduling_action_list, 1)]
+            return [log_joint_probs, torch.cat(scheduling_action_list, 1)]
         else:   
-            return [log_joint_probs, torch.exp(log_joint_probs), conditional_entropy_sum]
+            return [log_joint_probs, conditional_entropy_sum]
 
 class model(nn.Module):
     def __init__(self, policy_config):
@@ -159,7 +159,7 @@ class model(nn.Module):
         # 送入到Transformer encoder, 可以得到一个bath size * seq len * d_model的矩阵
         transformer_encoder_output = self.transformer_encoder(embedding_output)
         res = self.pointer_decoder(backbone.clone(), transformer_encoder_output, inference_mode, action_list)
-        return res[0], res[1], res[2]
+        return res[0], res[1] 
 
 class critic(nn.Module):
     # 这个是一个critic类,传入全局的状态,返回对应的v值.因为R是一个向量,传入一个状态batch,前向得到一个v向量
@@ -215,34 +215,40 @@ class critic(nn.Module):
         state_value_Edge = self.popart_head_Edge(backbone)
         return state_value_PF, state_value_Edge
 
-def init():
-    pass
-# test_config = {}
-# test_config['conv_channel'] = 3
-# test_config['hidden_dim'] = 32
-# test_config['action_dim'] = 21
-# test_config['max_decoder_time'] = 16
-# test_config['agent_number'] = 3
-# test_config['seq_len'] = 20
-# test_model = critic(test_config)
-# test_input = {}
-# test_input['global_channel_matrix'] = torch.rand(2,9,20,32)
-# test_input['global_average_reward'] = torch.rand(2,3, 20, 1)
-# test_input['global_average_reward'] = torch.rand(2,3, 20, 1)
-# output = test_model(test_input)
+def init_policy_net(policy_config):
+    return model(policy_config)
 
-# 测试一下actor部分的代码
+def init_critic_net(policy_config):
+    return critic(policy_config)
 test_config = {}
 test_config['conv_channel'] = 3
 test_config['hidden_dim'] = 32
 test_config['action_dim'] = 21
 test_config['max_decoder_time'] = 16
+test_config['agent_number'] = 3
+test_config['seq_len'] = 20
+test_model = critic(test_config)
 test_input = {}
-test_input['channel_matrix'] = torch.rand(2, 3, 20, 32)
-test_input['average_reward'] = torch.rand(2, 20, 1)
-test_input['scheduling_count'] = torch.rand(2, 20, 1)
-test_actor = model(test_config)
-output_prob, output_scheduling_list = test_actor(test_input)
-# 再测试一下，当传入一个动作列表，看能够得到对应的概率
-joint_prob, entropy = test_actor(test_input, action_list=output_scheduling_list, inference_mode=False)
-print(joint_prob - output_prob)
+test_input['global_channel_matrix'] = torch.rand(2,9,20,32)
+test_input['global_average_reward'] = torch.rand(2,3, 20, 1)
+test_input['global_scheduling_count'] = torch.rand(2,3, 20, 1)
+
+with torch.no_grad():
+    output = test_model(test_input)
+print(output)
+print(output[0].numpy())
+# 测试一下actor部分的代码
+# test_config = {}
+# test_config['conv_channel'] = 3
+# test_config['hidden_dim'] = 32
+# test_config['action_dim'] = 21
+# test_config['max_decoder_time'] = 16
+# test_input = {}
+# test_input['channel_matrix'] = torch.rand(2, 3, 20, 32)
+# test_input['average_reward'] = torch.rand(2, 20, 1)
+# test_input['scheduling_count'] = torch.rand(2, 20, 1)
+# test_actor = model(test_config)
+# output_prob, output_scheduling_list = test_actor(test_input)
+# # 再测试一下，当传入一个动作列表，看能够得到对应的概率
+# joint_prob, entropy = test_actor(test_input, action_list=output_scheduling_list, inference_mode=False)
+# print(joint_prob - output_prob)

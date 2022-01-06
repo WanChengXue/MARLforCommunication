@@ -49,6 +49,7 @@ class PopArt(torch.nn.Module):
     @torch.no_grad()
     def update(self, input_vector):
         # 这个地方传入的是G_t^v向量，用来更新出最新的mu和sigma，以及最新的w和b这两个变量
+        # --------------TODO 在多机多卡场景下，这个参数应该如何进行同步？还是说DDP会自动的将这个变量进行平均化 -----------
         if type(input_vector) == np.ndarray:
             input_vector = torch.from_numpy(input_vector)
         input_vector = input_vector.to(**self.tpdv)
@@ -77,7 +78,7 @@ class PopArt(torch.nn.Module):
         debiased_mean_sq = self.mean_sq / self.debiasing_term.clamp(min=self.epsilon)
         debiased_var = (debiased_mean_sq - debiased_mean ** 2).clamp(min=1e-2)
         # 这个地方为什么要除以一个系数？哦，我懂了，这样加权的计算方式其实是一种有偏的计算方式，需要进行弥补，得到实际的样本均值
-        # 最开始的时候，返回的mean是0，var是1e-2
+        # 最开始的时候，debiased_mean是tensor([0.]), debiased_mean_sq是tensor([0.]), debiased_var是tensor([0.01])
         return debiased_mean, debiased_var
 
     def normalize(self, input_vector):

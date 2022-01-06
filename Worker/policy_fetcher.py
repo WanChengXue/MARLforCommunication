@@ -4,6 +4,7 @@ import zmq
 import time
 from utils import setup_logger
 # 由于这个类只有在training的时候才会实现,因此不需要考虑
+
 class fetcher:
     def __init__(self, context, config_dict, statistic):
         self.context = context

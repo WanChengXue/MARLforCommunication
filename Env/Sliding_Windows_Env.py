@@ -88,9 +88,10 @@ class Environment(gym.Env):
         self.current_average_se = init_se
         state = dict()
         # ========== 定义全局状态，以及每一个智能体的状态 =============
-        state['global_channel_matrix'] = copy.deepcopy(channel_matrix)
-        state['global_average_reward'] = copy.deepcopy(init_se)
-        state['global_scheduling_count'] = copy.deepcopy(init_scheduling_count)
+        state['global_state'] = dict()
+        state['global_state']['global_channel_matrix'] = copy.deepcopy(channel_matrix)
+        state['global_state']['global_average_reward'] = copy.deepcopy(init_se)
+        state['global_state']['global_scheduling_count'] = copy.deepcopy(init_scheduling_count)
         state['agent_obs'] = dict()
         # ---------- 定义每一个智能体的状态 ---------------
         for agent_index in range(self.agent_nums):
