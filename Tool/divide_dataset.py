@@ -16,7 +16,7 @@ import argparse
 
 class data_preprocess:
     def __init__(self, config_path):
-        self.config_dict = config_parse(config_path)
+        self.config_dict = config_parse.parse_config(config_path)
         # 由于需要根据不同的配置来产生数据,比如说是不同用户速度和不同用户数量什么的
         self.source_data_folder = self.config_dict['source_data_folder']
         self.save_data_folder = self.config_dict['save_data_folder']
@@ -84,6 +84,9 @@ class data_preprocess:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='../learner/configs/config_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/learner/configs/config_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
-    data_preprocess_server = data_preprocess(args.config_path) 
+    # ------------- 构建绝对地址 --------------
+    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+    concatenate_path = abs_path + args.config_path
+    data_preprocess_server = data_preprocess(concatenate_path) 

@@ -1,5 +1,21 @@
 env:
   id: "Env.env"
+  user_nums: 20
+  sector_nums: 3
+  agent_nums: 3
+  bs_antenna_nums: 16
+  total_antenna_nums: 20
+  sliding_windows_length: 1000
+  transmit_power: 0.25
+  noise_power: 
+  source_data_folder: data_part/Source_data
+  save_data_folder:
+  velocity: 30
+  subcarrier_nums: 50
+  traning_data_total_TT_length: 10000
+  eval_data_total_TTI_length: 1000
+  delay_time_window: 200
+
 # 要不要保存上一次训练得到的历史队列
 use_history: fasle
 # learning rate 为0的时间,用于优化器的初始化

@@ -10,8 +10,8 @@ def load_yaml(config_path):
 
 def parse_config(config_file_path):
     config_dict = load_yaml(config_file_path)
-    if "test_mode" not in config_dict:
-        config_dict["test_mode"] = False
+    if "eval_mode" not in config_dict:
+        config_dict["eval_mode"] = False
 
     if "main_server_ip" in config_dict:
         config_dict["log_server_address"] = config_dict["main_server_ip"]
@@ -25,7 +25,7 @@ def parse_config(config_file_path):
     p2p_ip = config_dict["main_server_ip"]
     # 最新模型保存路径
     p2p_path = "p2p_plf_model"
-    policy_config = config_dict["policy_config"]
+    policy_config = config_dict["learners"]
     policy_config["p2p_path"] = os.path.join(p2p_root, p2p_path)
     policy_config["p2p_url"] =  "http://{}:{}/{}".format(p2p_ip, p2p_port, p2p_path)
     # ddp相关参数
