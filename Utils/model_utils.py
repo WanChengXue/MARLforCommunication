@@ -3,6 +3,7 @@ import importlib
 
 
 def serialize_model():
+    # -------------- 这个函数就是通过是将模型保存到本地 -------------
     pass
 
 def deserialize_model(model, path, device=torch.device("cpu")):

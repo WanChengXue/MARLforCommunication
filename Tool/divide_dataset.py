@@ -1,10 +1,16 @@
 # 这个工具函数用来对CH3D.mat进行数据划分
 from scipy.io import loadmat
+import sys
 import os
+
+current_path = os.path.abspath(__file__)
+root_path = '/'.join(current_path.split('/')[:-2])
+sys.path.append(root_path)
+
 import pathlib
 import numpy as np
 from tqdm import tqdm
-from utils import check_folder_exist, config_parse, setup_logger
+from Utils import check_folder_exist, config_parse, setup_logger
 import argparse
 
 
@@ -78,6 +84,6 @@ class data_preprocess:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='../learner/configs/config_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
-    data_preprocess_server = data_preprocess(args.config_path)
+    data_preprocess_server = data_preprocess(args.config_path) 
