@@ -18,32 +18,32 @@ class data_preprocess:
     def __init__(self, config_path):
         self.config_dict = config_parse.parse_config(config_path)
         # 由于需要根据不同的配置来产生数据,比如说是不同用户速度和不同用户数量什么的
-        self.source_data_folder = self.config_dict['source_data_folder']
-        self.save_data_folder = self.config_dict['save_data_folder']
-        self.user_nums = self.config_dict['user_nums']
-        self.velocity = self.config_dict['velocity']
-        self.subcarrier_nums = self.config_dict['sub_carrier_nums']
+        self.source_data_folder = self.config_dict['env']['source_data_folder']
+        self.save_data_folder = self.config_dict['env']['save_data_folder']
+        self.user_nums = self.config_dict['env']['user_nums']
+        self.velocity = self.config_dict['env']['velocity']
+        self.subcarrier_nums = self.config_dict['env']['sub_carrier_nums']
         # 根据上面的信息组合出原始数据存放的路径,以及要保存的处理好后的文件存放的位置
         # current_file_path的路径是 ~/Desktop/ICC/code_part/Tool
-        current_file_path = os.path.realpath(__path__)
+        current_file_path = os.path.realpath(__file__)
         # 这个root_path的具体样子是~/Desktop/ICC
         self.root_path = pathlib.Path('/'.join(current_file_path.split('/')[:-2]))
-        self.special_source_data_folder = self.root_path / self.source_data_folder / (str(self.user_nums)+'_user') / (str(self.velocity)+'KM') 
-        self.target_save_data_folder = self.root_path / self.save_data_folder / (str(self.user_nums)+'_user') / (str(self.velocity)+'KM') 
-        folder_exist_flag = check_folder_exist(self.target_save_data_folder)
-        logger_path = pathlib(self.config_dict['log_dir']) / "data_preprocess_server_log"
+        # self.special_source_data_folder = self.root_path / self.source_data_folder / (str(self.user_nums)+'_user') / (str(self.velocity)+'KM') 
+        # self.target_save_data_folder = self.root_path / self.save_data_folder / (str(self.user_nums)+'_user') / (str(self.velocity)+'KM') 
+        folder_exist_flag = check_folder_exist(self.save_data_folder)
+        logger_path = pathlib.Path(self.config_dict['log_dir']) / "data_preprocess_server_log"
         self.logger_handler = setup_logger("data_preprocess_server", logger_path)
         if folder_exist_flag:
-            self.logger_handler.info("===================== 用户数目: {}, 移动速度为: {}的配置下,文件已经处理过了,直接读取就可 =====================".format(self.user_nums, self.velocity))
+            self.logger_handler.debug("===================== 用户数目: {}, 移动速度为: {}的配置下,文件已经处理过了,直接读取就可 =====================".format(self.user_nums, self.velocity))
         else:
             self.logger_handler.info("===================== 用户数目: {}, 移动速度为: {}的配置下,文件需要从源文件进行处理 ===================")
             self.preprocess_data()
 
     def preprocess_data(self):
         # 首先需要对数据文件进行排序
-        file_list = os.listdir(self.special_source_data_folder)
+        file_list = os.listdir(self.source_data_folder)
         file_number = len(file_list)
-        abs_file_list = [self.special_source_data_folder/('CH3D_{}.mat'.format(i+1))for i in range(file_number)]
+        abs_file_list = [self.source_data_folder/('CH3D_{}.mat'.format(i+1))for i in range(file_number)]
         eval_file = abs_file_list.pop(-1)
         
         concatenate_list = []
@@ -58,10 +58,10 @@ class data_preprocess:
         self.logger_handler.info("================== 开始讲所有的载波分开，一个载波一个数据文件，存放到本地 ==========")
         for carrier_index in range(self.subcarrier_nums):
             # 定义存放的训练数据的路径
-            save_training_file_name = self.target_save_data_folder /('training_channel_file_' +str(carrier_index) + '.npy')
+            save_training_file_name = self.save_data_folder /('training_channel_file_' +str(carrier_index) + '.npy')
             np.save(save_training_file_name, full_TTI_data[carrier_index,:,:,:,:,:,:,:,:])
             # 定义测试数据的存放路径
-            save_eval_file_name = self.target_save_data_folder/('eval_channel_file_' + str(carrier_index) + '.npy')
+            save_eval_file_name = self.save_data_folder/('eval_channel_file_' + str(carrier_index) + '.npy')
             np.save(save_eval_file_name, eval_data[carrier_index,:,:,:,:,:,:,:,:])
         self.logger_handler.info("================= 数据处理部分完成 ==============")
 
