@@ -1,4 +1,3 @@
-from genericpath import exists
 import logging
 import os
 import shutil
@@ -26,6 +25,7 @@ def setup_logger(name, log_file_path, level=logging.DEBUG):
     formatter = logging.Formatter("%(asctime)s,%(msecs)d,%(levelname)s::%(message)s")
     handler.setFormatter(formatter)
     logger = logging.getLogger(name)
+    logger.setLevel(level)
     logger.addHandler(handler)
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(formatter)

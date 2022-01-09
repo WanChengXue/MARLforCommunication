@@ -30,11 +30,12 @@ class data_preprocess:
         self.root_path = pathlib.Path('/'.join(current_file_path.split('/')[:-2]))
         # self.special_source_data_folder = self.root_path / self.source_data_folder / (str(self.user_nums)+'_user') / (str(self.velocity)+'KM') 
         # self.target_save_data_folder = self.root_path / self.save_data_folder / (str(self.user_nums)+'_user') / (str(self.velocity)+'KM') 
-        folder_exist_flag = check_folder_exist(self.save_data_folder)
+        # folder_exist_flag = check_folder_exist(self.save_data_folder)
+        folder_exist_flag = False
         logger_path = pathlib.Path(self.config_dict['log_dir']) / "data_preprocess_server_log"
         self.logger_handler = setup_logger("data_preprocess_server", logger_path)
         if folder_exist_flag:
-            self.logger_handler.debug("===================== 用户数目: {}, 移动速度为: {}的配置下,文件已经处理过了,直接读取就可 =====================".format(self.user_nums, self.velocity))
+            self.logger_handler.info("===================== 用户数目: {}, 移动速度为: {}的配置下,文件已经处理过了,直接读取就可 =====================".format(self.user_nums, self.velocity))
         else:
             self.logger_handler.info("===================== 用户数目: {}, 移动速度为: {}的配置下,文件需要从源文件进行处理 ===================")
             self.preprocess_data()
@@ -43,7 +44,7 @@ class data_preprocess:
         # 首先需要对数据文件进行排序
         file_list = os.listdir(self.source_data_folder)
         file_number = len(file_list)
-        abs_file_list = [self.source_data_folder/('CH3D_{}.mat'.format(i+1))for i in range(file_number)]
+        abs_file_list = [os.path.join(self.source_data_folder, 'CH3D_{}.mat'.format(i+1))for i in range(file_number)]
         eval_file = abs_file_list.pop(-1)
         
         concatenate_list = []
