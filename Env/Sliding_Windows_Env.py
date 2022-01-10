@@ -3,7 +3,7 @@ import numpy as np
 import os
 import sys
 current_path = os.path.abspath(__file__)
-root_path = '/'.join(current_path.split('\\')[:-2])
+root_path = '/'.join(current_path.split('/')[:-2])
 sys.path.append(root_path)
 import copy
 import pathlib
@@ -37,7 +37,7 @@ class Environment(gym.Env):
         self.delay_time_window = self.env_dict['delay_time_window']
         self.training_data_total_TTI_length = self.env_dict['training_data_total_TTI_length']
         self.eval_data_total_TTI_length = self.env_dict['eval_data_total_TTI_length']
-        self.root_path = pathlib.Path('/'.join(os.path.realpath(__file__).split('\\')[:-2]))
+        self.root_path = pathlib.Path('/'.join(os.path.realpath(__file__).split('/')[:-2]))
         self.min_user_average_se  = self.env_dict['min_user_average_se']
         self.max_user_pf_value = self.env_dict['max_user_pf_value']
         self.eval_mode = self.config_dict['eval_mode']
@@ -115,7 +115,7 @@ class Environment(gym.Env):
             return False
 
     def step(self, scheduling_mask):
-        instant_se = calculate_instant_reward(self.current_state, scheduling_mask, self.noise_power, self.transmit_power)
+        instant_se = calculate_instant_reward(self.current_state['global_state']['global_channel_matrix'], scheduling_mask, self.noise_power, self.transmit_power)
         # 计算PF因子，这里会出现一个问题哈，算法最开始运行的那段时间，reward会特别的大，因此需要进行clamp操作，就给1。只有当所有的用户平均容量都到了1以上，才进行解锁
         if self.decide_clip_operation():
             proportional_factor = np.clip(instant_se / (1e-6 + self.current_average_se), 0, self.max_user_pf_value)
@@ -172,7 +172,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
-    abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     # abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
     concatenate_path = abs_path + args.config_path
     test_env = Environment(concatenate_path) 
