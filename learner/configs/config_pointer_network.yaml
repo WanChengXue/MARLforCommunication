@@ -2,6 +2,7 @@ env:
   id: "Env.env"
   user_nums: 20
   sector_nums: 3
+  cell_nums: 1
   agent_nums: 3
   bs_antenna_nums: 16
   total_antenna_nums: 20
@@ -13,13 +14,19 @@ env:
   save_data_folder: data_part/preprocess_data
   velocity: 30
   sub_carrier_nums: 50
+  # 最大流的数目小于等于发射天线的数目
+  max_stream_nums: 16
+  min_stream_nums: 3
   # 这个是值表示的是一个信道文件总共有多少个TTI
-  traning_data_total_TT_length: 10000
+  training_data_total_TTI_length: 10000
   # 这个值是表示在测试阶段的时候,一个TTI信道有多少个TTI
   eval_data_total_TTI_length: 1000
   # 这个值表示的滑窗的长度Ts
   delay_time_window: 200
+  min_user_average_se: 0.5
+  max_user_pf_value: 5
 
+eval_mode: False
 # 要不要保存上一次训练得到的历史队列
 use_history: fasle
 # learning rate 为0的时间,用于优化器的初始化

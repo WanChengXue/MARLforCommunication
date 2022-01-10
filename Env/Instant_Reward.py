@@ -1,6 +1,5 @@
-from multiprocessing import Pool, cpu_count
 import numpy as np
-import os
+
 
 def scheduling_is_legel(user_scheduling_matrix, legal_range):
     # 这个legal_range表示每一个扇区调度用户时，最小的调度数目和最大的调度数目
@@ -98,20 +97,19 @@ def calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precodi
         user_instant_SE[sector_index,bool_scheduling_matrix[sector_index]] = scheduling_user_instant_SE       
     return user_instant_SE
         
-def calculate_instant_reward(channel_matrix, user_scheduling_matrix, legal_range, noise_power, transmit_power):
+def calculate_instant_reward(channel_matrix, user_scheduling_matrix, noise_power, transmit_power):
     # 将这个user_sheduling_matrix变成bool矩阵
     bool_scheduling_matrix = user_scheduling_matrix != 0
-    sector_number, user_number = bool_scheduling_matrix.shape
+    sector_number, user_number = bool_scheduling_matrix.shape[0], bool_scheduling_matrix.shape[1]
     # 根据调用矩阵，判断这个调度序列是不是合法的
     user_instant_SE = np.zeros((sector_number, user_number))
-    legal_sheduling_bool_flag, _ = scheduling_is_legel(bool_scheduling_matrix, legal_range)
-    if legal_sheduling_bool_flag:
-        complex_channel_matrix = rebuild_channel_matrix(channel_matrix)
-        selected_channel_matrix = select_sub_channel_matrix(complex_channel_matrix, bool_scheduling_matrix)
-        # sector_power = transmite_power/scheduled_user_number
-        precoding_channel_matrix = calculate_precoding_matrix_MMSE(selected_channel_matrix, noise_power, transmit_power)
-        # precoding_channel_matrix, unitary_matrix = calculate_precoding_matrix_ZF(selected_channel_matrix)
-        user_instant_SE = calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, noise_power, sector_number, user_number)
+    # ---------调度一定是合法的 --------------
+    complex_channel_matrix = rebuild_channel_matrix(channel_matrix)
+    selected_channel_matrix = select_sub_channel_matrix(complex_channel_matrix, bool_scheduling_matrix)
+    # sector_power = transmite_power/scheduled_user_number
+    precoding_channel_matrix = calculate_precoding_matrix_MMSE(selected_channel_matrix, noise_power, transmit_power)
+    # precoding_channel_matrix, unitary_matrix = calculate_precoding_matrix_ZF(selected_channel_matrix)
+    user_instant_SE = calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, noise_power, sector_number, user_number)
     return np.sum(user_instant_SE)
 
 

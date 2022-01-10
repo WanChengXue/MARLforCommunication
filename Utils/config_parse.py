@@ -10,7 +10,8 @@ def load_yaml(config_path):
 
 def parse_config(config_file_path):
     function_path = os.path.abspath(__file__)
-    root_path = '/'.join(function_path.split('/')[:-3])
+    # root_path = '/'.join(function_path.split('/')[:-3])
+    root_path = '/'.join(function_path.split('\\')[:-3])
     # root_path是长这个样子的'/home/miao/Desktop/ICC/Combinatorial_optimization'
 
     config_dict = load_yaml(config_file_path)

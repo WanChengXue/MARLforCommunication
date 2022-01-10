@@ -1,7 +1,7 @@
 from Env.Sliding_Windows_Env import Environment
 from Worker.gae import gae_estimator
 from Worker.agent import AgentManager
-from utils import setup_logger
+from Utils import setup_logger
 import copy
 import numpy as np
 
