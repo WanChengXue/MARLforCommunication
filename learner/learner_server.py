@@ -10,14 +10,15 @@ import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 import zmq
-
+import pathlib
 
 from Learner.basic_server import basic_server
-from utils import setup_logger
-from utils.data_utils import convert_data_format_to_torch
-from utils.model_utils import create_model, serialize_model, deserialize_model
+from Utils import setup_logger
+from Utils.data_utils import convert_data_format_to_torch_training
+from Utils.model_utils import serialize_model, deserialize_model
 
-from utils.plasma import generate_plasma_id
+from Utils.plasma import generate_plasma_id
+from Utils.model_utils import create_policy_model, create_critic_net
 
 def get_algorithm_cls(name):
     # 这个函数返回的是一个类，返回一个具体的算法类
@@ -36,17 +37,21 @@ class learner_server(basic_server):
         self.world_size = args.world_size
         self.local_rank = self.global_rank % self.policy_config['gpu_num_per_machine']
         self.eval_mode = self.policy_config['eval_mode']
-        logger_name = "learner_server/" + self.config_dict['log_dir'] +  '/learner_log/{}_{}'.format(self.local_rank, self.policy_id) 
-        self.log_handler = setup_logger(logger_name)
+        logger_name =  pathlib.Path(self.config_dict['log_dir'] +  '/learner_log/{}_{}'.format(self.local_rank, self.policy_id))
+        self.log_handler = setup_logger('Learner_log', logger_name)
         self.log_handler.info("================ 开始构造lerner server，这个server的global rank是: {} =========".format(self.global_rank))
         self.learning_rate = self.policy_config['learning_rate']
         # 开始初始化模型
         self.log_handler.info("============== global rank {}开始创建模型 ==========".format(self.global_rank))
         # 开始创建网络
-        if self.config_dict['parameter_sharing']:
-            self.net = create_model(self.config_dict, self.policy_id)
+        if self.parameter_sharing:
+            self.policy_net = create_policy_model(self.policy_config)
         else:
-            self.log_handler.warn("========== 暂时只支持参数共享的方式搭建policy net ========")
+            self.policy_net = dict()
+            for agent_index in range(self.config_dict['env']['agent_nums']):
+                agent_key = "agent_" + str(agent_index)
+                self.policy_net[agent_key] = create_policy_model(self.policy_config)
+        self.global_critic = create_critic_net(self.config_dict['learners'])
         
         if self.global_rank == 0 and self.eval_mode:
             # 如果说是第一张卡，并且使用的是评估模式，就不需要训练网络了，直接加载即可
@@ -115,7 +120,7 @@ class learner_server(basic_server):
         if self.global_rank == 0:
             if time.time() > self.warm_up_time:
                 # 这个is_warmup是说参数暂时不更新，就是为了让智能体见识一下更多的数据
-                training_batch = convert_data_format_to_torch(training_batch, self.parameter_sharing, self.local_rank)
+                training_batch = convert_data_format_to_torch_training(training_batch, self.parameter_sharing, self.local_rank)
                 info  = self.algo.step(training_batch)
                 # 将日志发送到log server上面
                 # TODO, 日志发送操作

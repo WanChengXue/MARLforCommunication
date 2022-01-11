@@ -2,7 +2,8 @@ import pickle
 import os
 import zmq
 import time
-from utils import setup_logger
+import pathlib
+from Utils import setup_logger
 # 由于这个类只有在training的时候才会实现,因此不需要考虑
 
 class fetcher:
@@ -13,20 +14,20 @@ class fetcher:
         self.config_server_address = self.config_dict['config_server_address']
         self.statistic = statistic
         self.policy_config = self.config_dict['learners']
-        fetcher_log_name = self.config_dict['log_dir'] + '/fetcher_log'
-        self.logger = setup_logger(fetcher_log_name)
+        fetcher_log_name = pathlib.Path(self.config_dict['log_dir'] + '/fetcher_log')
+        self.logger = setup_logger('Fether_log',fetcher_log_name)
         # 模型保存在当前的目录下
         self.model_path = os.path.join(os.getcwd(), "{}.model".format(self.policy_id))
         # 获取最新的模型
         self.latest_model_requester = self.context.socket(zmq.REQ)
-        self.latest_model_requester.connet("tcp://{}:{}".format(self.config_dict['config_server_address'], self.config_dict["config_server_request_model_port"]))
+        self.latest_model_requester.connect("tcp://{}:{}".format(self.config_dict['config_server_address'], self.config_dict["config_server_request_model_port"]))
         # 定义变量,模型下一次用来更新的时间
         self.next_model_update_time = 0
         # 最新模型的时间戳
         self.last_model_timestamp = None
         # 定义模型每次发送获取最新模型的请求间隔
         self.lastest_model_url = None
-        self.sampler_model_interval = self.config_dict['sampler_model_interval']
+        self.sampler_model_interval = self.config_dict['sampler_model_update_interval']
         self.logger.info("======================= 构建fetcher成功, 创建最新模型请求套接字 ===============")
         self.logger.info("======================= 最新模型保存到的路径为: {} ====================".format(self.model_path))
 

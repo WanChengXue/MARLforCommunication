@@ -4,16 +4,14 @@ import zmq
 import time
 import pickle
 import numpy as np
+import pathlib
 import pyarrow.plasma as plasma
-import argparse
-import lz4
-from zmq.sugar.constants import socket_types
+import lz4.frame as frame
 
 from Learner.basic_server import basic_server
-from utils.config_parse import parse_config
-from utils import setup_logger
-from utils.data_utils import TrainingSet
-from utils.plasma import generate_plasma_id
+from Utils import setup_logger
+from Utils.data_utils import TrainingSet
+from Utils.plasma import generate_plasma_id
 
 class data_server(basic_server):
     def __init__(self, args):
@@ -27,7 +25,7 @@ class data_server(basic_server):
         self.data_server_local_rank = args.data_server_local_rank
         self.policy_name = self.config_dict['policy_name']
 
-        log_path = os.path.join(self.config_dict["log_dir"], "./data_log/{}_{}/{}".format(self.local_rank, self.policy_name, self.data_server_local_rank))
+        log_path = pathlib.Path(self.config_dict['log_dir'] + "data_log/{}_{}/{}".format(self.local_rank, self.policy_name, self.data_server_local_rank))
         self.logger_handler = setup_logger("DataServer", log_path)
         self.server_ip = self.policy_config["learner_server_ip"]
         self.server_port = self.policy_config["learner_port_start"] + self.local_rank * self.policy_config["data_server_to_learner_num"] + self.data_server_local_rank
@@ -63,8 +61,6 @@ class data_server(basic_server):
         self.parse_data_time_list = []
         # 定义一个变量,表示如果当前时间大于这个时间,就要进行日志的打印
         self.next_print_log_time = time.time()
-
-
         # 和plasma 相关的一些变量
         plasma_location = self.config_dict['plasma_server_location']
         plasma_id = generate_plasma_id(self.global_rank, self.data_server_local_rank)
@@ -94,7 +90,7 @@ class data_server(basic_server):
             start_process_time = time.time()
             # 接收数据, 数据加载, 保存到训练集中
             for raw_data in raw_data_list:
-                all_data = pickle.loads(lz4.frame.decompress(raw_data))
+                all_data = pickle.loads(frame.decompress(raw_data))
                 self.traing_set.append_instance(all_data)
                 cur_recv_total += len(all_data)
             
@@ -132,3 +128,13 @@ class data_server(basic_server):
                 pass
             else:
                 self.receive_data(sockets)
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
+    args = parser.parse_args()
+    abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    concatenate_path = abs_path + args.config_path
+    server = data_server(concatenate_path)
+    server.run()

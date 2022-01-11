@@ -3,7 +3,7 @@ import numpy as np
 import os
 import sys
 current_path = os.path.abspath(__file__)
-root_path = '/'.join(current_path.split('/')[:-2])
+root_path = '/'.join(current_path.split('\\')[:-2])
 sys.path.append(root_path)
 import copy
 import pathlib
@@ -67,8 +67,9 @@ class Environment(gym.Env):
 
     def load_eval_data(self):
         # 载入eval数据集
-        load_subcarrier_index = self.random_seed % self.sub_carrier_nums
-        loaded_file_name = self.save_data_folder / ('eval_channel_file_' + str(load_subcarrier_index) + '.npy')
+        eval_file_number = self.config_dict.get('eval_file_number', random.randint(0, self.sub_carrier_nums-1))
+        loaded_file_name = self.save_data_folder + '/eval_channel_file_' + str(eval_file_number) + '.npy'
+        # ============== TODO 这个地方不是很完善，对于测试文件来说，需要测试所有的文件 ====================
         self.simulation_channel = (np.load(loaded_file_name)).squeeze()
 
     def reset(self, random_seed = None):
@@ -110,14 +111,47 @@ class Environment(gym.Env):
     def decide_clip_operation(self):
         # 这个函数用来判断当前决策需不需要进行clip操作，评判标准是所有用户的平均容量都大于1了
         if (self.current_average_se > self.min_user_average_se).all():
-            return True
-        else:
             return False
+        else:
+            return True
 
-    def step(self, scheduling_mask):
+    def guide_reward(self):
+        # ---------------- 这个地方是写引导奖励部分，基于规则设计 -----------------、
+        '''
+        1.当一个用户初次被调用，会给一个比较大的奖励
+        2.基于调度数目，在过去1000次调度中，这个用户的调度次数比较少，那么计数奖励会稍微奖励
+        3.边缘用户奖励上升，会给一个额外的奖励
+        '''
+        pass
+
+    def specialize_reward(self, PF_matrix):
+        # ----------------- 传入PF矩阵和，然后根据调度结果，计算出边缘用户的平均SE，将所有小区最差的那个用户拿出来 -------------
+        PF_sum = np.sum(PF_matrix)
+        # ----------------- 这样子调用了之后，得到的是一个3*1的向量，然后对这个向量计算平均值，得到的就是边缘用户的SE ----------
+        sector_min_edge_average_SE = np.min(self.current_average_se, 1)
+        average_sector_edge_SE = np.mean(sector_min_edge_average_SE)
+        return PF_sum, average_sector_edge_SE
+
+    def convert_action_list_to_scheduling_mask(self, action_list):
+        '''这个函数传入一个列表，然后转变为一个bool矩阵'''
+        random_action_mask = []
+        for i in range(self.agent_nums):
+            sector_mask = np.zeros(self.user_nums)
+            for user_index in action_list[i].squeeze():
+                if user_index != 0:
+                    sector_mask[user_index-1] = 1
+            # 添加-1，使得整个列表长度为20
+            random_action_mask.append(sector_mask)
+        # print(np.stack(random_action,0))
+        concatenate_mask =np.expand_dims(np.stack(random_action_mask, 0), -1)
+        return concatenate_mask
+        
+    def step(self, action_list):
+        scheduling_mask = self.convert_action_list_to_scheduling_mask(action_list)
         instant_se = calculate_instant_reward(self.current_state['global_state']['global_channel_matrix'], scheduling_mask, self.noise_power, self.transmit_power)
         # 计算PF因子，这里会出现一个问题哈，算法最开始运行的那段时间，reward会特别的大，因此需要进行clamp操作，就给1。只有当所有的用户平均容量都到了1以上，才进行解锁
         if self.decide_clip_operation():
+            # ---------------- 这个地方仅仅是将PF值限制到0-0.25之间，当所有的用户的平均性能都大于0.1，就没有这个限制了 ---------------
             proportional_factor = np.clip(instant_se / (1e-6 + self.current_average_se), 0, self.max_user_pf_value)
         else:
             proportional_factor = instant_se / (1e-6 + self.current_average_se)
@@ -126,13 +160,14 @@ class Environment(gym.Env):
         self.TTI_count += 1
         # 更新所有用户的调度数目情况
         self.current_scheduling_count += scheduling_mask
-        # 会碰到越界的情况，如果说当前的数据已经结束了，那么读取新的状态会报错
         terminate = self.is_terminal()
         if not terminate:
-            self.current_state = self.simulation_channel[:,:,:,:,self.TTI_count]
+            channel_matrix = self.simulation_channel[:,:,:,:,self.TTI_count]
+        else:
+            channel_matrix = self.simulation_channel[:,:,:,:,self.TTI_count-1]
         next_state = dict()
         next_state['global_state'] = dict()
-        next_state['global_state']['global_channel_matrix'] = copy.deepcopy(self.current_state)
+        next_state['global_state']['global_channel_matrix'] = copy.deepcopy(channel_matrix)
         next_state['global_state']['global_average_reward'] = copy.deepcopy(self.current_average_se)
         next_state['global_state']['global_scheduling_count'] = copy.deepcopy(self.current_scheduling_count)
         next_state['agent_obs'] = dict()
@@ -141,12 +176,14 @@ class Environment(gym.Env):
             agent_key = "agent_" + str(agent_index)
             agent_obs = dict()
             # -------- 对于channel matrix而言，一定是主cell的信道放在最前面，然后干扰的信道放在后面 --------------
-            agent_channel_matrix = self.current_channel_matrix[:,:, agent_index, :]
+            agent_channel_matrix = channel_matrix[:,:, agent_index, :]
             # -------- 调整一下位置，123，231，312 -----------
             agent_obs['channel_matrix'] = agent_channel_matrix[self.cyclic_index_matrix[agent_index, :], :]
             agent_obs['average_reward'] = self.current_average_se[agent_index, :, :]
             agent_obs['scheduling_count'] = self.current_scheduling_count[agent_index, :, :]
             next_state['agent_obs'][agent_key] = agent_obs
+            self.current_state = next_state
+        self.current_state = copy.deepcopy(next_state)
         return next_state, proportional_factor, terminate
 
 
@@ -168,12 +205,12 @@ class Environment(gym.Env):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/learner/configs/config_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
-    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
-    # abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    # abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+    abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
     concatenate_path = abs_path + args.config_path
     test_env = Environment(concatenate_path) 
     obs = test_env.reset()
@@ -186,18 +223,23 @@ if __name__ == '__main__':
     ]
     由于0表示的是终止用户的标志，因此，需要对所有用户减去1，之后，需要得到一个mask矩阵
     '''
-    random_action = []
-    random_action_mask = []
-    for i in range(test_env.agent_nums):
-        scheduling_users = np.random.randint(test_env.legal_range[0],test_env.legal_range[1], 1) 
-        sector_action = np.random.choice(test_env.user_nums, scheduling_users, replace=False) 
-        sector_mask = np.zeros(test_env.user_nums)
-        for user_index in sector_action:
-            sector_mask[user_index] = 1
-        # 添加-1，使得整个列表长度为20
-        sector_action = np.append(sector_action, np.zeros(test_env.user_nums-scheduling_users)-1)
-        random_action.append(sector_action)
-        random_action_mask.append(sector_mask)
-    print(np.stack(random_action,0))
-    concatenate_mask =np.expand_dims(np.stack(random_action_mask, 0), -1)
-    next_state, reward, terminate = test_env.step(concatenate_mask)
+    while True:
+        random_action = []
+        random_action_mask = []
+        for i in range(test_env.agent_nums):
+            scheduling_users = np.random.randint(test_env.legal_range[0],test_env.legal_range[1], 1) 
+            sector_action = np.random.choice(test_env.user_nums, scheduling_users, replace=False) 
+            sector_mask = np.zeros(test_env.user_nums)
+            for user_index in sector_action:
+                sector_mask[user_index] = 1
+            # 添加-1，使得整个列表长度为20
+            sector_action = np.append(sector_action, np.zeros(test_env.user_nums-scheduling_users)-1)
+            random_action.append(sector_action)
+            random_action_mask.append(sector_mask)
+        # print(np.stack(random_action,0))
+        concatenate_mask =np.expand_dims(np.stack(random_action_mask, 0), -1)
+        next_state, reward, terminate = test_env.step(concatenate_mask)
+        if terminate:
+            break
+    print(next_state['global_state']['global_scheduling_count'])
+    print(next_state['global_state']['global_average_reward'])

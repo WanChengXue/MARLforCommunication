@@ -27,3 +27,15 @@
 2. gpu_num_per_machine 表示的是一台机器有多少张卡
 3. local rank是在多机多卡的情况下，可能global rank是10，但是在这台机器上其实就是第二张卡
 4. eval mode就是说需要载入模型，然后直接进行测试操作
+
+
+## 测试日志
+
+### Env部分
+1. Slidling_Windows_Env.py函数测试完成
+2. Instant_reward.py函数也顺利测试完成
+
+### Model部分
+1.Attention_model.py中的actor和critic能够顺利计算出需要的值
+
+### worker部分

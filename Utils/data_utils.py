@@ -2,7 +2,6 @@ import torch
 import numpy as np
 import copy
 
-from torch._C import device
 
 class TrainingSet:
     def __init__(self, batch_size, max_capacity=10000):
@@ -55,13 +54,14 @@ def conver_data_format_to_torch_interference(obs_dict):
         obs_dict["agent_obs"]['agent_0']['average_reward']维度为total_antennas * 1
         obs_dict["agent_obs"]['agent_0']['scheduling_count']维度为total_antennas * 1
 
-        return: 原样子返回，唯一需要注意的就是，global state里面的信道矩阵需要置换一下维度 ，然后添加batch size维度，所有数据变成CPU类型的就可以了2
+        return: 原样子返回，唯一需要注意的就是，global state里面的信道矩阵需要置换一下维度 ，然后添加batch size维度，所有数据变成CPU类型，最后需要将第一第二个维度进行叠加
     '''
     torch_format_dict = dict()
     torch_format_dict['global_state'] = dict()
-    torch_format_dict['global_state']['channel_matrix'] = torch.FloatTensor(obs_dict['global_state']['global_channel_matrix']).permute(0,2,1,3).unsqueeze(0)
-    torch_format_dict['global_state']['average_reward'] = torch.FloatTensor(obs_dict['global_state']['global_average_reward']).unsqueeze(0)
-    torch_format_dict['global_state']['scheduling_count'] = torch.FloatTensor(obs_dict['global_state']['global_scheduling_count']).unsqueeze(0)
+    user_nums, transmit_antennas = obs_dict['global_state']['global_channel_matrix'].shape[-3], obs_dict['global_state']['global_channel_matrix'].shape[-1]
+    torch_format_dict['global_state']['global_channel_matrix'] = torch.FloatTensor(obs_dict['global_state']['global_channel_matrix']).permute(0,2,1,3).reshape(-1, user_nums, transmit_antennas).unsqueeze(0)
+    torch_format_dict['global_state']['global_average_reward'] = torch.FloatTensor(obs_dict['global_state']['global_average_reward']).unsqueeze(0)
+    torch_format_dict['global_state']['global_scheduling_count'] = torch.FloatTensor(obs_dict['global_state']['global_scheduling_count']).unsqueeze(0)
     torch_format_dict['agent_obs'] = dict()
     for agent_key in obs_dict['agent_obs'].keys():
         torch_format_dict['agent_obs'][agent_key] = dict()

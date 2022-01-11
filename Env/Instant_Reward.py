@@ -105,6 +105,6 @@ def calculate_instant_reward(channel_matrix, user_scheduling_matrix, noise_power
     precoding_channel_matrix = calculate_precoding_matrix_MMSE(selected_channel_matrix, noise_power, transmit_power)
     # precoding_channel_matrix, unitary_matrix = calculate_precoding_matrix_ZF(selected_channel_matrix)
     user_instant_SE = calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, noise_power, sector_number, user_number)
-    # 返回的矩阵维度为3*20，表示在此次调度过程中，每一个用户的瞬时容量
-    return user_instant_SE
+    # 返回的矩阵维度为3*20*1，表示在此次调度过程中，每一个用户的瞬时容量
+    return np.expand_dims(user_instant_SE, -1)
 

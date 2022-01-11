@@ -6,11 +6,11 @@ import traceback
 import pickle
 import zmq
 import argparse
-from utils import setup_logger
+from Utils import setup_logger
 from Worker.rollout import rollout_sampler
 from Worker.statistics import statistic_utils
 
-from utils import config_parse
+from Utils import config_parse
 
 class sampler_worker:
     def __init__(self, args):

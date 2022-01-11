@@ -2,15 +2,21 @@ import os
 import pickle
 import zmq
 import time
+import pathlib
 
+import sys
+import os
+current_path = os.path.abspath(__file__)
+root_path = '/'.join(current_path.split('/')[:-2])
+sys.path.append(root_path)
 from Learner.basic_server import basic_server
-from utils import setup_logger
-from utils.zmq_utils import zmq_nonblocking_multipart_recv, zmq_nonblocking_recv
+from Utils import setup_logger
+from Utils.zmq_utils import zmq_nonblocking_multipart_recv, zmq_nonblocking_recv
 
 class config_server(basic_server):
     def __init__(self, config_path):
         super(config_server, self).__init__(config_path)
-        config_server_log_path = os.path.join(self.config_dict['log_dir'], "./config_server_log")
+        config_server_log_path = pathlib.Path(self.config_dict['log_dir']+ "/config_server_log")
         self.log_handler = setup_logger('config_server',  config_server_log_path)
         # 接受模型的请求,返回这个模型的url地址
         self.model_requester = self.context.socket(zmq.ROUTER)
@@ -70,7 +76,7 @@ class config_server(basic_server):
     def run(self):
         while True:
             sockets = dict(self.poller.poll(timeout=100))
-            for key, value in sockets.item():
+            for key, value in sockets.items():
                 if value != zmq.POLLIN:
                     continue
                 
@@ -87,9 +93,10 @@ class config_server(basic_server):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, help="yaml format config")
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
-    server = config_server(args.config)
+    abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    concatenate_path = abs_path + args.config_path
+    server = config_server(concatenate_path)
     server.run()
-                        
-
+    

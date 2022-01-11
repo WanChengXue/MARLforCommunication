@@ -10,8 +10,8 @@ def load_yaml(config_path):
 
 def parse_config(config_file_path):
     function_path = os.path.abspath(__file__)
-    root_path = '/'.join(function_path.split('/')[:-3])
-    # root_path = '/'.join(function_path.split('\\')[:-3])
+    # root_path = '/'.join(function_path.split('/')[:-3])
+    root_path = '/'.join(function_path.split('\\')[:-3])
     # root_path是长这个样子的'/home/miao/Desktop/ICC/Combinatorial_optimization'
 
     config_dict = load_yaml(config_file_path)
@@ -34,12 +34,8 @@ def parse_config(config_file_path):
     config_dict['env']['source_data_folder'] = abs_source_data_folder
     config_dict['env']['save_data_folder'] = abs_save_data_folder
     # ----------------- 覆盖掉原始的值 ----------------------------------------------------------------------
-
-
-    # 这个地方是模型保存的位置,每次运行之后,worker读取模型的url位置
     p2p_root = "/home/amax/Desktop/chenliang/distributed_swap/"
     p2p_port = 6020
-
     # 使用单机多卡去运行
     p2p_ip = config_dict["main_server_ip"]
     # 最新模型保存路径
@@ -50,7 +46,15 @@ def parse_config(config_file_path):
     # ddp相关参数
     ddp_port = policy_config["ddp_port"]
     policy_config["ddp_root_address"] = "tcp://{}:{}".format(p2p_ip, ddp_port)
-
+    # --------------- 这个地方对config_dict中的learner部分进行修改，主要是将env中的一些参数复制过来 ---------------
+    policy_config['conv_channel'] = env_config_dict['agent_nums']
+    policy_config['action_dim'] = env_config_dict['total_antenna_nums'] + 1
+    policy_config['max_decoder_time'] = env_config_dict['max_stream_nums']
+    policy_config['agent_number'] = env_config_dict['agent_nums']
+    policy_config['seq_len'] = env_config_dict['total_antenna_nums'] 
+    config_dict['learners'] = policy_config
+    # 这个地方是模型保存的位置,每次运行之后,worker读取模型的url位置
+    
     return config_dict
 
     

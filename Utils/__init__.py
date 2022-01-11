@@ -21,8 +21,8 @@ def check_folder_exist(folder_path):
 def setup_logger(name, log_file_path, level=logging.DEBUG):
     create_folder(log_file_path)
     log_file = log_file_path /"log"
-    handler = logging.FileHandler(log_file)
-    formatter = logging.Formatter("%(asctime)s,%(msecs)d,%(levelname)s::%(message)s")
+    handler = logging.FileHandler(log_file,encoding="utf-8",mode="a")
+    formatter = logging.Formatter("%(asctime)s,%(msecs)d,%(levelname)s,%(name)s::%(message)s")
     handler.setFormatter(formatter)
     logger = logging.getLogger(name)
     logger.setLevel(level)

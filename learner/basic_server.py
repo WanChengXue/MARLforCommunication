@@ -3,7 +3,7 @@ import traceback
 import pickle
 import zmq
 
-from utils.config_parse import parse_config
+from Utils.config_parse import parse_config
 
 class basic_server:
     def __init__(self, config_path):

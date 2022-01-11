@@ -1,3 +1,13 @@
+import os
+import sys
+import pathlib
+import zmq
+
+
+current_path = os.path.abspath(__file__)
+root_path = '/'.join(current_path.split('\\')[:-2])
+sys.path.append(root_path)
+
 from Env.Sliding_Windows_Env import Environment
 from Worker.gae import gae_estimator
 from Worker.agent import AgentManager
@@ -11,8 +21,8 @@ class rollout_sampler:
         self.policy_id = self.config_dict['policy_id']
         self.policy_config = self.config_dict['learners']
         self.statistic = statistic
-        logger_name = self.config_dict['log_dir'] + '/rollout_log'
-        self.logger = setup_logger(logger_name)
+        logger_path = pathlib.Path(self.config_dict['log_dir'] + '/rollout_log')
+        self.logger = setup_logger('Rollout_log', logger_path)
 
         # 定义强化学习需要的一些参数
         self.gamma = self.policy_config["gamma"]
@@ -24,7 +34,7 @@ class rollout_sampler:
         # 收集数据放入到字典中
         self.data_dict = dict()
         # 声明一个智能体
-        self.agent = AgentManager(self.config_dict, self.env, context, self.statistic)
+        self.agent = AgentManager(self.config_dict, context, self.statistic)
 
     def pack_data(self, bootstrap_value, traj_data):
         '''
@@ -52,18 +62,21 @@ class rollout_sampler:
         '''
         这个函数表示这个worker随机生成一个环境，然后使用当前策略进行交互收集数据, obs的数据格式见
         '''
+        self.logger.info("======================== 重置环境 =======================")
         state = self.env.reset()
         # --------- 首先同步最新 config server上面的模型 ------
+        self.logger.info("==================== 智能体重置，对于训练模式，就是同步configserver上面的模型，测试模式就是加载本地模型 ====================")
         self.agent.reset()
         done = False
         data_dict = []
         while not done:
             self.agent.step()
             joint_log_prob, actions, current_state_value = self.agent.compute(state)
-            denormalize_state_value = self.agent.denormalize_state_value(current_state_value)
             # -------------- 此处需要给这个current_state_value 进行denormalizeing操作 ----------
-            # -------------- 给定动作计算出对应的instant reward ------------
+            denormalize_state_value = self.agent.denormalize_state_value(current_state_value)
+            # -------------- 给定动作计算出对应的instant reward, 这个返回的是瞬时PF值，需要额外处理得到PF和，以及边缘用户的SE ------------
             next_state, instant_rewards, done = self.env.step(actions)
+            PF_sum, edge_average_SE = self.env.specialize_reward(instant_rewards)
             # -------------- 构建一个字典，将current state, action, instant reward, old action log probs, done, current state value, next state 放入到字典 --------------
             data_dict.append({'current_state': copy.deepcopy(state)})
             data_dict[-1]['instant_reward'] = dict()
@@ -71,11 +84,11 @@ class rollout_sampler:
             data_dict[-1]['actions'] = dict()
             for agent_index in range(self.agent.agent_nums):
                 agent_key = "agent_" + str(agent_index)
-                data_dict[-1]['instant_reward'][agent_key] = instant_rewards[agent_index]
-                data_dict[-1]['old_action_log_porbs'][agent_key] = joint_log_prob[agent_index]
+                data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
                 data_dict[-1]['actions'][agent_key] = actions[agent_index]
             data_dict[-1]['done'] = done
-            data_dict[-1]['current_state_value'] = current_state_value
+            data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[np.newaxis,:]
+            data_dict[-1]['current_state_value'] = np.concatenate(current_state_value, 1)
             data_dict[-1]['denormalize_current_state_value'] = np.concatenate(denormalize_state_value, 1)
             data_dict[-1]['next_state'] = copy.deepcopy(next_state)
             state = next_state
@@ -84,3 +97,19 @@ class rollout_sampler:
         bootstrap_value = np.zeros((1,2))
         self.pack_data(bootstrap_value, data_dict)
 
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
+    args = parser.parse_args()
+    # ------------- 构建绝对地址 --------------
+    # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
+    # abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+    abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    concatenate_path = abs_path + args.config_path
+    from Utils.config_parse import parse_config
+    context = zmq.Context()
+    from Worker.statistics import StatisticsUtils
+    statistic = StatisticsUtils()
+    roll_out_test = rollout_sampler(concatenate_path, parse_config(concatenate_path), statistic, context)
+    roll_out_test.run_one_episode()
