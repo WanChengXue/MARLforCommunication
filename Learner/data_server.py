@@ -8,6 +8,12 @@ import pathlib
 import pyarrow.plasma as plasma
 import lz4.frame as frame
 
+import sys
+import os
+current_path = os.path.abspath(__file__)
+root_path = '/'.join(current_path.split('/')[:-2])
+sys.path.append(root_path)
+
 from Learner.basic_server import basic_server
 from Utils import setup_logger
 from Utils.data_utils import TrainingSet
@@ -16,18 +22,19 @@ from Utils.plasma import generate_plasma_id
 class data_server(basic_server):
     def __init__(self, args):
         super(data_server, self).__init__(args.config_path)
-        self.policy_config = self.config_dict['policy_config']
         self.global_rank = args.rank
-        self.world_size = args.workd_size
+        self.world_size = args.world_size
+        self.policy_config = self.config_dict['learners']
         self.gpu_num_per_machine = self.policy_config['gpu_num_per_machine']
         self.local_rank = self.global_rank % self.gpu_num_per_machine
-        self.test_mode = self.config_dict['test_mode']
+        self.eval_mode = self.config_dict['eval_mode']
         self.data_server_local_rank = args.data_server_local_rank
-        self.policy_name = self.config_dict['policy_name']
+        self.policy_name = self.policy_config['policy_id']
 
-        log_path = pathlib.Path(self.config_dict['log_dir'] + "data_log/{}_{}/{}".format(self.local_rank, self.policy_name, self.data_server_local_rank))
-        self.logger_handler = setup_logger("DataServer", log_path)
-        self.server_ip = self.policy_config["learner_server_ip"]
+        log_path = pathlib.Path(self.config_dict['log_dir'] + "/data_log/{}_{}/{}".format(self.local_rank, self.policy_name, self.data_server_local_rank))
+        self.logger_handler = setup_logger("DataServer_log", log_path)
+        machine_index = self.global_rank // self.gpu_num_per_machine
+        self.server_ip = self.policy_config["machines"][machine_index]
         self.server_port = self.policy_config["learner_port_start"] + self.local_rank * self.policy_config["data_server_to_learner_num"] + self.data_server_local_rank
         # 数据是通过这个套接字进行接收的
         self.receiver = self.context.socket(zmq.PULL)
@@ -50,7 +57,7 @@ class data_server(basic_server):
         self.batch_size = self.policy_config["batch_size"]
         self.traj_len = self.policy_config["traj_len"]
         self.pool_capacity = self.policy_config["pool_capacity"]
-        if self.test_mode:
+        if self.eval_mode:
             self.pool_capacity = 256
 
         self.traing_set = TrainingSet(self.batch_size, max_capacity=self.pool_capacity)
@@ -62,7 +69,7 @@ class data_server(basic_server):
         # 定义一个变量,表示如果当前时间大于这个时间,就要进行日志的打印
         self.next_print_log_time = time.time()
         # 和plasma 相关的一些变量
-        plasma_location = self.config_dict['plasma_server_location']
+        plasma_location = self.policy_config['plasma_server_location']
         plasma_id = generate_plasma_id(self.global_rank, self.data_server_local_rank)
         self.plasma_data_id = plasma.ObjectID(plasma_id)
         # 连接server, 这个需要在服务器上提前进行打开的
@@ -124,7 +131,7 @@ class data_server(basic_server):
         self.logger_handler.info("================= 这个数据服务启动之后，对应的plasma id为: {} =================".format(self.plasma_data_id))
         while True:
             sockets = dict(self.poller.poll(timeout=100))
-            if self.test_mode:
+            if self.eval_mode:
                 pass
             else:
                 self.receive_data(sockets)
@@ -132,9 +139,13 @@ class data_server(basic_server):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
+    parser.add_argument('--rank', default=0, type=int, help='rank of current process')
     parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--data_server_local_rank', default=0, type=int, help='data_server_local_rank')
+    parser.add_argument('--world_size', default=1, type=int, help='world_size')
     args = parser.parse_args()
-    abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path
-    server = data_server(concatenate_path)
+    args.config_path = concatenate_path
+    server = data_server(args)
     server.run()

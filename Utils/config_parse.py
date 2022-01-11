@@ -10,8 +10,8 @@ def load_yaml(config_path):
 
 def parse_config(config_file_path):
     function_path = os.path.abspath(__file__)
-    # root_path = '/'.join(function_path.split('/')[:-3])
-    root_path = '/'.join(function_path.split('\\')[:-3])
+    root_path = '/'.join(function_path.split('/')[:-3])
+    # root_path = '/'.join(function_path.split('\\')[:-3])
     # root_path是长这个样子的'/home/miao/Desktop/ICC/Combinatorial_optimization'
 
     config_dict = load_yaml(config_file_path)
@@ -51,10 +51,10 @@ def parse_config(config_file_path):
     policy_config['action_dim'] = env_config_dict['total_antenna_nums'] + 1
     policy_config['max_decoder_time'] = env_config_dict['max_stream_nums']
     policy_config['agent_number'] = env_config_dict['agent_nums']
+    # 处理一下plasma的保存位置，改成绝对位置
+    policy_config['plasma_server_location'] = root_path + '/' + policy_config['plasma_server_location'] + '/' + policy_config['policy_id']
     policy_config['seq_len'] = env_config_dict['total_antenna_nums'] 
     config_dict['learners'] = policy_config
-    # 这个地方是模型保存的位置,每次运行之后,worker读取模型的url位置
-    
     return config_dict
 
     

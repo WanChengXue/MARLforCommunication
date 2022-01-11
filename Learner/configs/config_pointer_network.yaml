@@ -35,7 +35,7 @@ use_history: fasle
 # learning rate 为0的时间,用于优化器的初始化
 warmup_time: 10
 # ip of log server, config_server
-main_server_ip: '10.62.0.198'
+main_server_ip: '10.19.93.9'
 # 定义日志文件的文件夹
 log_dir: "./logs"
 # 定义日志服务器的端口
@@ -57,7 +57,7 @@ learners:
   # 这个config下对应的模型名称
   model_name: 'attention_model'
   # 定义训练机器的ip列表
-  machines: ['10.62.0.198']
+  machines: ['10.19.93.9']
   # 定义主机索引, 每台机器有多少张卡, 每个卡对应多少个数据服务
   main_machine_index: 0
   gpu_num_per_machine: 4
@@ -76,15 +76,18 @@ learners:
   env_count: 1000
   traj_len: 300
   n_sample: 1
+  pool_capacity: 30000
   # Pytorch DDP相关
   ddp_port: 50001
   # 暴露给其他learner进程的监听端口
-  root_gpu_pub_star_port: 6500
+  root_gpu_pub_start_port: 6500
   # 暴露给sampler的监听端口
   learner_port_start: 7500
   fetch_policy: 'latest'
   load_model: 0
-  config_server_delay_update_interval: 300
+  data_server_sampling_interval: 0
+  # plasma相关
+  plasma_server_location: data_part/preprocess_data/plasma
   model_path: 
     policy_path: "Save_model/pointer_network/policy_net_max_average_SE.pkl"
     critic_path: "Save_model/pointer_network/critic_net_max_average_SE.pkl"

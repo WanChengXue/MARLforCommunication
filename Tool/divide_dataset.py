@@ -4,7 +4,7 @@ import sys
 import os
 
 current_path = os.path.abspath(__file__)
-root_path = '/'.join(current_path.split('\\')[:-2])
+root_path = '/'.join(current_path.split('/')[:-2])
 sys.path.append(root_path)
 
 import pathlib
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
-    # abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
-    abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+    # abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
     concatenate_path = abs_path + args.config_path
     data_preprocess_server = data_preprocess(concatenate_path) 

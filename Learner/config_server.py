@@ -95,7 +95,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
-    abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path
     server = config_server(concatenate_path)
     server.run()

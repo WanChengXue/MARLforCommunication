@@ -7,7 +7,7 @@ import random
 import os
 import sys
 current_path = os.path.abspath(__file__)
-root_path = '/'.join(current_path.split('\\')[:-2])
+root_path = '/'.join(current_path.split('/')[:-2])
 sys.path.append(root_path)
 from Worker.policy_fetcher import fetcher
 from Utils import setup_logger
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
     # abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
-    abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path
     context = zmq.Context()
     statistic = StatisticsUtils()
