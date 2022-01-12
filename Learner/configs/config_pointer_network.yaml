@@ -71,6 +71,7 @@ learners:
   dual_clip: 3
   lr: 0.00001
   entropy_coef: 0.01
+  # ------------ 这个32必须是和天线维度一样，天线16根，变成实数就是32
   hidden_dim: 32
   # 环境相关
   env_count: 1000

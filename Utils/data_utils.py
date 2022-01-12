@@ -4,37 +4,161 @@ import copy
 
 
 class TrainingSet:
-    def __init__(self, batch_size, max_capacity=10000):
-        self.batch_size = batch_size
-        self.max_capacity = max_capacity
-        self.data_list = []
+    def __init__(self, replay_buffer_config):
+        self.replay_buffer_config = replay_buffer_config
+        # ---------- 这个参数表示的就是batch size -------------
+        self.batch_size = self.replay_buffer_config['batch_size']
+        # ---------- 这个参数表示有多少个智能体 ---------------
+        self.agent_nums = self.replay_buffer_config['agent_nums']
+        # ---------- 这个参数表示传入的信道矩阵有多少个用户参与 ----------
+        self.seq_len = self.replay_buffer_config['seq_len']
+        # ---------- 这个参数表示这个replay buffer最大有多少条数据 ---------
+        self.max_capacity = self.replay_buffer_config['max_capacity']
+        # ---------- 这个参数表示最多进行多少次解码操作---------------------
+        self.max_decoder_time = self.replay_buffer_config['max_decoder_time']
+        self.bs_antenna_nums = self.replay_buffer_config['bs_antenna_nums']
+        self.transmit_antenna_dim = 2* self.bs_antenna_nums
         
+    def init_replay_buffer(self):
+        # ------------- 这个函数是用来初始化一个replaybuffer ----------
+        '''
+        training_batch = {
+            'current_state':{
+                'agent_obs': {'agent1': value, 'agent2': value}
+                'global_state': ['global_channel_matrix','global_average_reward','global_average_reward']
+                }
+            'target_value': {'agent1': value, 'agent2': value}
+            'advantage': {'agent1': value, 'agent2': value}
+            'action': {'agent1': value, 'agent2': value}
+            'old_action_log_probs':{'agent1': value, 'agent2': value}
+            'next_state':{
+                'agent_obs': {'agent1': value, 'agent2': value}
+                'global_state': ['global_channel_matrix','global_average_reward','global_average_reward']
+            }
+        }
+        agent_obs['agent1'] = {
+            'channel_matrix': 信道矩阵,维度为batch size * n_channel * user number * 32
+            'average_reward': batch size * user number * 1
+            'scheduling_count': batch size * user number * 1
+        }
+        target_value['agent1'] : batch_size * 2
+        advantage_value['agent1']: batch_size * 2
+        action['agent1']: batch_size * user_number 
+        old_action_log_porbs['agent1']: batch_size * 1
+        '''
+        self.data_buffer = dict()
+        # --------------- 给buffer提前开好空间用来存放 -------------
+        self.data_buffer['target_state_value'] = np.zeros((self.max_capacity, 2, 1))
+        self.data_buffer['instant_reward'] = np.zeros((self.max_capacity, 2, 1))
+        self.data_buffer['current_state_value'] = np.zeros((self.max_capacity, 2, 1))
+        self.data_buffer['denormalize_current_state_value'] = np.zeros((self.max_capacity, 2, 1))
+        self.data_buffer['advantages'] = np.zeros((self.max_capacity, 2, 1))
+        self.data_buffer['done'] = np.zeros((self.max_capacity, 1))
+        self.data_buffer['old_action_log_probs'] = dict()
+        self.data_buffer['actions'] = dict()
+        self.data_buffer['current_state'] = dict()
+        self.data_buffer['next_state'] = dict()
+        # --------------- 定义一下状态中的key ------------
+        self.data_buffer['current_state']['global_state'] = dict()
+        self.data_buffer['next_state']['global_state'] = dict()
+        self.data_buffer['current_state']['agent_obs'] = dict()
+        self.data_buffer['next_state']['agent_obs'] = dict()
+        # --------------- 定义状态中的全局观测 --------------
+        self.data_buffer['current_state']['global_state']['global_channel_matrix'] = np.zeros((self.max_capacity, self.agent_nums **2, self.seq_len, self.transmit_antenna_dim))
+        self.data_buffer['current_state']['global_state']['global_average_reward'] = np.zeros((self.max_capacity, self.agent_nums, self.seq_len, 1))
+        self.data_buffer['current_state']['global_state']['global_scheduling_count'] = np.zeros((self.max_capacity, self.agent_nums, self.seq_len, 1))
+        self.data_buffer['next_state']['global_state']['global_channel_matrix'] = np.zeros((self.max_capacity, self.agent_nums **2, self.seq_len, self.transmit_antenna_dim))
+        self.data_buffer['next_state']['global_state']['global_average_reward'] = np.zeros((self.max_capacity, self.agent_nums, self.seq_len, 1))
+        self.data_buffer['next_state']['global_state']['global_scheduling_count'] = np.zeros((self.max_capacity, self.agent_nums, self.seq_len, 1))
+        # -------------- 定义状态中的每个智能体的单独观测 ------------------------------------------------------------------------------
+        for index in range(self.agent_nums):
+            agent_key = 'agent_' + str(index)
+            agent_obs = dict()
+            agent_obs['channel_matrix'] = np.zeros((self.max_capacity, self.agent_nums, self.seq_len, self.transmit_antenna_dim))
+            agent_obs['average_reward'] = np.zeros((self.max_capacity, self.seq_len, 1))
+            agent_obs['scheduling_count'] = np.zeros((self.max_capacity, self.seq_len, 1))
+            self.data_buffer['current_state']['agent_obs'][agent_key] = copy.deepcopy(agent_obs)
+            self.data_buffer['next_state']['agent_obs'][agent_key] = copy.deepcopy(agent_obs)
+            # ------------ 初始化剩下的变量--------------、
+            self.data_buffer['old_action_log_probs'][agent_key] = np.zeros((self.max_capacity, 1))
+            self.data_buffer['actions'][agent_key] = np.zeros((self.max_capacity, self.max_decoder_time, 1))
+        # ---------------------------------------------------------------------------------------------------------------------------
+        # ------------- 定义一个变量，用来记录当前填了多少条数据进来 ------------------------
+        self.cursor = 0
+
     def clear(self):
-        self.data_list.clear()
+        self.init_replay_buffer()
     
+    @property
     def len(self):
-        return len(self.data_list)
+        return self.cursor
 
     def append_instance(self, instance):
-        self.data_list.extend([i.data for i in instance])
+        # ------------- 这个地方是添加数据进去，这个instance是一个列表 --------------
+        instant_number = len(instance)
+        for _ in range(instant_number):
+            local_index = self.cursor % self.max_capacity
+            self.data_buffer['target_state_value'][local_index, :, :] = instance[local_index]['target_state_value']
+            self.data_buffer['instant_reward'][local_index, :, :] = instance[local_index]['instant_reward']
+            self.data_buffer['current_state_value'][local_index, :, :] = instance[local_index]['current_state_value']
+            self.data_buffer['advantages'][local_index, :, :] = instance[local_index]['advantages']
+            self.data_buffer['denormalize_current_state_value'][local_index, :, :] = instance[local_index]['denormalize_current_state_value']
+            self.data_buffer['done'][local_index] = instance[local_index]['done']
+            self.data_buffer['current_state']['global_state']['global_channel_matrix'][local_index, :, :, :] = instance[local_index]['current_state']['global_state']['global_channel_matrix'] 
+            self.data_buffer['current_state']['global_state']['global_average_reward'][local_index, :, :] = instance[local_index]['current_state']['global_state']['global_average_reward']
+            self.data_buffer['current_state']['global_state']['global_scheduling_count'][local_index,:, :] = instance[local_index]['current_state']['global_state']['global_scheduling_count']
+            self.data_buffer['next_state']['global_state']['global_channel_matrix'][local_index, :, :, :] = instance[local_index]['next_state']['global_state']['global_channel_matrix'] 
+            self.data_buffer['next_state']['global_state']['global_average_reward'][local_index, :, :] = instance[local_index]['next_state']['global_state']['global_average_reward']
+            self.data_buffer['next_state']['global_state']['global_scheduling_count'][local_index,:, :] = instance[local_index]['next_state']['global_state']['global_scheduling_count']
+            for index in range(self.agent_nums):
+                agent_key = 'agent_' + str(index)
+                self.data_buffer['current_state']['agent_obs'][agent_key]['channel_matrix'][local_index, :, :, :] = instance[local_index]['current_state']['agent_obs'][agent_key]['channel_matrix']
+                self.data_buffer['current_state']['agent_obs'][agent_key]['average_reward'][local_index, :, :] = instance[local_index]['current_state']['agent_obs'][agent_key]['average_reward']
+                self.data_buffer['current_state']['agent_obs'][agent_key]['scheduling_count'][local_index, :, :] = instance[local_index]['current_state']['agent_obs'][agent_key]['scheduling_count']
+                self.data_buffer['next_state']['agent_obs'][agent_key]['channel_matrix'][local_index, :, :, :] = instance[local_index]['next_state']['agent_obs'][agent_key]['channel_matrix']
+                self.data_buffer['next_state']['agent_obs'][agent_key]['average_reward'][local_index, :, :] = instance[local_index]['next_state']['agent_obs'][agent_key]['average_reward']
+                self.data_buffer['next_state']['agent_obs'][agent_key]['scheduling_count'][local_index, :, :] = instance[local_index]['next_state']['agent_obs'][agent_key]['scheduling_count']
+                self.data_buffer['old_action_log_probs'][agent_key][local_index, :, :] = instance[local_index]['old_action_log_probs'][agent_key]
+                self.data_buffer['actions'][agent_key][local_index, :, :] = instance[local_index]['actions'][agent_key]
+        self.cursor += 1
 
-    def get_batched_obs(self, obs_list):
-        sample = obs_list[0]
-        if isinstance(sample, dict):
-            batched_obs = dict()
-            for key in sample:
-                batched_obs[key] = self.get_batched_obs([obs[key] for obs in obs_list])
-        elif isinstance(sample, (list, tuple)):
-            batched_obs = [self.get_batched_obs(o) for o in zip(*obs_list)]
-        else:
-            batched_obs = np.asarray(obs_list)
-            # TODO: 一维向量需不需要expand_dims(x, -1)
-            if len(batched_obs.shape) == 1:
-                batched_obs = np.expand_dims(batched_obs, -1)
-        return batched_obs
+    def slice(self):
+        # ----------------- 这个函数随机从replaybuffer中选择出来一个batch ---------------
+        current_data_point = min(self.max_capacity, self.cursor)
+        random_batch = np.random.choice(current_data_point, self.batch_size, replace=False)
+        sample_dict = dict()
+        sample_dict['target_state_value'] = self.data_buffer['target_state_value'][random_batch, :, :]
+        sample_dict['instant_reward'] = self.data_buffer['instant_reward'][random_batch, :, :]
+        sample_dict['advantages'] = self.data_buffer['advantages'][random_batch, :, :]
+        sample_dict['done'] = self.data_buffer['done'][random_batch, :]
+        sample_dict['denormalize_current_state_value'] = self.data_buffer['denormalize_current_state_value'][random_batch, :, :]
+        sample_dict['current_state_value'] = self.data_buffer['current_state_value'][random_batch, :, :]
+        sample_dict['old_action_log_probs'] = dict()
+        sample_dict['actions'] = dict()
+        sample_dict['current_state'] = dict()
+        sample_dict['current_state']['global_state'] = dict()
+        sample_dict['current_state']['agent_obs'] = dict()
+        sample_dict['next_state'] = dict()
+        sample_dict['next_state']['global_state'] = dict()
+        sample_dict['next_state']['agent_obs'] = dict()
 
-    def slice(self, index_list, remove=False):
-        pass
+        sample_dict['current_state']['global_state']['global_channel_matrix'] = self.data_buffer['current_state']['global_state']['global_channel_matrix'][random_batch, :, :, :]
+        sample_dict['current_state']['global_state']['global_average_reward'] = self.data_buffer['current_state']['global_state']['global_average_reward'][random_batch, :, :]
+        sample_dict['current_state']['global_state']['global_scheduling_count'] = self.data_buffer['current_state']['global_state']['global_scheduling_count'][random_batch, :, :]
+        sample_dict['next_state']['global_state']['global_channel_matrix'] = self.data_buffer['next_state']['global_state']['global_channel_matrix'][random_batch, :, :, :]
+        sample_dict['next_state']['global_state']['global_average_reward'] = self.data_buffer['next_state']['global_state']['global_average_reward'][random_batch, :, :]
+        sample_dict['next_state']['global_state']['global_scheduling_count'] = self.data_buffer['next_state']['global_state']['global_scheduling_count'][random_batch, :, :]
+        for index in range(self.agent_nums):
+            agent_key = 'agent_' + str(index)
+            sample_dict['next_state']['agent_obs'][agent_key] = dict()
+            sample_dict['current_state']['agent_obs'][agent_key]['channel_matrix'] = self.data_buffer['current_state']['agent_obs'][agent_key]['channel_matrix'][random_batch, :, :, :]
+            sample_dict['current_state']['agent_obs'][agent_key]['average_reward'] = self.data_buffer['current_state']['agent_obs'][agent_key]['average_reward'][random_batch, :, :]
+            sample_dict['current_state']['agent_obs'][agent_key]['scheduling_count'] = self.data_buffer['current_state']['agent_obs'][agent_key]['scheduling_count'][random_batch, :, :]
+            sample_dict['next_state']['agent_obs'][agent_key]['channel_matrix'] = self.data_buffer['next_state']['agent_obs'][agent_key]['channel_matrix'][random_batch, :, :, :]
+            sample_dict['next_state']['agent_obs'][agent_key]['average_reward'] = self.data_buffer['next_state']['agent_obs'][agent_key]['average_reward'][random_batch, :, :]
+            sample_dict['next_state']['agent_obs'][agent_key]['scheduling_count'] = self.data_buffe['next_state']['agent_obs'][agent_key]['scheduling_count'][random_batch, :, :]
+            sample_dict['old_action_log_probs'][agent_key] = self.data_buffer['old_action_log_probs'][agent_key][random_batch, :, :]
+            sample_dict['actions'][agent_key] = self.data_buffer[agent_key][random_batch, :, :]
 
 def conver_data_format_to_torch_interference(obs_dict):
     # 这个函数是将使用rollout和环境交互后得到的数据传入到网络做预处理，总的来说就是放入到torch上面
@@ -70,107 +194,39 @@ def conver_data_format_to_torch_interference(obs_dict):
         torch_format_dict['agent_obs'][agent_key]['scheduling_count'] = torch.FloatTensor(obs_dict['agent_obs'][agent_key]['scheduling_count']).unsqueeze(0)
     return torch_format_dict
 
-def convert_data_format_to_torch_training(training_batch, parameter_sharing, device_index):
-    # 这个函数是用来将从plasma中获取到的数据变成torch形式, 由于默认使用的共享网络参数，因此是CTDE方式进行的训练，当然也可以开三个智能体就是了。
-        '''
-        training_batch = {
-            'obs': {'agent1': value, 'agent2': value}
-            'global_state': ['global_channel_matrix','global_average_reward','global_average_reward']
-            'target_value': {'agent1': value, 'agent2': value}
-            'advantage': {'agent1': value, 'agent2': value}
-            'action': {'agent1': value, 'agent2': value}
-            'old_action_log_probs':{'agent1': value, 'agent2': value}
-        }
-        obs['agent1'] = {
-            'channel_matrix': 信道矩阵,维度为batch size * n_channel * user number * 32
-            'average_reward': batch size * user number * 1
-            'scheduling_count': batch size * user number * 1
-        }
-        target_value['agent1'] : batch_size * 2
-        advantage_value['agent1']: batch_size * 2
-        action['agent1']: batch_size * user_number 
-        old_action_log_porbs['agent1']: batch_size * 1
-        user_number:表示的是一个小区里面有多少个用户, 32表示基站接收天线有16根,然后实数部分和复数部分拼接
-        return:
-            concatenate_obs_dict, concatenate_global_dict, concatenate_action_list, concatenate_old_action_log_probs, concatenate_advantage, concatenate_target_value
-            concatenate_obs_dict['chennel_matrix'] : (batch_size * agent_number) * n_channel * user_number * 32
-            concatenate_obs_dict['average_reward] : (batch_size * agent_number) * user_number * 32
-            concatenate_obs_dict['scheduling_count] : (batch_size * agent_number)  * user number * 32
-            concatenate_global_dict['global_channel_matrxi'] : (batch_size * agent_nubmer) * (n_channel ** 2) * user_number * 32
-            concatenate_globa_dict['global_average_reward]: (batch_size * agent_number) * agent_number * user_number * 1
-            concatenate_global_dict['global_scheduling_count] : (batch_size * agent_number) * agent_number * user_number * 1
-            concatenate_action_list : (batch_size * agent_number ) * user_number
-            concatenate_old_action_log_probs : (batch_size * agent_number) * 1
-            concatenate_advantage: (batch_szie * agent_number) *2
-            concatenate_target_value: (batch_size * agent_number) * 2
-        '''
-        obs = training_batch['obs']
-        global_state = training_batch['global_state']
-        # 这个target_value表示的是使用了GAE估计出来的Target V
-        target_value = training_batch['target_value']
-        advantage = training_batch['advantage']
-        action = training_batch['action']
-        # 这个值是表示旧策略下，给定状态，执行了动作A的概率值,这个是用来计算IF的
-        old_action_log_probs = training_batch['old_action_log_probs']
-        # 这个是通过采样神经网络参数前向计算得到的V值
-        old_state_value = training_batch['old_state_value']
-        return_value = training_batch['return_value']
-        if parameter_sharing:
-            # ================== 首先将观测矩阵进行合并,变成一个字典 ================
-            concatenate_obs_dict = dict()
-            concatenate_obs_dict['channel_matrix'] = []
-            concatenate_obs_dict['average_reward'] = []
-            concatenate_obs_dict['scheduling_count'] = []
-            # ================== 将全局观测矩阵进行合并,变成一个字典 ===============
-            concatenate_global_dict = dict()
-            concatenate_global_dict['global_channel_matrix'] = []
-            concatenate_global_dict['global_average_reward'] = []
-            concatenate_global_dict['global_scheduling_count'] = []
-            # ================== 接下来几个变量,分别表示将动作进行合并,log prob等等
-            concatenate_action_list = []
-            concatenate_old_action_log_probs = []
-            concatenate_advantage = []
-            concatenate_target_value = []
-            concatenate_old_state_value = []
-            concatenate_return_value = []
-            for agent_index in obs.keys():
-                # ========================== 这个地方是将每一个智能体的观测分开,然后填入到一个字典中
-                concatenate_obs_dict['channel_matrix'].append(torch.FloatTensor(obs[agent_index]['channel_matrix']).to(device_index))
-                concatenate_obs_dict['average_reward'].append(torch.FloatTensor(obs[agent_index]['average_reward']).to(device_index))
-                concatenate_obs_dict['scheduling_count'].append(torch.FloatTensor(obs[agent_index]['scheduling_count']).to(device_index))
-                # ========================== 对全局状态进行添加,按理来说,所有智能体的全局状态都是一样的,因此这个地方是直接复制了三份存入
-                concatenate_global_dict['global_channel_matrix'].append(torch.FloatTensor(copy.deepcopy(global_state['global_channel_matrix'])).to(device_index))
-                concatenate_global_dict['global_average_reward'].append(torch.FloatTensor(copy.deepcopy(global_state['global_average_reward'])).to(device_index))
-                concatenate_global_dict['global_scheduling_count'].append(torch.FloatTensor(copy.deepcopy(global_state['global_scheduling_count'])).to(device_index))
-                # =========================== 接下来就是对其它变量进行拼接,因为其它变量都是列表,因此不需要额外定义字典了
-                concatenate_action_list.append(torch.LongTensor(action[agent_index]).to(device_index))
-                concatenate_old_action_log_probs.append(torch.FloatTensor(old_action_log_probs[agent_index]).to(device_index))
-                concatenate_advantage.append(torch.FloatTensor(advantage[agent_index]).to(device_index))
-                concatenate_target_value.append(torch.FloatTensor(target_value[agent_index]).to(device_index))
-                concatenate_old_state_value.append(torch.FloatTensor(old_state_value[agent_index].to(device_index)))
-                concatenate_return_value.append(torch.FloatTensor(return_value[agent_index].to(device_index)))
-            # ================= 使用cat命令,对上面所有的矩阵进行拼接 =====================
-            concatenate_obs_dict['channel_matrix'] = torch.cat(concatenate_obs_dict['channel_matrix'], 0)
-            concatenate_obs_dict['average_reward'] = torch.cat(concatenate_obs_dict['average_reward'], 0)
-            concatenate_obs_dict['scheduling_count'] = torch.cat(concatenate_obs_dict['scheduling_count'], 0)
-            concatenate_global_dict['global_channel_matrix'] = torch.cat(concatenate_global_dict['global_channel_matrix'], 0)
-            concatenate_global_dict['global_average_reward'] = torch.cat(concatenate_global_dict['global_average_reward'], 0) 
-            concatenate_global_dict['global_scheduling_count'] = torch.cat(concatenate_global_dict['global_scheduling_count'], 0)
-            concatenate_action_list = torch.cat(concatenate_action_list, 0)
-            concatenate_old_action_log_probs = torch.cat(concatenate_old_action_log_probs, 0)
-            concatenate_advantage = torch.cat(concatenate_advantage, 0)
-            concatenate_target_value = torch.cat(concatenate_target_value, 0)
-            concatenate_old_state_value = torch.cat(concatenate_old_state_value, 0)
-            torch_format_data = dict()
-            torch_format_data['obs'] = concatenate_obs_dict
-            torch_format_data['global_state'] = concatenate_global_dict
-            torch_format_data['action_list'] = concatenate_action_list
-            torch_format_data['old_action_log_probs'] = concatenate_old_action_log_probs
-            torch_format_data['advantage'] = concatenate_advantage
-            torch_format_data['target_value'] = concatenate_target_value
-            torch_format_data['old_state_value'] = concatenate_old_state_value
-            torch_format_data['return_value'] = concatenate_return_value
-        else:
-            pass
-            # 这个地方是所有的智能体不共享策略网络的处理过程,暂时空着
-        return torch_format_data
+def convert_data_format_to_torch_training(training_batch, device_index):
+    # 上面那个replaybuffer中有一个slice函数，这个函数就是切一个batch数据出来，然后，这个函数就是将上面那个batch的数据变成torch类型的数据
+    torch_format_data = dict()
+    torch_format_data['target_state_value'] = torch.FloatTensor(training_batch['target_state_value']).to(device_index)
+    torch_format_data['instant_reward'] = torch.FloatTensor(training_batch['instant_reward']).to(device_index)
+    torch_format_data['advantages'] = torch.FloatTensor(training_batch['advantages']).to(device_index)
+    torch_format_data['done'] = torch.FloatTensor(training_batch['done']).to(device_index)
+    torch_format_data['denormalize_current_state_value'] = torch.FloatTensor(training_batch['denormalize_current_state_value']).to(device_index)
+    torch_format_data['current_state_value'] = torch.FloatTensor(training_batch['current_state_value']).to(device_index)
+    torch_format_data['current_state'] = dict()
+    torch_format_data['current_state']['global_state'] = dict()
+    torch_format_data['current_state']['agent_obs'] = dict()
+    torch_format_data['next_state'] = dict()
+    torch_format_data['next_state']['global_state'] = dict()
+    torch_format_data['next_state']['agent_obs'] = dict()
+    torch_format_data['current_state']['global_state']['global_channel_matrix'] = torch.FloatTensor(training_batch['current_state']['global_state']['global_channel_matrix']).to(device_index)
+    torch_format_data['current_state']['global_state']['global_average_reward'] = torch.FloatTensor(training_batch['current_state']['global_state']['global_average_reward']).to(device_index)
+    torch_format_data['current_state']['global_state']['global_scheduling_count'] = torch.FloatTensor(training_batch['current_state']['global_state']['global_scheduling_count']).to(device_index)
+    torch_format_data['next_state']['global_state']['global_channel_matrix'] = torch.FloatTensor(training_batch['next_state']['global_state']['global_channel_matrix']).to(device_index)
+    torch_format_data['next_state']['global_state']['global_average_reward'] = torch.FloatTensor(training_batch['next_state']['global_state']['global_average_reward']).to(device_index)
+    torch_format_data['next_state']['global_state']['global_scheduling_count'] = torch.FloatTensor(training_batch['next_state']['global_state']['global_scheduling_count']).to(device_index)
+    agent_nums = len(training_batch['actions'].keys())
+    for index in range(agent_nums):
+        agent_key = 'agent_' + str(index)
+        torch_format_data['current_state']['agent_obs'][agent_key] = dict()
+        torch_format_data['next_state']['agent_obs'][agent_key] = dict()
+        torch_format_data['current_state']['agent_obs'][agent_key]['channel_matrix'] = torch.FloatTensor(training_batch['current_state']['agent_obs'][agent_key]['channel_matrix']).to(device_index)
+        torch_format_data['current_state']['agent_obs'][agent_key]['average_reward'] = torch.FloatTensor(training_batch['current_state']['agent_obs'][agent_key]['average_reward']).to(device_index)
+        torch_format_data['current_state']['agent_obs'][agent_key]['scheduling_count'] = torch.FloatTensor(training_batch['current_state']['agent_obs'][agent_key]['scheduling_count']).to(device_index)
+        torch_format_data['next_state']['agent_obs'][agent_key]['channel_matrix'] = torch.FloatTensor(training_batch['next_state']['agent_obs'][agent_key]['channel_matrix']).to(device_index)
+        torch_format_data['next_state']['agent_obs'][agent_key]['average_reward'] = torch.FloatTensor(training_batch['next_state']['agent_obs'][agent_key]['average_reward']).to(device_index)
+        torch_format_data['next_state']['agent_obs'][agent_key]['scheduling_count'] = torch.FloatTensor(training_batch['next_state']['agent_obs'][agent_key]['scheduling_count']).to(device_index)
+        # ------------------- 动作和概率的对数进行转换 ------------------------
+        torch_format_data['actions'][agent_key] = torch.LongTensor(training_batch['actions'][agent_key]).to(device_index)
+        torch_format_data['old_action_log_probs'][agent_key] = torch.FloatTensor(training_batch['old_action_log_probs'][agent_key]).to(device_index)
+    return torch_format_data

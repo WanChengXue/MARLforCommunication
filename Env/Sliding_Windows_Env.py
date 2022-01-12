@@ -27,7 +27,7 @@ class Environment(gym.Env):
         self.cell_nums = self.env_dict['cell_nums']
         self.agent_nums = self.env_dict['agent_nums']
         self.bs_antenna_nums = self.env_dict['bs_antenna_nums']
-        self.total_antenna_nums = self.user_nums * self.bs_antenna_nums
+        self.total_antenna_nums = self.env_dict['total_antenna_nums']
         self.sliding_windows_length = self.env_dict['sliding_windows_length']
         self.transmit_power = self.env_dict['transmit_power']
         self.noise_power = self.env_dict['noise_power']
@@ -90,7 +90,8 @@ class Environment(gym.Env):
         state = dict()
         # ========== 定义全局状态，以及每一个智能体的状态 =============
         state['global_state'] = dict()
-        state['global_state']['global_channel_matrix'] = copy.deepcopy(channel_matrix)
+        # ------------- 这个channel_matrix的维度是3*20*3*32的，需要变成9*20*32 ------------
+        state['global_state']['global_channel_matrix'] = copy.deepcopy(channel_matrix.transpose(0,2,1,3).reshape(-1, self.user_nums, self.bs_antenna_nums*2))
         state['global_state']['global_average_reward'] = copy.deepcopy(init_se)
         state['global_state']['global_scheduling_count'] = copy.deepcopy(init_scheduling_count)
         state['agent_obs'] = dict()
@@ -167,7 +168,7 @@ class Environment(gym.Env):
             channel_matrix = self.simulation_channel[:,:,:,:,self.TTI_count-1]
         next_state = dict()
         next_state['global_state'] = dict()
-        next_state['global_state']['global_channel_matrix'] = copy.deepcopy(channel_matrix)
+        next_state['global_state']['global_channel_matrix'] = copy.deepcopy(channel_matrix.transpose(0,2,1,3).reshape(-1, self.user_nums, self.bs_antenna_nums*2))
         next_state['global_state']['global_average_reward'] = copy.deepcopy(self.current_average_se)
         next_state['global_state']['global_scheduling_count'] = copy.deepcopy(self.current_scheduling_count)
         next_state['agent_obs'] = dict()
