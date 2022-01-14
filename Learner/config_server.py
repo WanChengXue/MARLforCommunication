@@ -13,6 +13,7 @@ from Learner.basic_server import basic_server
 from Utils import setup_logger
 from Utils.zmq_utils import zmq_nonblocking_multipart_recv, zmq_nonblocking_recv
 
+
 class config_server(basic_server):
     def __init__(self, config_path):
         super(config_server, self).__init__(config_path)
@@ -97,6 +98,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path
-    server = config_server(concatenate_path)
+    args.config_path = concatenate_path
+    server = config_server(args)
     server.run()
     

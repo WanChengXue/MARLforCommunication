@@ -14,6 +14,7 @@ class fetcher:
         self.config_server_address = self.config_dict['config_server_address']
         self.statistic = statistic
         self.policy_config = self.config_dict['learners']
+        self.policy_type = self.policy_config['policy_type']
         fetcher_log_name = pathlib.Path(self.config_dict['log_dir'] + '/fetcher_log')
         self.logger = setup_logger('Fether_log',fetcher_log_name)
         # 模型保存在当前的目录下
@@ -51,7 +52,7 @@ class fetcher:
 
     def _get_model(self):
         # 获取模型
-        self.latest_model_requester.send(pickle.dumps({"policy_id": self.policy_id}))
+        self.latest_model_requester.send(pickle.dumps({"policy_id": self.policy_id, 'type':self.policy_type}))
         # 获取最新的模型信息
         start_time = time.time()
         raw_model_info = self.latest_model_requester.recv()
@@ -64,7 +65,6 @@ class fetcher:
             self.logge.info("=================== 相同模型, 跳过更新模型 =================")
             return None
         
-
 
     def _download(self, model_info):
         if self.lastest_model_url != model_info['url']:

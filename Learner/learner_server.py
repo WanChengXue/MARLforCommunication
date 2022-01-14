@@ -12,6 +12,13 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import zmq
 import pathlib
 
+import os
+import sys
+current_path = os.path.abspath(__file__)
+root_path = '/'.join(current_path.split('/')[:-2])
+sys.path.append(root_path)
+
+
 from Learner.basic_server import basic_server
 from Utils import setup_logger
 from Utils.data_utils import convert_data_format_to_torch_training
@@ -22,55 +29,60 @@ from Utils.model_utils import create_policy_model, create_critic_net
 
 def get_algorithm_cls(name):
     # 这个函数返回的是一个类，返回一个具体的算法类
-    return importlib.import_module("Learner.alogs.{}".format(name)).get_cls()
+    return importlib.import_module("Learner.algos.{}".format(name)).get_cls()
 
 
 class learner_server(basic_server):
     # 这个函数是用来对网络进行参数更新
     def __init__(self, args):
         super(learner_server, self).__init__(args.config_path)
-        self.policy_id = args.policy_id
         self.policy_config = self.config_dict['learners']
+        self.policy_id = self.policy_config['policy_id']
         # 这个参数是用来控制,这个算法是不是让所有的智能体共享策略网络的参数
-        self.parameter_sharing = self.policy_config['parameter_sharing']
+        self.parameter_sharing = self.config_dict['parameter_sharing']
         self.global_rank = args.rank
         self.world_size = args.world_size
         self.local_rank = self.global_rank % self.policy_config['gpu_num_per_machine']
-        self.eval_mode = self.policy_config['eval_mode']
+        self.eval_mode = self.config_dict['eval_mode']
         logger_name =  pathlib.Path(self.config_dict['log_dir'] +  '/learner_log/{}_{}'.format(self.local_rank, self.policy_id))
         self.log_handler = setup_logger('Learner_log', logger_name)
         self.log_handler.info("================ 开始构造lerner server，这个server的global rank是: {} =========".format(self.global_rank))
         self.learning_rate = self.policy_config['learning_rate']
         # 开始初始化模型
         self.log_handler.info("============== global rank {}开始创建模型 ==========".format(self.global_rank))
-        # 开始创建网络
+        # --------------------- 开始创建网络,定义两个optimizer，一个优化actor，一个优化critic ------------------
+        self.optimizer = {}
         if self.parameter_sharing:
             self.policy_net = create_policy_model(self.policy_config)
+            self.optimizer['actor'] = torch.optim.Adam(self.policy_net.parameters(), lr=self.learning_rate)
         else:
             self.policy_net = dict()
+            self.optimizer['actor'] = dict()
             for agent_index in range(self.config_dict['env']['agent_nums']):
                 agent_key = "agent_" + str(agent_index)
                 self.policy_net[agent_key] = create_policy_model(self.policy_config)
-        self.global_critic = create_critic_net(self.config_dict['learners'])
-        
+                self.optimizer['actor'][agent_key] =  torch.optim.Adam(self.policy_net[agent_key].parameters(), lr=self.learning_rate)
+        self.global_critic = create_critic_net(self.policy_config)
+        self.optimizer['critic'] = torch.optim.Adam(self.global_critic.parameters(), lr=self.learning_rate)
+        self.net = {'policy_net': self.policy_net, 'critic_net': self.global_critic}
         if self.global_rank == 0 and self.eval_mode:
             # 如果说是第一张卡，并且使用的是评估模式，就不需要训练网络了，直接加载即可
-            self.log_handler("=============== 评估模式直接加载模型，模型的路径为:{} =============".format(self.policy_config['model_path']))
+            self.log_handler.info("=============== 评估模式直接加载模型，模型的路径为:{} =============".format(self.policy_config['model_path']))
             deserialize_model(self.net, self.policy_config['model_path'])
         else:
             # torch分布式训练相关
-            dist.init_process_group(init_method=args.init_method, backend="gloo", rank=self.global_rank, world_size=self.world_size)
-            self.net.to(self.local_rank).train()
-            self.net = DDP(self.net, device_ids=[self.local_rank])
-            torch.manual_seed(19930119)
-            self.log_handler.info("============== 完成模型的创建 =========")
-            # --------------------- 定义两个optimizer，一个优化actor，一个优化critic ------------------
-            self.optimizer = {}
-            self.optimizer['actor'] = torch.optim.Adam(self.net.actor.parameters(), lr=self.learning_rate)
-            self.optimizer['critic'] = torch.optim.Adam(self.net.critic.parameters(), lr=self.learning_rate)
-            algo_cls = get_algorithm_cls(self.policy_config.get("algorithm", "ppo"))
-            self.algo = algo_cls(self.net, self.optimizer, self.policy_config)
-            
+            if self.parameter_sharing:
+                self.local_rank = 'cpu'
+                # dist.init_process_group(init_method=args.init_method, backend="gloo", rank=self.global_rank, world_size=self.world_size)
+                self.policy_net.to(self.local_rank).train()
+                # self.net = DDP(self.net, device_ids=[self.local_rank])
+                torch.manual_seed(19930119)
+                self.log_handler.info("============== 完成模型的创建 =========")
+                algo_cls = get_algorithm_cls(self.policy_config.get("algorithm", "ppo"))
+                self.algo = algo_cls(self.net, self.optimizer, self.policy_config, self.parameter_sharing)
+            else:
+                # ------------------------
+                self.log_handler.error("--------- 暂时不支持单卡多模型分布式的训练 --------------")
 
         self.total_training_steps = 0
         if self.global_rank == 0:
@@ -169,10 +181,12 @@ class learner_server(basic_server):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--rank', default= 0, type=int, help="rank of current process")
-    parser.add_argument('--world_size', default=4, type=int, help='total gpu card')
+    parser.add_argument('--world_size', default=1, type=int, help='total gpu card')
     parser.add_argument('--init_method', default='tcp://120.0.0.1:23456')
-    parser.add_argument('--policy_id', type=str, help='policy type')
-    parser.add_argument('--config', type=str, help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
+    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+    concatenate_path = abs_path + args.config_path
+    args.config_path = concatenate_path
     learner_server_obj = learner_server(args)
     learner_server_obj.run()

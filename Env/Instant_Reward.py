@@ -94,6 +94,7 @@ def calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precodi
         
 def calculate_instant_reward(channel_matrix, user_scheduling_matrix, noise_power, transmit_power):
     # 将这个user_sheduling_matrix变成bool矩阵
+    # ---------------- 传入的channel matrix的维度为3*20*3*32 -------------
     bool_scheduling_matrix = user_scheduling_matrix != 0
     sector_number, user_number = bool_scheduling_matrix.shape[0], bool_scheduling_matrix.shape[1]
     # 根据调用矩阵，判断这个调度序列是不是合法的

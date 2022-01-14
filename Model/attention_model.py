@@ -189,6 +189,10 @@ class critic(nn.Module):
         self.popart_head_PF = PopArt(self.embedding_dim, 1)
         self.popart_head_Edge = PopArt(self.embedding_dim, 1)
 
+    def update(self, input_vector):
+        self.popart_head_PF.update(input_vector[:, 0])
+        self.popart_head_Edge.update(input_vector[:, 1])
+
     def forward(self, src):
         # 这个scr表示的是全局信息
         global_channel_matrix = src['global_channel_matrix']

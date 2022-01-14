@@ -38,7 +38,7 @@ class rollout_sampler:
 
     def pack_data(self, bootstrap_value, traj_data):
         '''
-            这个函数表示将采样得到的数据进行打包，然后发送回去，传入的traj_data是一个列表，每一个列表的element都是一个字典，其数据结构为：
+            这个函数表示将采样得到的数据进行打包，然后发送回去，传入的traj_data是一个列表，每一个列表的element都是一个字典，其数据结构为:
             traj_data[i]
             {
                 "current_state": 当前时刻的状态，很复杂，也是一个嵌套字典类型的数据结构
@@ -87,14 +87,14 @@ class rollout_sampler:
                 data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
                 data_dict[-1]['actions'][agent_key] = actions[agent_index]
             data_dict[-1]['done'] = done
-            data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[np.newaxis,:]
-            data_dict[-1]['current_state_value'] = np.concatenate(current_state_value, 1)
-            data_dict[-1]['denormalize_current_state_value'] = np.concatenate(denormalize_state_value, 1)
+            data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
+            data_dict[-1]['current_state_value'] = np.concatenate(current_state_value, 0)
+            data_dict[-1]['denormalize_current_state_value'] = np.concatenate(denormalize_state_value, 0)
             data_dict[-1]['next_state'] = copy.deepcopy(next_state)
             state = next_state
             # -----------------------------------------------------------------------------------------
         # ------------ 数据打包，然后发送，bootstrap value就给0吧 ----------------
-        bootstrap_value = np.zeros((1,2))
+        bootstrap_value = np.zeros((2,1))
         self.pack_data(bootstrap_value, data_dict)
 
 if __name__ == '__main__':
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
     # abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
-    abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path
     from Utils.config_parse import parse_config
     context = zmq.Context()

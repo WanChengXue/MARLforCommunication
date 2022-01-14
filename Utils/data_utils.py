@@ -182,8 +182,7 @@ def conver_data_format_to_torch_interference(obs_dict):
     '''
     torch_format_dict = dict()
     torch_format_dict['global_state'] = dict()
-    user_nums, transmit_antennas = obs_dict['global_state']['global_channel_matrix'].shape[-3], obs_dict['global_state']['global_channel_matrix'].shape[-1]
-    torch_format_dict['global_state']['global_channel_matrix'] = torch.FloatTensor(obs_dict['global_state']['global_channel_matrix']).permute(0,2,1,3).reshape(-1, user_nums, transmit_antennas).unsqueeze(0)
+    torch_format_dict['global_state']['global_channel_matrix'] = torch.FloatTensor(obs_dict['global_state']['global_channel_matrix']).unsqueeze(0)
     torch_format_dict['global_state']['global_average_reward'] = torch.FloatTensor(obs_dict['global_state']['global_average_reward']).unsqueeze(0)
     torch_format_dict['global_state']['global_scheduling_count'] = torch.FloatTensor(obs_dict['global_state']['global_scheduling_count']).unsqueeze(0)
     torch_format_dict['agent_obs'] = dict()

@@ -105,7 +105,8 @@ class AgentManager:
         compressed_data = frame.compress(pickle.dumps(data))
         if self.eval_mode:
             # ----- TODO 如果说eval mode，就将这个数据保存到本地就好 ------
-            pass
+            with open("sampler_data", 'wb') as f:
+                f.write(compressed_data)
         else:
             self.data_sender.send(compressed_data)
 
