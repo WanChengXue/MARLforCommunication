@@ -16,7 +16,7 @@ class Environment:
         self.user_num = self.args.user_numbers
         self.sector_number = self.args.sector_number
         self.cell_number = self.args.cell_number
-        self.agent_number = self.cell_number * self.sector_number
+        self.agent_nums = self.cell_number * self.sector_number
         self.bs_antenna_number = self.args.bs_antennas
         self.total_antennas = self.args.total_user_antennas 
         self.tau = self.args.tau
@@ -42,7 +42,7 @@ class Environment:
         rank_level = []
         group_dict = {}
         max_rank = []
-        for cell_index in range(self.agent_number):
+        for cell_index in range(self.agent_nums):
             cell_priority = copy.deepcopy(priority_array[cell_index])
             cell_dict = {}
             cell_level = []
@@ -65,20 +65,20 @@ class Environment:
         # Read chanel data set
         for i in range(self.training_set_length):
             temp_file = []
-            for agent_index in range(self.agent_number):
-                temp_file.append(self.data_folder + "/" + file_list[i*self.agent_number + agent_index])
+            for agent_index in range(self.agent_nums):
+                temp_file.append(self.data_folder + "/" + file_list[i*self.agent_nums + agent_index])
             self.training_set.append(temp_file)
         
     def read_testing_data(self):
         # variable file_index is the index of current file
         testing_set = []
         file_list = sorted(os.listdir(self.data_folder))
-        total_file = int(len(file_list) / self.agent_number)
+        total_file = int(len(file_list) / self.agent_nums)
         # Read chanel data set
         for i in range(total_file):
             temp_file = []
-            for agent_index in range(self.agent_number):
-                temp_file.append(self.data_folder + "/" + file_list[i*self.agent_number + agent_index])
+            for agent_index in range(self.agent_nums):
+                temp_file.append(self.data_folder + "/" + file_list[i*self.agent_nums + agent_index])
             testing_set.append(temp_file)
         return testing_set
 
@@ -88,18 +88,18 @@ class Environment:
         # Read specific channel data based on file_index 
         agent_data_list = self.training_set[self.file_index]
         self.episode_data = []
-        for agent_index in range(self.agent_number):
+        for agent_index in range(self.agent_nums):
                 self.episode_data.append(np.load(agent_data_list[agent_index]))
         self.file_index += 1
-        self.user_rank = [[1 for _ in range(self.total_antennas)] for cell_index in range(self.agent_number)]
+        self.user_rank = [[1 for _ in range(self.total_antennas)] for cell_index in range(self.agent_nums)]
         self.Read_TTI_data()
         self.Calculate_average_reward()
         
         
     def Calculate_init_average_user_sum_rate(self):
         # 这个函数用来计算再初始时刻，每个用户的平均sum rate，具体就是将第一个TTI的数据拿过来，挨个计算一次
-        Init_user_average_reward = np.zeros((self.agent_number, self.total_antennas)) 
-        for cell_index in range(self.agent_number):
+        Init_user_average_reward = np.zeros((self.agent_nums, self.total_antennas)) 
+        for cell_index in range(self.agent_nums):
             # 将用户的信道拿出来
             cell_id = cell_index // self.sector_number
             sector_id = cell_index % self.sector_number
@@ -114,7 +114,7 @@ class Environment:
     def Evaluate_mode(self, agent_data_list):
         self.TTI_count = 0
         self.episode_data = []
-        for agent_index in range(self.agent_number):
+        for agent_index in range(self.agent_nums):
                 self.episode_data.append(np.load(agent_data_list[agent_index]))
         self.file_index += 1
         self.Read_TTI_data()
@@ -127,7 +127,7 @@ class Environment:
         self.delay_TTI_data = []
         self.source_channel = []
         self.delay_source_channel = []
-        for agent in range(self.agent_number):
+        for agent in range(self.agent_nums):
             activate_channel = self.episode_data[agent][:,:,:,:,self.TTI_count]
             self.source_channel.append(activate_channel)
             activate_channel_delay = self.episode_data[agent][:,:,:,:,self.TTI_count + self.delay_time]
@@ -139,7 +139,7 @@ class Environment:
     def Calculate_average_reward(self, instant_reward=None):
         if not instant_reward:
             self.average_reward = self.Calculate_init_average_user_sum_rate()
-            self.real_average_reward = np.zeros((self.agent_number, self.total_antennas))
+            self.real_average_reward = np.zeros((self.agent_nums, self.total_antennas))
         else:
             last_average_reward = copy.deepcopy(self.average_reward)
             current_average_reward = last_average_reward * self.tau + (1-self.tau) * np.array(instant_reward)
@@ -152,7 +152,7 @@ class Environment:
         # select data 的维度是3*3×scheduled_number * 32
         if self.is_reasonable:
             precoding_matrix = []
-            for cell_index in range(self.agent_number):
+            for cell_index in range(self.agent_nums):
                 if self.cell_schedule_user_number[cell_index] != 0:
                     sector_id = cell_index % self.sector_number
                     cell_id = cell_index // self.sector_number
@@ -164,20 +164,20 @@ class Environment:
                 else:
                     precoding_matrix.append(None)
         else:
-            precoding_matrix = [None for cell_index in range(self.agent_number)]
+            precoding_matrix = [None for cell_index in range(self.agent_nums)]
         self.precoding_matrix = precoding_matrix
 
     def Select_channel_data(self, action):
         if self.is_reasonable:
             selected_channel = []
             delay_selected_channel = []
-            for cell_index in range(self.agent_number):
+            for cell_index in range(self.agent_nums):
                 cell_action = action[cell_index]
                 selected_channel.append(self.TTI_data[cell_index][np.array(cell_action).astype(bool),:,:,:])
                 delay_selected_channel.append(self.delay_TTI_data[cell_index][np.array(cell_action).astype(bool),:,:,:])
         else:
-            selected_channel = [None for _ in range(self.agent_number)]
-            delay_selected_channel = [None for _ in range(self.agent_number)]
+            selected_channel = [None for _ in range(self.agent_nums)]
+            delay_selected_channel = [None for _ in range(self.agent_nums)]
         self.select_data = selected_channel
         self.delay_seleted_channel = delay_selected_channel
     
@@ -187,7 +187,7 @@ class Environment:
         cell_schedule_user_number = []
         power = []
         # 此处需要遍历三个cell哦
-        for cell_index in range(self.agent_number):
+        for cell_index in range(self.agent_nums):
             cell_action = action[cell_index]
             schedule_number = np.sum(cell_action)
             cell_schedule_user_number.append(schedule_number)
@@ -205,15 +205,15 @@ class Environment:
     
     def Calculate_user_sum_rate(self, action):
         # users_sum_rate是一个二维列表,数目与扇区的数目是一样的
-        users_sum_rate = [[] for cell_index in range(self.agent_number)]
+        users_sum_rate = [[] for cell_index in range(self.agent_nums)]
         # schedule_user_number表示的是每一个扇区中调度的用户数目
         schedule_user_number = copy.deepcopy(self.cell_schedule_user_number)
         # schedule_user_set是一个二维列表,第一个维度和扇区数目是一样的,第二个维度是给调度的用户进行重新记上索引
-        schedule_user_set =  [[i for i in range(schedule_user_number[cell_index])]for cell_index in range(self.agent_number)]
+        schedule_user_set =  [[i for i in range(schedule_user_number[cell_index])]for cell_index in range(self.agent_nums)]
         # 对所有的扇区进行标号
-        cell_index_list = [i for i in range(self.agent_number)]
+        cell_index_list = [i for i in range(self.agent_nums)]
         if self.is_reasonable:
-            for cell_index in range(self.agent_number):
+            for cell_index in range(self.agent_nums):
                 cell_action = action[cell_index]
                 # 取出第i个小区第j个sector的信道数据
                 sector_id = cell_index % self.sector_number
@@ -279,7 +279,7 @@ class Environment:
                             users_sum_rate[cell_index].append(0)
         else:
             # 这个表示的当前小区没有数据进行发送，因此也就直接将所有用户的instant reward设置为0
-            for cell_index in range(self.agent_number):
+            for cell_index in range(self.agent_nums):
                 for user in range(self.total_antennas):
                     users_sum_rate[cell_index].append(0)
         return users_sum_rate
@@ -295,14 +295,14 @@ class Environment:
         capacity = np.sum(reward)
         min_user_arrary = np.min(self.real_average_reward,1)
         average_min_users = np.mean(min_user_arrary)
-        average_capacity = capacity / (self.agent_number * self.total_antennas)
+        average_capacity = capacity / (self.agent_nums * self.total_antennas)
         # weight_reward = self.weight_factor * average_capacity + (1-self.weight_factor) * average_min_users
         return average_capacity, average_min_users, PF_sum
 
     def Step(self, sequence):
         # 这个sequence是一个序列,需要变成0-1 string
-        action = [[0 for i in range(self.total_antennas)] for cell_index in range(self.agent_number)]
-        for cell_index in range(self.agent_number):
+        action = [[0 for i in range(self.total_antennas)] for cell_index in range(self.agent_nums)]
+        for cell_index in range(self.agent_nums):
             cell_action = sequence[cell_index]
             for user_index in range(self.total_antennas):
                 if user_index in cell_action:
@@ -330,9 +330,9 @@ class Environment:
         # apart channel matrix and average reward
         channel = []
         average_reward = []
-        for agent_id in range(self.agent_number):
+        for agent_id in range(self.agent_nums):
             agent_channel = []
-            for index in range(self.agent_number):
+            for index in range(self.agent_nums):
                 # 添加九个信道矩阵,其中意思表达的是当前基站收到的信号是什么,最好加上一个one hot编码,表示的是当前智能体的index
                 cell_id = index // self.sector_number
                 sector_id = index % self.sector_number
@@ -344,8 +344,8 @@ class Environment:
     def get_state(self):
         global_channel = []
         global_reward = copy.deepcopy(self.average_reward)
-        for agent_id in range(self.agent_number):
-            for index in range(self.agent_number):
+        for agent_id in range(self.agent_nums):
+            for index in range(self.agent_nums):
                 cell_id = index // self.sector_number
                 sector_id = index % self.sector_number
                 global_channel.append(copy.deepcopy(self.source_channel[agent_id][:,cell_id,sector_id,:]))
@@ -353,7 +353,7 @@ class Environment:
 
     def update_user_rank(self, action):
         # 这个地方是根据神经网络决策出来的动作来更新rank向量
-        for cell_index in range(self.agent_number):
+        for cell_index in range(self.agent_nums):
             for user_antenna in range(self.total_antennas):
                 if action[cell_index][user_antenna] == 1 and self.user_rank[cell_index][user_antenna]== 1:
                     self.user_rank[cell_index][user_antenna] -= 1

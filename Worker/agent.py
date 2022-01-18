@@ -16,28 +16,16 @@ from Utils.data_utils import conver_data_format_to_torch_interference
 
 class Agent:
     # 定义一个采样智能体，它能够完成的事情有：加载模型，保存模型，发送数据，给定状态计算动作
-    def __init__(self, config_dict, statistic):
+    def __init__(self, config_dict):
         self.config_dict = config_dict
         self.policy_id = self.config_dict['policy_id']
-        self.statistic = statistic
         # ----------- 这个地方创建出来的net_work其实是一个策略网络 -------
         self.net_work = create_policy_model(self.config_dict['learners'])
-        self.mdoel_info = None
         self.eval_mode = self.config_dict['eval_mode']
-
-
-    def load_model(self, model_info):
-        # 载入模型，这个函数只有在训练的时候，才会被智能体调用来更新自己的网络参数
-        if model_info is not None:
-            self.mdoel_info = model_info
-            model_path = model_info['path']
-            deserialize_model(self.net_work, model_path)
-            
+        
     def synchronize_model(self, model_path):
-        # ---------- 这个函数是用来同步本地模型的，只再eval的时候使用 ----------
-        pass
-        # deserialize_model(self.net_work, model_path)
-
+        # ---------- 这个函数是用来同步本地模型的 ----------
+        deserialize_model(self.net_work, model_path)
 
     def compute(self, agent_obs):
         # 这个是调用策略网络来进行计算的，网络使用的是Transformer结构，Encoder得到多个有意义的隐藏向量矩阵后，传入到Decoder，使用pointer network来进行解码操作
@@ -45,6 +33,7 @@ class Agent:
             # 通过transformer进行了特征提取了之后，有两个head出来，一个是transformer decoder部分，得到调度列表，另外一个head出来的是v(s)的值，在推断阶段这个值不要
             # 因为还是遵循的CTDE的训练方式，每次决策之后，需要将所有智能体的backbone汇聚在一起进行V值的计算，由于action的长度有长有短，因此需要进行mask操作，统一到
             # 固定长度。如果是单个点进行决策，返回的log_probs表示的是联合概率的对数，action表示的是调度序列，mask表示的是固定长度的0-1向量
+            # 按理来说，在eval mode的时候，每次决策都需要选择概率最大的动作的
             log_joint_prob, scheduling_action = self.net_work(agent_obs, inference_mode = True)
             return log_joint_prob, scheduling_action
 
@@ -77,7 +66,7 @@ class AgentManager:
             self.agent = dict()
             for agent_index in range(self.agent_nums):
                 agent_key = "agent_" + str(agent_index)
-                self.agent[agent_key] = Agent(self.config_dict, self.statistic)
+                self.agent[agent_key] = Agent(self.config_dict)
         self.global_critic = create_critic_net(self.config_dict['learners'])
 
 
@@ -93,7 +82,6 @@ class AgentManager:
         port_num = choose_data_server_index % data_server_per_machine
         target_ip = self.policy_config['machines'][machine_index]
         target_port = self.policy_config['learner_port_start'] + port_num
-        # TODO,需要考虑一下如何给worker进行log的存放
         logger_path = pathlib.Path(self.config_dict['log_dir'] + "/agent_manager_server")
         self.logger = setup_logger('AgentManager_log', logger_path)
         self.logger.info("==================== 此智能体要发送数据到: {}, 连接的端口为: {} =================".format(target_ip, target_port))
@@ -104,7 +92,6 @@ class AgentManager:
         # -------- 将采样数据发送出去 -------------
         compressed_data = frame.compress(pickle.dumps(data))
         if self.eval_mode:
-            # ----- TODO 如果说eval mode，就将这个数据保存到本地就好 ------
             with open("sampler_data", 'wb') as f:
                 f.write(compressed_data)
         else:
@@ -143,23 +130,32 @@ class AgentManager:
             else:
                 # ---- 当采用了非参数共享算法，需要给每一个智能体的网络进行模型加载 ----
                 for agent_key in self.agent.keys():
-                    self.agent[agent_key].synchronize_model(model_path['policy_path'])
+                    self.agent[agent_key].synchronize_model(model_path['policy_path'][agent_key])
             deserialize_model(self.global_critic, model_path['critic_path'])
 
         else:
             # 如果是非测试模式，需要使用fether进行获取最新的策略，然后调用agent里面的load model函数
             model_info = self.agent_fetcher.reset()
             if self.parameter_sharing:
-                self.agent.load_model(model_info['policy_path'])
+                self.agent.synchronize_model(model_info['policy_path'])
             else:
                 # ----- 如果采样非参数共享，需要通过循环的方式给每一个智能体进行模型加载 -----
                 for agent_key in self.agent.keys():
-                    self.agent[agent_key].load_model(model_info['policy_path'][agent_key])
+                    self.agent[agent_key].synchronize_model(model_info['policy_path'][agent_key])
             # ------------- 非测试模式下，global critic的参数也是需要同步进行更新的 -----------------
             deserialize_model(self.global_critic, model_info['critic_path'])
 
     def step(self):
         # -------------- 这个函数是在采样函数的时候使用，每一次rollout的时候都会step，把最新的模型拿过来 ---------
+        '''
+        model_info的样子为:
+            如果使用参数共享
+                model_info["policy_path"]: string
+            否则:
+                model_info["policy_path"]["agent_1"]: string
+                ......
+            model_info["critic_path"]: string
+        '''
         if self.eval_mode:
             # ------ 如果说是eval mode，那么就不需要更新模型了，直接返回就可以了 -------
             return
@@ -176,7 +172,6 @@ class AgentManager:
     def get_model_info(self):
         return self.model_info
 
-
     def normalize_state_value(self, input_matrix):
         normalize_PF_value = self.global_critic.popart_head_PF.normalize(input_matrix[:,0])
         normalize_Edge_value = self.global_critic.popart_head_Edge.normalize(input_matrix[:,1])
@@ -187,7 +182,6 @@ class AgentManager:
         denormalize_PF_value = self.global_critic.popart_head_PF.denormalize(input_matrix[0])
         denormalize_Edge_value = self.global_critic.popart_head_Edge.denormalize(input_matrix[1])
         return [denormalize_PF_value, denormalize_Edge_value]
-
 
 if __name__ == '__main__':
     import argparse

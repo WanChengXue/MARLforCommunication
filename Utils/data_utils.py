@@ -90,8 +90,11 @@ class TrainingSet:
         self.init_replay_buffer()
     
     @property
-    def len(self):
-        return self.cursor
+    def full_buffer(self):
+        if self.cursor >= self.max_capacity:
+            return True
+        else:
+            return False
 
     def append_instance(self, instance):
         # ------------- 这个地方是添加数据进去，这个instance是一个列表 --------------
@@ -159,6 +162,7 @@ class TrainingSet:
             sample_dict['next_state']['agent_obs'][agent_key]['scheduling_count'] = self.data_buffe['next_state']['agent_obs'][agent_key]['scheduling_count'][random_batch, :, :]
             sample_dict['old_action_log_probs'][agent_key] = self.data_buffer['old_action_log_probs'][agent_key][random_batch, :, :]
             sample_dict['actions'][agent_key] = self.data_buffer[agent_key][random_batch, :, :]
+        return sample_dict
 
 def conver_data_format_to_torch_interference(obs_dict):
     # 这个函数是将使用rollout和环境交互后得到的数据传入到网络做预处理，总的来说就是放入到torch上面

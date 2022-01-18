@@ -42,7 +42,7 @@ class Model(nn.Module):
         self.affine_middle_layer = nn.Linear(2*self.args.fc_dim, self.args.fc_dim)
         self.affine_activate_fn = nn.ELU()
         self.output_layer = nn.Linear(self.args.fc_dim, 1)
-        # 需要对batch_size * agent_number * antennas进行处理,得到一个batch_size * feature_dim
+        # 需要对batch_size * agent_nums * antennas进行处理,得到一个batch_size * feature_dim
         
     def output_dimension(self,input_shape):
         test_channel = torch.rand(*input_shape)

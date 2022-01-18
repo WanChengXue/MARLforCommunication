@@ -13,11 +13,11 @@ class Agent:
         self.sector_number = self.args.sector_number
         self.user_number =  self.args.user_numbers
         self.bs_antennas = self.args.bs_antennas
-        self.agent_number = self.args.n_agents
+        self.agent_nums = self.args.n_agents
         self.parameter_sharing = self.args.parameter_sharing
         # ==== 定义策略网络,以及critic网络,以及tensorboard的相关路径等 ====
         if self.parameter_sharing:
-            self.Replay_buffer = [ReplayBuffer(self.args) for _ in range(self.agent_number)]
+            self.Replay_buffer = [ReplayBuffer(self.args) for _ in range(self.agent_nums)]
             self.actor = Actor(self.args).to(self.device)
             self.optimizer_actor = optim.Adam(self.actor.parameters(), lr=args.actor_lr)
             torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer_actor, T_max=50)
@@ -30,19 +30,19 @@ class Agent:
             print(self.critic)
         else:
             self.Replay_buffer = ReplayBuffer(self.args)
-            self.actor = [Actor(self.args).to(self.device) for _ in range(self.agent_number)]
-            self.optimizer_actor = [optim.Adam(self.actor[agent_index].parameters(), lr=args.actor_lr) for agent_index in range(self.agent_number)]
-            self.critic = [Critic(self.args, (1, args.state_dim1, args.obs_dim2)).to(self.device) for _ in range(self.agent_number)]
-            self.optimizer_critic = [optim.Adam(self.critic[agent_index].parameters(), lr=args.critic_lr) for agent_index in range(self.agent_number)]
-            for agent_index in range(self.agent_number):
+            self.actor = [Actor(self.args).to(self.device) for _ in range(self.agent_nums)]
+            self.optimizer_actor = [optim.Adam(self.actor[agent_index].parameters(), lr=args.actor_lr) for agent_index in range(self.agent_nums)]
+            self.critic = [Critic(self.args, (1, args.state_dim1, args.obs_dim2)).to(self.device) for _ in range(self.agent_nums)]
+            self.optimizer_critic = [optim.Adam(self.critic[agent_index].parameters(), lr=args.critic_lr) for agent_index in range(self.agent_nums)]
+            for agent_index in range(self.agent_nums):
                 torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer_critic[agent_index], T_max=50)
                 torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer_actor[agent_index], T_max=50)
             print("============ policy network 的网络结构为: ==========")
             print(self.actor[0])
             print("============ value network 的网络结构为: ===========")
             print(self.critic[0])
-        self.actor_loss_path = ["Policy_loss/Agent_" + str(agent_index)  for agent_index in range(self.agent_number)]
-        self.critic_loss_path = ["Critic_loss/Agent_" + str(agent_index)  for agent_index in range(self.agent_number)]
+        self.actor_loss_path = ["Policy_loss/Agent_" + str(agent_index)  for agent_index in range(self.agent_nums)]
+        self.critic_loss_path = ["Critic_loss/Agent_" + str(agent_index)  for agent_index in range(self.agent_nums)]
         # 定义critic网络的loss function
         self.critic_loss = torch.nn.MSELoss()
         self.writer = self.args.writer
@@ -64,7 +64,7 @@ class Agent:
     def Pick_action_Max_SE_batch(self,state_list):
         Scheduling_sequence = []
         prob = []
-        for agent_index in range(self.agent_number):
+        for agent_index in range(self.agent_nums):
             net_input = torch.FloatTensor(state_list[agent_index]).to(self.device)
             if self.parameter_sharing:
                 batch_prob, scheduling_user = self.actor(net_input) 
@@ -81,7 +81,7 @@ class Agent:
         reward = torch.FloatTensor(reward).to(self.device).unsqueeze(-1)
         self.writer.add_scalar(self.average_reward, torch.mean(reward).item(), self.update_count)
         reward  = (reward - torch.mean(reward))/ (1e-6 + torch.max(reward))
-        for agent_index in range(self.agent_number):
+        for agent_index in range(self.agent_nums):
             batch_data = torch.FloatTensor(data[:, agent_index, :, agent_index, :]).to(self.device)
             if self.parameter_sharing:
                 if agent_index == 0:
@@ -92,7 +92,7 @@ class Agent:
                     v_loss.backward(retain_graph=True)
                     policy_loss = -torch.mean((reward-v_value.detach()) *prob[agent_index])
                     policy_loss.backward(retain_graph=True)
-                elif agent_index == self.agent_number -1:
+                elif agent_index == self.agent_nums -1:
                     v_value = self.critic(batch_data)
                     v_loss = self.critic_loss(v_value, reward)
                     v_loss.backward()

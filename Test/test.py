@@ -68,7 +68,7 @@ def multiprocessing_training(index):
             self.args.random_steps = 0
             self.args.Training = args.mode == 'train' 
             self.sector_number = self.args.sector_number
-            self.agent_number = self.args.n_agents
+            self.agent_nums = self.args.n_agents
             self.parameter_sharing = self.args.parameter_sharing
             self.data_folder = pathlib.Path(self.args.training_data_path)/(str(self.args.total_user_antennas) + '_user')/(str(self.args.user_velocity)+'KM')/'training_data_10_10.npy'
             self.args.data_folder = self.data_folder
@@ -90,10 +90,10 @@ def multiprocessing_training(index):
             testing_data = np.load(self.testing_data_folder).transpose(4,0,1,2,3)
             if self.args.ablation_experiment:
                 obs_list = []
-                for sector_index in range(self.agent_number):
+                for sector_index in range(self.agent_nums):
                 # 每一个元素都是batch_size*20*3*32
                     sub_obs = []
-                    for sub_sector_index in range(self.agent_number):
+                    for sub_sector_index in range(self.agent_nums):
                         # if sector_index == sub_sector_index:
                         #     sub_obs.append(testing_data[:, sector_index, :, sub_sector_index, :])
                         # else:
@@ -101,7 +101,7 @@ def multiprocessing_training(index):
                             
                     obs_list.append(np.stack(sub_obs, 2))
             else:
-                obs_list = [testing_data[:, agent_index, :, :] for agent_index in range(self.agent_number)]
+                obs_list = [testing_data[:, agent_index, :, :] for agent_index in range(self.agent_nums)]
             action_list, _ = self.agent.Pick_action_Max_SE_batch(obs_list)
             agent_infer_sequence = np.stack(action_list, axis=1)
             infer_SE = self.env.calculate_batch_instant_rewrd(testing_data, agent_infer_sequence)
@@ -120,7 +120,7 @@ def multiprocessing_training(index):
                     self.agent.actor.load_state_dict(torch.load(policy_net_path))
                     self.agent.critic.load_state_dict(torch.load(value_net_path))
                 else:
-                    for agent_id in range(self.agent_number):
+                    for agent_id in range(self.agent_nums):
                         policy_net_path = self.args.model_folder/( 'Agent_' + str(agent_id + 1) +'_policy_net.pkl')
                         self.agent.actor[agent_id].load_state_dict(torch.load(policy_net_path))
                     value_net_path = self.args.model_folder /('value_net.pkl')

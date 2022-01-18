@@ -10,7 +10,7 @@ from ast import literal_eval
 class Environment:
     def __init__(self, args):
         self.args = args
-        self.agent_number = self.args.cell_number
+        self.agent_nums = self.args.cell_number
         self.user_num = self.args.user_numbers
         self.bs_antenna_number = self.args.bs_antennas
         self.total_antennas = self.args.total_user_antennas 
@@ -36,9 +36,9 @@ class Environment:
         for i in range(self.training_set_length):
             temp_file = []
             koopman_temp_file = []
-            for agent_index in range(self.agent_number):
-                temp_file.append(self.data_folder + "/" + file_list[i*self.agent_number + agent_index])
-                koopman_temp_file.append(self.koopman_predict_folder + "/" + koopman_file_list[i*self.agent_number + agent_index])
+            for agent_index in range(self.agent_nums):
+                temp_file.append(self.data_folder + "/" + file_list[i*self.agent_nums + agent_index])
+                koopman_temp_file.append(self.koopman_predict_folder + "/" + koopman_file_list[i*self.agent_nums + agent_index])
             self.training_set.append(temp_file)
             self.training_koopman_set.append(koopman_temp_file)
     
@@ -48,14 +48,14 @@ class Environment:
         testing_koopman_set = []
         file_list = sorted(os.listdir(self.data_folder))
         koopman_file_list = sorted(os.listdir(self.koopman_predict_folder))
-        total_file = int(len(file_list) / self.agent_number)
+        total_file = int(len(file_list) / self.agent_nums)
         # Read chanel data set
         for i in range(total_file):
             temp_file = []
             koopman_temp_file = []
-            for agent_index in range(self.agent_number):
-                temp_file.append(self.data_folder + "/" + file_list[i*self.agent_number + agent_index])
-                koopman_temp_file.append(self.koopman_predict_folder + "/" + koopman_file_list[i*self.agent_number + agent_index])
+            for agent_index in range(self.agent_nums):
+                temp_file.append(self.data_folder + "/" + file_list[i*self.agent_nums + agent_index])
+                koopman_temp_file.append(self.koopman_predict_folder + "/" + koopman_file_list[i*self.agent_nums + agent_index])
             testing_set.append(temp_file)
             testing_koopman_set.append(koopman_temp_file)
         return testing_set, testing_koopman_set
@@ -68,7 +68,7 @@ class Environment:
         agent_data_koopmam_list = self.training_koopman_set[self.file_index]
         self.episode_data = []
         self.koopman_episode_data = []
-        for agent_index in range(self.agent_number):
+        for agent_index in range(self.agent_nums):
                 self.episode_data.append(np.load(agent_data_list[agent_index]))
                 self.koopman_episode_data.append(np.load(agent_channel[agent_index]))
         self.file_index += 1
@@ -79,7 +79,7 @@ class Environment:
         self.TTI_count = 0
         self.episode_data = []
         self.koopman_episode_data = []
-        for agent_index in range(self.agent_number):
+        for agent_index in range(self.agent_nums):
                 self.episode_data.append(np.load(agent_data_list[agent_index]))
                 self.koopman_episode_data.append(np.load(agent_channel[agent_index]))
         self.file_index += 1
@@ -92,7 +92,7 @@ class Environment:
         self.TTI_delay_data = []
         self.source_channel = []
         self.TTI_koopman_channel = []
-        for agent in range(self.agent_number):
+        for agent in range(self.agent_nums):
             activate_channel = self.episode_data[agent][:,:,:,self.TTI_count]
             delay_activate_channel = self.episode_data[agent][:,:,:,self.TTI_count+self.delay_TTI]
             koopman_pred_channel = self.koopman_episode_data[agent][:,:,:,self.TTI_count]
@@ -104,7 +104,7 @@ class Environment:
 
     def Calculate_average_reward(self, instant_reward=None):
         if not instant_reward:
-            self.average_reward = np.zeros((self.agent_number, self.total_antennas))
+            self.average_reward = np.zeros((self.agent_nums, self.total_antennas))
         else:
             last_average_reward = self.average_reward.copy()
             current_average_reward = last_average_reward * self.tau + (1-self.tau) * np.array(instant_reward)
@@ -115,7 +115,7 @@ class Environment:
         # then this cell will have precoding matrix, otherwise, the precoding matrix is setted as None
         if self.is_reasonable:
             precoding_matrix = []
-            for cell_index in range(self.agent_number):
+            for cell_index in range(self.agent_nums):
                 if self.cell_schedule_user_number[cell_index] != 0:
                     cell_channel_matrix = self.koopman_select_data[cell_index][:, cell_index, :]
                     pseudo_inverse = np.linalg.pinv(cell_channel_matrix)
@@ -125,7 +125,7 @@ class Environment:
                 else:
                     precoding_matrix.append(None)
         else:
-            precoding_matrix = [None for cell_index in range(self.agent_number)]
+            precoding_matrix = [None for cell_index in range(self.agent_nums)]
         self.precoding_matrix = precoding_matrix
 
     def Select_channel_data(self, action):
@@ -133,15 +133,15 @@ class Environment:
             selected_channel = []
             delay_selected_channel = []
             koopman_selected_channel = []
-            for cell_index in range(self.agent_number):
+            for cell_index in range(self.agent_nums):
                 cell_action = action[cell_index]
                 selected_channel.append(self.TTI_data[cell_index][np.array(cell_action).astype(bool),:,:])
                 delay_selected_channel.append(self.TTI_delay_data[cell_index][np.array(cell_action).astype(bool),:,:])
                 koopman_selected_channel.append(self.TTI_koopman_channel[cell_index][np.array(cell_action).astype(bool),:,:])
         else:
-            selected_channel = [None for cell_index in range(self.agent_number)]
-            delay_selected_channel = [None for cell_index in range(self.agent_number)]
-            koopman_selected_channel = [None for cell_index in range(self.agent_number)]
+            selected_channel = [None for cell_index in range(self.agent_nums)]
+            delay_selected_channel = [None for cell_index in range(self.agent_nums)]
+            koopman_selected_channel = [None for cell_index in range(self.agent_nums)]
         self.select_data = selected_channel
         self.delay_select_data = delay_selected_channel
         self.koopman_select_data = koopman_selected_channel
@@ -152,7 +152,7 @@ class Environment:
         cell_schedule_user_number = []
         power = []
         # 此处需要遍历三个cell哦
-        for cell_index in range(self.agent_number):
+        for cell_index in range(self.agent_nums):
             cell_action = action[cell_index]
             schedule_number = np.sum(cell_action)
             cell_schedule_user_number.append(schedule_number)
@@ -169,16 +169,16 @@ class Environment:
         
     
     def Calculate_user_sum_rate(self, action):
-        users_sum_rate = [[] for cell_index in range(self.agent_number)]
-        user_count = [0 for cell_index in range(self.agent_number)]
+        users_sum_rate = [[] for cell_index in range(self.agent_nums)]
+        user_count = [0 for cell_index in range(self.agent_nums)]
         schedule_user_number = copy.deepcopy(self.cell_schedule_user_number)
-        schedule_user_set =  [[i for i in range(schedule_user_number[cell_index])]for cell_index in range(self.agent_number)]
-        # for cell_index in range(self.agent_number):
+        schedule_user_set =  [[i for i in range(schedule_user_number[cell_index])]for cell_index in range(self.agent_nums)]
+        # for cell_index in range(self.agent_nums):
         #     cell_schedule_user_set = [user for user in range(self.total_antennas) if action[cell_index][user]== 1]
         #     schedule_user_set.append(cell_schedule_user_set)
-        cell_index_list = [i for i in range(self.agent_number)]
+        cell_index_list = [i for i in range(self.agent_nums)]
         if self.is_reasonable:
-            for cell_index in range(self.agent_number):
+            for cell_index in range(self.agent_nums):
                 cell_action = action[cell_index]
                 cell_count = user_count[cell_index]
                 cell_select_data = self.delay_select_data[cell_index]
@@ -227,7 +227,7 @@ class Environment:
                             users_sum_rate[cell_index].append(0)
         else:
             # 这个表示的当前小区没有数据进行发送，因此也就直接将所有用户的instant reward设置为0
-            for cell_index in range(self.agent_number):
+            for cell_index in range(self.agent_nums):
                 for user in range(self.total_antennas):
                     users_sum_rate[cell_index].append(0)
         return users_sum_rate
@@ -242,8 +242,8 @@ class Environment:
 
     def Step(self, sequence):
         # 这个sequence是一个序列,需要变成0-1 string
-        action = [[0 for i in range(self.total_antennas)] for cell_index in range(self.agent_number)]
-        for cell_index in range(self.agent_number):
+        action = [[0 for i in range(self.total_antennas)] for cell_index in range(self.agent_nums)]
+        for cell_index in range(self.agent_nums):
             cell_action = sequence[cell_index]
             for user_index in range(self.total_antennas):
                 if user_index in cell_action:
@@ -269,9 +269,9 @@ class Environment:
         # apart channel matrix and average reward
         channel = []
         average_reward = []
-        for agent_id in range(self.agent_number):
+        for agent_id in range(self.agent_nums):
             agent_channel = []
-            for index in range(self.agent_number):
+            for index in range(self.agent_nums):
                 # 添加三个信道矩阵,其中意思表达的是当前基站收到的信号是什么,最好加上一个one hot编码,表示的是当前智能体的index
                 agent_channel.append(copy.deepcopy(self.source_channel[index][:,agent_id,:]))
             channel.append(agent_channel)
@@ -281,7 +281,7 @@ class Environment:
     def get_state(self):
         global_channel = []
         global_reward = copy.deepcopy(self.average_reward)
-        for agent_id in range(self.agent_number):
-            for index in range(self.agent_number):
+        for agent_id in range(self.agent_nums):
+            for index in range(self.agent_nums):
                 global_channel.append(copy.deepcopy(self.source_channel[agent_id][:, index, :]))
         return global_channel, global_reward 

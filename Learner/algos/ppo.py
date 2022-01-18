@@ -20,7 +20,7 @@ class MAPPOTrainer:
         self.critic_net = net['critic_net']
         self.optimizer_critic = optimizer['critic']
         self.optimizer_actor = optimizer['actor']
-        self.critic_loss = self.huber_loss()
+        self.critic_loss = self.huber_loss
     
 
     def huber_loss(self, a, b, delta=1.0):

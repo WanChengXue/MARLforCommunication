@@ -4,7 +4,6 @@ import importlib
 import os
 import pickle
 import pyarrow.plasma as plasma
-import pyarrow as pa
 import time
 import torch
 import torch.distributed as dist
@@ -81,47 +80,57 @@ class learner_server(basic_server):
                 algo_cls = get_algorithm_cls(self.policy_config.get("algorithm", "ppo"))
                 self.algo = algo_cls(self.net, self.optimizer, self.policy_config, self.parameter_sharing)
             else:
-                # ------------------------
+                # ------------------------ TODO 这里是每个智能体使用不同的模型 -------------------
                 self.log_handler.error("--------- 暂时不支持单卡多模型分布式的训练 --------------")
 
         self.total_training_steps = 0
         if self.global_rank == 0:
-            # 模型保存路径
+            #------------- 模型保存路径"/home/amax/Desktop/chenliang/distributed_swap/p2p_plf_max_average_SE" -------------
             path = self.policy_config['p2p_path']
-            # 发送新的模型给config server，然后config server再发布给所有的worker
+            #------------- 发送新的模型给config server，然后config server再发布给所有的worker -------------
             self.model_sender = self.context.socket(zmq.PUSH)
             self.model_sender.connect("tcp://{}:{}".format(self.config_dict["config_server_address"], self.config_dict["config_server_model_update_port"]))
+            # ------------- 每次模型发送出去后，下一次发送的时间间隔 -------------
+            self.latest_update_interval = self.config_dict['latest_update_interval']
             self.next_model_update_time = time.time()
-            # 最新模型的保存路径
+            # ------------- 最新模型的保存路径prefix: /home/amax/Desktop/chenliang/distributed_swap/p2p_plf_max_average_SE/model_max_average_SE ---------------------
             self.latest_model_path_prefix = os.path.join(path, self.policy_config['p2p_filename'])
+            # ------------- 最新模型url的保存前缀为: http://42.186.72.223:6020/p2p_plf_max_average_SE/model_max_average_SE
             self.latest_model_url_prefix = os.path.join(self.policy_config['p2p_url'], self.policy_config['p2p_filename'])
-            self.log_handler("=========== 将初始模型发送给config server =========")
+            self.log_handler.info("=========== 将初始模型发送给config server =========")
             self.send_model(self.total_training_steps)
-        # 由于一个plasma对应多个data_server，因此需要循环的从这个plasma id列表中选择
+        # ------------- 由于一个plasma对应多个data_server，因此需要循环的从这个plasma id列表中选择 -------------
         self.plasma_id_list = []
         for i in range(self.policy_config['data_server_to_learner_num']):
             plasma_id = plasma.ObjectID(generate_plasma_id(self.global_rank, i))
             self.plasma_id_list.append(plasma_id)
 
-        # 连接plasma 服务，这个地方需要提前启动这个plasma服务，然后让client进行连接
+        # ------------- 连接plasma 服务，这个地方需要提前启动这个plasma服务，然后让client进行连接 -------------
         self.plasma_client = plasma.connect(self.policy_config['plasma_path'], 2)
-        # 这个列表是等待数据的时间
+        # ------------- 这个列表是等待数据的时间 -------------
         self.wait_data_times = []
-        # 定义一个变量，观察在一分钟之内参数更新了的次数
+        # ------------- 定义一个变量，观察在一分钟之内参数更新了的次数 -------------
         self.training_steps = 0
-        # 定义变量，每一次训练需要的时间
+        # ------------- 定义变量，每一次训练需要的时间 -------------
         self.training_time_list = []
-        # 每次模型发送出去后，下一次发送的时间间隔
-        self.latest_update_interval = self.config_dict['latest_update_interval']
-        # 定义一下模型热更新的时间
+        # ------------- 定义一下模型热更新的时间 -------------
         self.warm_up_time = time.time() + self.config_dict['warm_up_time']
-        # 定义一个变量，这个是每过一分钟，就朝着log server发送数据的
+        # ------------- 定义一个变量，这个是每过一分钟，就朝着log server发送数据的 -------------
         self.next_check_time = time.time()
 
     def send_model(self, training_steps):
         if time.time()> self.next_model_update_time:
-            # 这两个变量，分别表示的是worker访问的最新模型的url地址，以及这个模型保存在计算机的路径
-            url_path = serialize_model(self.latest_model_path_prefix, self.latest_model_url_prefix, self.net.module, self.config_dict['p2p_cache_size'], self.log_handler)
+            # ------------- 这两个变量，分别表示的是worker访问的最新模型的url地址，以及这个模型保存在计算机的路径 -------------
+            '''
+            url_path的样子:
+                如果使用了parameter sharing:
+                    url_path['policy_url']: string
+                如果没有使用parameter sharing:
+                    url_path['policy_url']['agent_0']: string 
+                    .......
+                url_path['critic_url']: string
+            '''
+            url_path = serialize_model(self.latest_model_path_prefix, self.latest_model_url_prefix, self.net, self.config_dict['p2p_cache_size'], self.log_handler)
             model_info = {'policy_id': self.policy_id, 'url': url_path}
             self.next_model_update_time += self.latest_update_interval
             self.log_handler.info("============ 发送模型给config server，当前的模型已经更新了{}次 ==========".format(training_steps+1))
@@ -147,7 +156,7 @@ class learner_server(basic_server):
         if self.global_rank == 0:
             # 添加一下等待数据所需的时间
             self.wait_data_times.append(time.time() - start_time)
-        all_data = pa.deserialize(raw_data)
+        all_data = pickle.loads(raw_data)
         del raw_data
         self.update_parameters(all_data)
         self.training_steps += 1

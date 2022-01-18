@@ -10,7 +10,7 @@ class Agent:
         self.sector_number = self.args.sector_number
         self.user_number =  self.args.user_numbers
         self.bs_antennas = self.args.bs_antennas
-        self.agent_number = self.args.n_agents
+        self.agent_nums = self.args.n_agents
         self.parameter_sharing = self.args.parameter_sharing
 
         # ==== 定义6个参数，分别表示的actor，critic的lr，lr decay，min lr =====
@@ -24,14 +24,14 @@ class Agent:
 
         # ==== 定义策略网络,以及critic网络,以及tensorboard的相关路径等 ====
         if self.parameter_sharing:
-            self.Replay_buffer = [ReplayBuffer(self.args) for _ in range(self.agent_number)]
+            self.Replay_buffer = [ReplayBuffer(self.args) for _ in range(self.agent_nums)]
             self.actor = CommNet_Actor(self.args, (1, args.obs_matrix_number, args.obs_dim1, args.obs_dim2)).to(self.device)
             self.optimizer_actor = optim.Adam(self.actor.parameters(), lr=self.actor_lr)
             print(self.actor)
         else:
             self.Replay_buffer = ReplayBuffer(self.args)
-            self.actor = [CommNet_Actor(self.args, (1, args.obs_matrix_number, args.obs_dim1, args.obs_dim2)).to(self.device) for _ in range(self.agent_number)]
-            self.optimizer_actor = [optim.Adam(self.actor[agent_index].parameters(), lr=args.actor_lr) for agent_index in range(self.agent_number)]
+            self.actor = [CommNet_Actor(self.args, (1, args.obs_matrix_number, args.obs_dim1, args.obs_dim2)).to(self.device) for _ in range(self.agent_nums)]
+            self.optimizer_actor = [optim.Adam(self.actor[agent_index].parameters(), lr=args.actor_lr) for agent_index in range(self.agent_nums)]
             print(self.actor[0])
         self.actor_loss_path = ["Policy_loss/Agent_" + str(agent_index)  for agent_index in range(self.user_number)]
         self.critic = Critic(self.args, (1, args.total_state_matrix_number, args.state_dim1, args.obs_dim2)).to(self.device)
@@ -51,29 +51,29 @@ class Agent:
         self.communication_turns = self.args.communication_turns
 
     def Pick_action_Max_SE_batch(self,state_list):
-        net_input = [torch.FloatTensor(state_list[agent_index]).to(self.device).transpose(1,2) for agent_index in range(self.agent_number)]
+        net_input = [torch.FloatTensor(state_list[agent_index]).to(self.device).transpose(1,2) for agent_index in range(self.agent_nums)]
         batch_size = net_input[0].shape[0]
         # ===== 首先进行通信交互 =====
         for turns in range(self.communication_turns):
             if turns == 0:
                 if self.parameter_sharing:
-                    h_list = [self.actor.precoding_agent(net_input[agent_index]) for agent_index in range(self.agent_number)]
-                    c_list = [torch.zeros_like(h_list[agent_index]) for agent_index in range(self.agent_number)]
+                    h_list = [self.actor.precoding_agent(net_input[agent_index]) for agent_index in range(self.agent_nums)]
+                    c_list = [torch.zeros_like(h_list[agent_index]) for agent_index in range(self.agent_nums)]
                 else:
-                    h_list = [self.actor[agent_index].precoding_agent(net_input[agent_index]) for agent_index in range(self.agent_number)] 
-                    c_list = [torch.zeros_like(h_list[agent_index]) for agent_index in range(self.agent_number)]
+                    h_list = [self.actor[agent_index].precoding_agent(net_input[agent_index]) for agent_index in range(self.agent_nums)] 
+                    c_list = [torch.zeros_like(h_list[agent_index]) for agent_index in range(self.agent_nums)]
             else:
                 # 需要把c作为GRU的隐藏单元
                 if self.parameter_sharing:
-                    h_list = [self.actor.f_comm(h_list[agent_index],c_list[agent_index]) for agent_index in range(self.agent_number)] 
+                    h_list = [self.actor.f_comm(h_list[agent_index],c_list[agent_index]) for agent_index in range(self.agent_nums)] 
                 else:
-                    h_list = [self.actor[agent_index].f_comm(h_list[agent_index], c_list[agent_index]) for agent_index in range(self.agent_number)]
+                    h_list = [self.actor[agent_index].f_comm(h_list[agent_index], c_list[agent_index]) for agent_index in range(self.agent_nums)]
                 sum_list = torch.sum(torch.stack(h_list, 0), 0)
-                c_list = [(sum_list - h_list[agent_index])/(self.agent_number-1) for agent_index in range(self.agent_number)]
+                c_list = [(sum_list - h_list[agent_index])/(self.agent_nums-1) for agent_index in range(self.agent_nums)]
         # ===== 通信交互完成，使用Pointer网络进行决策=====
         scheduling_prob_list = []
         mask_list = []
-        for agent_index in range(self.agent_number):
+        for agent_index in range(self.agent_nums):
             if self.parameter_sharing:
                 Pointer_network_input = torch.tanh(self.actor.decoding_layer(h_list[agent_index])).reshape(batch_size, self.user_number, -1)
                 _, scheduling_prob, selected_mask, mask = self.actor.pointer_agent(Pointer_network_input)
@@ -100,13 +100,13 @@ class Agent:
         self.writer.add_scalar(self.critic_loss_path, v_loss.item(), self.update_value_net_count)
         # ========== 更新策略网络的参数 ===========
         advantage_value = reward-v_Value.detach()
-        for agent_index in range(self.agent_number):
+        for agent_index in range(self.agent_nums):
             p_loss = -torch.mean(advantage_value * prob[agent_index])
             if self.parameter_sharing:
                 if agent_index == 0:
                     self.optimizer_actor.zero_grad()
                     p_loss.backward(retain_graph=True)
-                elif agent_index == self.agent_number-1:
+                elif agent_index == self.agent_nums-1:
                     p_loss.backward()
                     torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_norm_grad)
                     self.optimizer_actor.step()

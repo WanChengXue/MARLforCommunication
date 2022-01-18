@@ -58,10 +58,10 @@ class config_server(basic_server):
 
             if model_info is not None:
                 raw_data[-1] = pickle.dumps(model_info)
-                self.model_requester.send_multipar(raw_data)
+                self.model_requester.send_multipart(raw_data)
             
     def process_new_model(self, raw_data_list):
-        # 这个地方处理新收到的模型
+        # -------------------- 这个地方处理新收到的模型 --------------------
         for raw_data in raw_data_list:
             model_info = pickle.loads(raw_data)
             self.log_handler.info("============= 接收到了新模型, 当前的策略是 {}, 模型路径在 {} =============".format(model_info["policy_id"], model_info["url"]))
@@ -86,6 +86,7 @@ class config_server(basic_server):
                     self.process_model_request(raw_data_list)
                 
                 elif key == self.model_receiver:
+                    raw_data_list = zmq_nonblocking_recv(key)
                     self.process_new_model(raw_data_list)
 
                 else:
@@ -98,7 +99,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path
-    args.config_path = concatenate_path
-    server = config_server(args)
+    server = config_server(concatenate_path)
     server.run()
     

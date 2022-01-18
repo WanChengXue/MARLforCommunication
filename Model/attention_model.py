@@ -167,18 +167,18 @@ class critic(nn.Module):
         super(critic, self).__init__()
         self.policy_config = policy_config
         self.embedding_dim = self.policy_config.get('d_model', 512)
-        self.agent_number = self.policy_config['agent_number']
-        self.conv_channel = self.policy_config['conv_channel'] * self.agent_number
+        self.agent_nums = self.policy_config['agent_nums']
+        self.conv_channel = self.policy_config['conv_channel'] * self.agent_nums
         self.hidden_dim = self.policy_config['hidden_dim']
         # ======================= 对全局状态进行卷积操作, reward需要进行线性操作, count这个状态也 =====================
         self.channel_conv_layer = nn.Conv2d(self.conv_channel, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
-        # 上面通过先行变换,得到的维度是batch size * agent_number * user_number * hidden_size
+        # 上面通过先行变换,得到的维度是batch size * agent_nums * user_number * hidden_size
         self.linear_average_reward_head = nn.Linear(1, self.hidden_dim)
         # 这个地方通过2d卷积操作,将上面这个矩阵变成一个batch size * user number * hidden size的一个矩阵
-        self.reward_conv_layer = nn.Conv2d(self.agent_number, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
+        self.reward_conv_layer = nn.Conv2d(self.agent_nums, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
         # 接下来的两行的处理和上面的两行是一样的,将count信息变成batch size * user number * hidden size
         self.linear_scheduling_count_head = nn.Linear(1, self.hidden_dim)
-        self.count_conv_layer = nn.Conv2d(self.agent_number, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
+        self.count_conv_layer = nn.Conv2d(self.agent_nums, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
         # 这个地方是将上面三个矩阵进行拼接了之后,然后再过一次卷积
         self.concatenat_conv_layer = nn.Conv2d(3, out_channels= 1, kernel_size=3, stride=1, padding=1, bias=False)
         self.embedding_layer = nn.Linear(self.hidden_dim, self.embedding_dim)
@@ -198,9 +198,9 @@ class critic(nn.Module):
         global_channel_matrix = src['global_channel_matrix']
         global_average_reward = src['global_average_reward']
         global_scheduling_count = src['global_scheduling_count']
-        # 这个global channel_matrix的维度是batch size * agent_number * channel_number * user_number * 32
+        # 这个global channel_matrix的维度是batch size * agent_nums * channel_number * user_number * 32
         conv_global_channel_output  = torch.relu(self.channel_conv_layer(global_channel_matrix))
-        # global average reward的维度是batch size * agent_number * user_number * 1
+        # global average reward的维度是batch size * agent_nums * user_number * 1
         glboal_average_reward_output = torch.relu(self.linear_average_reward_head(global_average_reward))
         conv_global_average_reward_output = torch.relu(self.reward_conv_layer(glboal_average_reward_output))
         # global_scheduling_count的维度是batch size * agent number * user_number * 1
@@ -231,7 +231,7 @@ def init_critic_net(policy_config):
 # test_config['hidden_dim'] = 32
 # test_config['action_dim'] = 21
 # test_config['max_decoder_time'] = 16
-# test_config['agent_number'] = 3
+# test_config['agent_nums'] = 3
 # test_config['seq_len'] = 20
 # test_model = critic(test_config)
 # test_input = {}

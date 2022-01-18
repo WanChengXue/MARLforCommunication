@@ -66,7 +66,7 @@ learners:
   batch_size: 2048
   gamma: 0.997
   tau: 0.95
-  ppo_clip: 0.2
+  clip_epsilon: 0.2
   grad_clip: 10
   dual_clip: 3
   learning_rate: 0.00001
@@ -91,8 +91,11 @@ learners:
   plasma_server_location: data_part/preprocess_data/plasma
   model_path: 
     policy_path: "Save_model/pointer_network/policy_net_max_average_SE.pkl"
-    critic_path: "Save_model/pointer_network/critic_net_max_average_SE.pkl"
+    # --- 如果说这个parameter sharing是False，这个value依旧是一个字典
+      # 'Agent_0': "Save_model/pointer_network/policy_Agent_0_max_average_SE.pkl"
+      # 'Agent_1': "Save_model/pointer_network/policy_Agent_1_max_average_SE.pkl"
+      # 'Agent_2': "Save_model/pointer_network/policy_Agent_2_max_average_SE.pkl"
+    critic_path: "Save_model/pointer_network/critic_max_average_SE.pkl"
   
-  # env related，通过另外一个yaml文件更新得到的
 
 

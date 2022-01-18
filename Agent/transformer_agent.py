@@ -18,7 +18,7 @@ class Agent:
         self.index = index
         self.parameter_sharing = self.args.parameter_sharing
         self.writer = self.args.writer
-        self.agent_number = self.args.n_agents
+        self.agent_nums = self.args.n_agents
         # 定义两个变量，用来记录loss
         # self.actor_path = "Agent" + "_" + str(self.index)  + "/Q_value"
         self.actor_loss_path = "Agent_" + str(self.index) + "/Actor_loss"
@@ -27,7 +27,7 @@ class Agent:
         self.update_policy_net_count = 0
         # 定义replay_buffer
         if self.parameter_sharing:
-            self.Replay_buffer = [ReplayBuffer(self.args) for _ in range(self.agent_number)]
+            self.Replay_buffer = [ReplayBuffer(self.args) for _ in range(self.agent_nums)]
         else:
             self.Replay_buffer = ReplayBuffer(self.args)
         self.epsilon = self.args.epsilon
@@ -129,15 +129,15 @@ class Agent:
                 self.optimizer_actor.zero_grad()
                 self.policy_net_loss_value = policy_net_loss.item()
             self.policy_net_loss_value += policy_net_loss.item()
-            if agent_index == self.agent_number -1:
+            if agent_index == self.agent_nums -1:
                 self.update_policy_net_count += 1
                 policy_net_loss.backward()
                 self.optimizer_actor.step()
-                self.writer.add_scalar(self.actor_loss_path, self.policy_net_loss_value/self.agent_number, self.update_policy_net_count)
+                self.writer.add_scalar(self.actor_loss_path, self.policy_net_loss_value/self.agent_nums, self.update_policy_net_count)
                 self.actor_lr = (1-self.actor_lr_decay) * self.actor_lr
                 self.critic_lr = (1-self.critic_lr_decay) * self.critic_lr
                 # self.Soft_update()
-                for agent_index in range(self.agent_number):
+                for agent_index in range(self.agent_nums):
                     self.Replay_buffer[agent_index].reset_buffer()
             else:
                 policy_net_loss.backward(retain_graph=True)
@@ -165,11 +165,11 @@ class Agent:
             self.optimizer_critic.zero_grad()
             self.critic_loss_value = Value_loss.item()
         self.critic_loss_value += Value_loss.item()
-        if agent_index == self.agent_number - 1:
+        if agent_index == self.agent_nums - 1:
             self.update_value_net_count+= 1
             Value_loss.backward()
             self.optimizer_critic.step()
-            self.writer.add_scalar(self.critic_loss_path, self.critic_loss_value/self.agent_number, self.update_value_net_count)
+            self.writer.add_scalar(self.critic_loss_path, self.critic_loss_value/self.agent_nums, self.update_value_net_count)
         
         else:
             Value_loss.backward(retain_graph=True)

@@ -34,14 +34,19 @@ def parse_config(config_file_path):
     config_dict['env']['source_data_folder'] = abs_source_data_folder
     config_dict['env']['save_data_folder'] = abs_save_data_folder
     # ----------------- 覆盖掉原始的值 ----------------------------------------------------------------------
-    p2p_root = "/home/amax/Desktop/chenliang/distributed_swap/"
+    # p2p_root = "/home/amax/Desktop/chenliang/distributed_swap/"
+    p2p_root = '/home/chenliang08/Desktop'
     p2p_port = 6020
     # 使用单机多卡去运行
     p2p_ip = config_dict["main_server_ip"]
     # 最新模型保存路径
-    p2p_path = "p2p_plf_model"
+    p2p_path = "p2p_plf_{}".format(config_dict['policy_id'])
     policy_config = config_dict["learners"]
+    # policy_config["p2p_path"] = "/home/amax/Desktop/chenliang/distributed_swap/p2p_plf_max_average_SE"
     policy_config["p2p_path"] = os.path.join(p2p_root, p2p_path)
+    # model_max_average_SE
+    policy_config["p2p_filename"] = "model_{}".format(config_dict['policy_id'])
+    # http://42.186.72.223:6020/p2p_plf_max_average_SE？具体路径都不指定的吗
     policy_config["p2p_url"] =  "http://{}:{}/{}".format(p2p_ip, p2p_port, p2p_path)
     # ddp相关参数
     ddp_port = policy_config["ddp_port"]
@@ -50,7 +55,7 @@ def parse_config(config_file_path):
     policy_config['conv_channel'] = env_config_dict['agent_nums']
     policy_config['action_dim'] = env_config_dict['total_antenna_nums'] + 1
     policy_config['max_decoder_time'] = env_config_dict['max_stream_nums']
-    policy_config['agent_number'] = env_config_dict['agent_nums']
+    policy_config['agent_nums'] = env_config_dict['agent_nums']
     # 处理一下plasma的保存位置，改成绝对位置
     policy_config['plasma_server_location'] = root_path + '/' + policy_config['plasma_server_location'] + '/' + policy_config['policy_id']
     policy_config['seq_len'] = env_config_dict['total_antenna_nums'] 

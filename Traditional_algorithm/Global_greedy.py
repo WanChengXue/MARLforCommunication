@@ -20,10 +20,10 @@ class Greedy:
         self.args=args
         self.sector_number = self.args.sector_number
         self.cell_number = self.args.cell_number
-        self.agent_number = self.cell_number * self.sector_number
+        self.agent_nums = self.cell_number * self.sector_number
         self.bs_antenna_number = self.args.bs_antennas
         self.user_numbers = self.args.user_numbers
-        self.transmit_power = [self.args.transmit_power] * self.agent_number
+        self.transmit_power = [self.args.transmit_power] * self.agent_nums
         self.noise_power = self.args.noise_spectrum_density
         # self.system_bandwidth = self.args.system_bandwidth
         # self.subcarriers_numbers = self.args.subcarrier_numbers
@@ -32,7 +32,7 @@ class Greedy:
         # self.subcarrier_bandwidth = self.system_bandwidth / self.subcarriers_numbers - self.subcarrier_gaps
         # self.noise_power = self.noise_spectrum_density * self.subcarrier_bandwidth
         self.legal_range = [self.args.min_stream, self.args.max_stream]
-        self.transmit_power = [self.args.transmit_power] * self.agent_number
+        self.transmit_power = [self.args.transmit_power] * self.agent_nums
         self.channel_matrix = channel_matrix
 
     def greedy_add_users(self, last_action):

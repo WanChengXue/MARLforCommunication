@@ -1,6 +1,6 @@
 import zmq
 
-
+# ----------- 这两个函数的区别在于，recv表示最多就一个人发送数据过来，recv_multipart可以同时收到多个人的信息 --------
 def zmq_nonblocking_recv(socket):
     raw_data_list = []
     while True:

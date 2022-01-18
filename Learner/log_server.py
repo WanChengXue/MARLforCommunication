@@ -13,8 +13,8 @@ from Learner.basic_server import basic_server
 
 
 class SummaryLog(object):
-    def __init__(self, summary_writer_file):
-        self.summary_writer = SummaryWriter(summary_writer_file)
+    def __init__(self, tensorboard_folder):
+        self.summary_writer = SummaryWriter(tensorboard_folder)
         self.tag_values_dict = {}
         self.tag_step_dict = {}
         self.tag_output_threshold_dict = {}
@@ -123,13 +123,11 @@ class LogServer(basic_server):
         self.poller.register(self.receiver, zmq.POLLIN)
 
         self.log_basic_info = setup_logger("basic", os.path.join(self.config_dict["log_dir"], "log_server_log"))
-
+        # --------------- 定义tensorboard的文件夹 ---------------
         self.summary_logger = SummaryLog(os.path.join(self.config_dict["log_dir"], "summary_log"))
 
         self.active_docker_dict = {}
         self.next_cal_docker_time = time.time()
-
-        # TODO: 融合最新的 log
 
     def summary_definition(self):
 

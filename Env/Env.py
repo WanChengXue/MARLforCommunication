@@ -9,12 +9,12 @@ class Environment:
         self.user_num = self.args.user_numbers
         self.sector_number = self.args.sector_number
         self.cell_number = self.args.cell_number
-        self.agent_number = self.cell_number * self.sector_number
+        self.agent_nums = self.cell_number * self.sector_number
         self.bs_antenna_number = self.args.bs_antennas
         self.total_antennas = self.args.total_user_antennas 
         self.tau = self.args.tau
         self.TTI_length = self.args.TTI_length
-        self.transmit_power = [self.args.transmit_power] * self.agent_number
+        self.transmit_power = [self.args.transmit_power] * self.agent_nums
         self.noise_power = self.args.noise_spectrum_density
         # self.system_bandwidth = self.args.system_bandwidth
         # self.subcarriers_numbers = self.args.subcarrier_numbers
@@ -35,12 +35,12 @@ class Environment:
         # variable file_index is the index of current file
         testing_set = []
         file_list = sorted(os.listdir(self.data_folder))
-        total_file = int(len(file_list) / self.agent_number)
+        total_file = int(len(file_list) / self.agent_nums)
         # Read chanel data set
         for i in range(total_file):
             temp_file = []
-            for agent_index in range(self.agent_number):
-                temp_file.append(self.data_folder + "/" + file_list[i*self.agent_number + agent_index])
+            for agent_index in range(self.agent_nums):
+                temp_file.append(self.data_folder + "/" + file_list[i*self.agent_nums + agent_index])
             testing_set.append(temp_file)
         return testing_set
 
@@ -67,8 +67,8 @@ class Environment:
 
     def Calculate_init_average_user_sum_rate(self):
         # 这个函数用来计算再初始时刻，每个用户的平均sum rate，具体就是将第一个TTI的数据拿过来，挨个计算一次
-        Init_user_average_reward = np.zeros((self.agent_number, self.total_antennas)) 
-        for cell_index in range(self.agent_number):
+        Init_user_average_reward = np.zeros((self.agent_nums, self.total_antennas)) 
+        for cell_index in range(self.agent_nums):
             # 将用户的信道拿出来
             cell_id = cell_index // self.sector_number
             sector_id = cell_index % self.sector_number
@@ -83,7 +83,7 @@ class Environment:
     def Evaluate_mode(self, agent_data_list):
         self.TTI_count = 0
         self.episode_data = []
-        for agent_index in range(self.agent_number):
+        for agent_index in range(self.agent_nums):
                 self.episode_data.append(np.load(agent_data_list[agent_index]))
         self.file_index += 1
         self.Read_TTI_data()
@@ -99,8 +99,8 @@ class Environment:
 
     def Step(self, sequence):
         # 这个sequence是一个序列,需要变成0-1 string
-        action = np.zeros((self.agent_number, self.total_antennas))
-        for cell_index in range(self.agent_number):
+        action = np.zeros((self.agent_nums, self.total_antennas))
+        for cell_index in range(self.agent_nums):
             cell_action = sequence[cell_index]
             for user_index in range(self.total_antennas):
                 if user_index in cell_action:
@@ -123,9 +123,9 @@ class Environment:
         # apart channel matrix and average reward
         channel = []
         average_reward = []
-        for agent_id in range(self.agent_number):
+        for agent_id in range(self.agent_nums):
             agent_channel = []
-            for index in range(self.agent_number):
+            for index in range(self.agent_nums):
                 # 添加九个信道矩阵,其中意思表达的是当前基站收到的信号是什么,最好加上一个one hot编码,表示的是当前智能体的index
                 cell_id = index // self.sector_number
                 sector_id = index % self.sector_number
@@ -137,8 +137,8 @@ class Environment:
     def get_state(self):
         global_channel = []
         global_reward = copy.deepcopy(self.average_reward)
-        for agent_id in range(self.agent_number):
-            for index in range(self.agent_number):
+        for agent_id in range(self.agent_nums):
+            for index in range(self.agent_nums):
                 cell_id = index // self.sector_number
                 sector_id = index % self.sector_number
                 global_channel.append(copy.deepcopy(self.source_channel[agent_id][:,cell_id,sector_id,:]))
@@ -148,7 +148,7 @@ class Environment:
 
     def get_agent_obs_SE(self):
         obs = []
-        for sector_index in range(self.agent_number):
+        for sector_index in range(self.agent_nums):
             # 每个元素都是20 × 3 × 32
             obs.append(self.current_state[sector_index, :, :, :])
         return obs
@@ -156,13 +156,13 @@ class Environment:
     def get_agent_obs_SE_batch(self):
         obs = []
         if self.args.ablation_experiment:
-            for sector_index in range(self.agent_number):
+            for sector_index in range(self.agent_nums):
                 # 每一个元素都是batch_size*20*3*32
                 if self.args.independent_learning:
                     obs.append(self.batch_data[:, sector_index,sector_index,:,:])
                 else:
                     sub_obs = []
-                    for sub_sector_index in range(self.agent_number):
+                    for sub_sector_index in range(self.agent_nums):
                         if sector_index == sub_sector_index:
                             sub_obs.append(self.batch_data[:, sector_index, :, sub_sector_index, :])
                         else:
@@ -171,12 +171,12 @@ class Environment:
                     obs.append(np.stack(sub_obs, 1))
                 # obs.append(self.batch_data[:,sector_index,:,:,:])
         elif self.args.multi_head_input:
-            for sector_index in range(self.agent_number):
+            for sector_index in range(self.agent_nums):
                 sub_obs = []
                 extra_obs = []
                 sub_sector_index = sector_index
-                for _ in range(self.agent_number):
-                    index = sub_sector_index % self.agent_number
+                for _ in range(self.agent_nums):
+                    index = sub_sector_index % self.agent_nums
                     sub_obs.append(self.batch_data[:, sector_index, :, index, :])
                     if index == sector_index:
                         sub_sector_index += 1
@@ -190,7 +190,7 @@ class Environment:
                 obs.append(np.concatenate([stack_sub_obs] + extra_obs, 1))    
 
         else:
-            for sector_index in range(self.agent_number):
+            for sector_index in range(self.agent_nums):
                 if self.args.independent_learning:
                     obs.append(self.batch_data[:, sector_index, :, sector_index, :])
                 else:
