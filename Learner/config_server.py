@@ -18,7 +18,7 @@ class config_server(basic_server):
     def __init__(self, config_path):
         super(config_server, self).__init__(config_path)
         config_server_log_path = pathlib.Path(self.config_dict['log_dir']+ "/config_server_log")
-        self.log_handler = setup_logger('config_server',  config_server_log_path)
+        self.logger = setup_logger('config_server',  config_server_log_path)
         # 接受模型的请求,返回这个模型的url地址
         self.model_requester = self.context.socket(zmq.ROUTER)
         self.model_requester.set_hwm(1000000)
@@ -52,9 +52,9 @@ class config_server(basic_server):
                 if policy_id in self.latest_model_info:
                     model_info = self.latest_model_info[policy_id]
                 else:
-                    self.log_handler.warn("============= config server 没有收到来自于learner的模型信息 =============")
+                    self.logger.warn("============= config server 没有收到来自于learner的模型信息 =============")
             else:
-                self.log_handler.warn("=========== 目前只支持使用最新的模型 =============")
+                self.logger.warn("=========== 目前只支持使用最新的模型 =============")
 
             if model_info is not None:
                 raw_data[-1] = pickle.dumps(model_info)
@@ -64,7 +64,7 @@ class config_server(basic_server):
         # -------------------- 这个地方处理新收到的模型 --------------------
         for raw_data in raw_data_list:
             model_info = pickle.loads(raw_data)
-            self.log_handler.info("============= 接收到了新模型, 当前的策略是 {}, 模型路径在 {} =============".format(model_info["policy_id"], model_info["url"]))
+            self.logger.info("============= 接收到了新模型, 当前的策略是 {}, 模型路径在 {} =============".format(model_info["policy_id"], model_info["url"]))
             # 更新latest model
             policy_id = model_info["policy_id"]
             assert policy_id == self.policy_id
@@ -90,7 +90,7 @@ class config_server(basic_server):
                     self.process_new_model(raw_data_list)
 
                 else:
-                    self.log_handler.warn("================= 错误的套接字: {} {} ==================".format(key, value))
+                    self.logger.warn("================= 错误的套接字: {} {} ==================".format(key, value))
 
 if __name__ == "__main__":
     import argparse

@@ -44,11 +44,11 @@ class learner_server(basic_server):
         self.local_rank = self.global_rank % self.policy_config['gpu_num_per_machine']
         self.eval_mode = self.config_dict['eval_mode']
         logger_name =  pathlib.Path(self.config_dict['log_dir'] +  '/learner_log/{}_{}'.format(self.local_rank, self.policy_id))
-        self.log_handler = setup_logger('Learner_log', logger_name)
-        self.log_handler.info("================ 开始构造lerner server，这个server的global rank是: {} =========".format(self.global_rank))
+        self.logger = setup_logger('Learner_log', logger_name)
+        self.logger.info("================ 开始构造lerner server，这个server的global rank是: {} =========".format(self.global_rank))
         self.learning_rate = self.policy_config['learning_rate']
         # 开始初始化模型
-        self.log_handler.info("============== global rank {}开始创建模型 ==========".format(self.global_rank))
+        self.logger.info("============== global rank {}开始创建模型 ==========".format(self.global_rank))
         # --------------------- 开始创建网络,定义两个optimizer，一个优化actor，一个优化critic ------------------
         self.optimizer = {}
         if self.parameter_sharing:
@@ -66,7 +66,7 @@ class learner_server(basic_server):
         self.net = {'policy_net': self.policy_net, 'critic_net': self.global_critic}
         if self.global_rank == 0 and self.eval_mode:
             # 如果说是第一张卡，并且使用的是评估模式，就不需要训练网络了，直接加载即可
-            self.log_handler.info("=============== 评估模式直接加载模型，模型的路径为:{} =============".format(self.policy_config['model_path']))
+            self.logger.info("=============== 评估模式直接加载模型，模型的路径为:{} =============".format(self.policy_config['model_path']))
             deserialize_model(self.net, self.policy_config['model_path'])
         else:
             # torch分布式训练相关
@@ -76,12 +76,12 @@ class learner_server(basic_server):
                 self.policy_net.to(self.local_rank).train()
                 # self.net = DDP(self.net, device_ids=[self.local_rank])
                 torch.manual_seed(19930119)
-                self.log_handler.info("============== 完成模型的创建 =========")
+                self.logger.info("============== 完成模型的创建 =========")
                 algo_cls = get_algorithm_cls(self.policy_config.get("algorithm", "ppo"))
                 self.algo = algo_cls(self.net, self.optimizer, self.policy_config, self.parameter_sharing)
             else:
                 # ------------------------ TODO 这里是每个智能体使用不同的模型 -------------------
-                self.log_handler.error("--------- 暂时不支持单卡多模型分布式的训练 --------------")
+                self.logger.error("--------- 暂时不支持单卡多模型分布式的训练 --------------")
 
         self.total_training_steps = 0
         if self.global_rank == 0:
@@ -97,7 +97,7 @@ class learner_server(basic_server):
             self.latest_model_path_prefix = os.path.join(path, self.policy_config['p2p_filename'])
             # ------------- 最新模型url的保存前缀为: http://42.186.72.223:6020/p2p_plf_max_average_SE/model_max_average_SE
             self.latest_model_url_prefix = os.path.join(self.policy_config['p2p_url'], self.policy_config['p2p_filename'])
-            self.log_handler.info("=========== 将初始模型发送给config server =========")
+            self.logger.info("=========== 将初始模型发送给config server =========")
             self.send_model(self.total_training_steps)
         # ------------- 由于一个plasma对应多个data_server，因此需要循环的从这个plasma id列表中选择 -------------
         self.plasma_id_list = []
@@ -106,7 +106,7 @@ class learner_server(basic_server):
             self.plasma_id_list.append(plasma_id)
 
         # ------------- 连接plasma 服务，这个地方需要提前启动这个plasma服务，然后让client进行连接 -------------
-        self.plasma_client = plasma.connect(self.policy_config['plasma_path'], 2)
+        self.plasma_client = plasma.connect(self.policy_config['plasma_server_location'], 2)
         # ------------- 这个列表是等待数据的时间 -------------
         self.wait_data_times = []
         # ------------- 定义一个变量，观察在一分钟之内参数更新了的次数 -------------
@@ -114,7 +114,7 @@ class learner_server(basic_server):
         # ------------- 定义变量，每一次训练需要的时间 -------------
         self.training_time_list = []
         # ------------- 定义一下模型热更新的时间 -------------
-        self.warm_up_time = time.time() + self.config_dict['warm_up_time']
+        self.warm_up_time = time.time() + self.config_dict['warmup_time']
         # ------------- 定义一个变量，这个是每过一分钟，就朝着log server发送数据的 -------------
         self.next_check_time = time.time()
 
@@ -130,10 +130,10 @@ class learner_server(basic_server):
                     .......
                 url_path['critic_url']: string
             '''
-            url_path = serialize_model(self.latest_model_path_prefix, self.latest_model_url_prefix, self.net, self.config_dict['p2p_cache_size'], self.log_handler)
+            url_path = serialize_model(self.latest_model_path_prefix, self.latest_model_url_prefix, self.net, self.config_dict['p2p_cache_size'], self.logger)
             model_info = {'policy_id': self.policy_id, 'url': url_path}
             self.next_model_update_time += self.latest_update_interval
-            self.log_handler.info("============ 发送模型给config server，当前的模型已经更新了{}次 ==========".format(training_steps+1))
+            self.logger.info("============ 发送模型给config server, 发送的信息为: {}, 当前的模型已经更新了{}次 ==========".format(model_info, training_steps+1))
             self.model_sender.send(pickle.dumps(model_info))
     
     def update_parameters(self, training_batch):
@@ -141,18 +141,19 @@ class learner_server(basic_server):
         if self.global_rank == 0:
             if time.time() > self.warm_up_time:
                 # 这个is_warmup是说参数暂时不更新，就是为了让智能体见识一下更多的数据
-                training_batch = convert_data_format_to_torch_training(training_batch, self.parameter_sharing, self.local_rank)
+                training_batch = convert_data_format_to_torch_training(training_batch, self.local_rank)
                 info  = self.algo.step(training_batch)
+                self.logger.info("--------------- 完成一次参数更新, 返回的数据为 {} -----------------".format(info))
                 # 将日志发送到log server上面
                 # TODO, 日志发送操作
                 self.send_statistic(info, prefix="model")
             else:
-                self.log_handler.info("============== 模型不更新，在预热阶段 ===========")
+                self.logger.info("============== 模型不更新，在预热阶段 ===========")
 
     def learn(self):
         start_time = time.time()
         # 首先读取数据，从plasma client里
-        raw_data = self.plasma_client.get(self.plasam_id_list[0])
+        raw_data = self.plasma_client.get(self.plasma_id_list[0])
         if self.global_rank == 0:
             # 添加一下等待数据所需的时间
             self.wait_data_times.append(time.time() - start_time)
@@ -166,7 +167,7 @@ class learner_server(basic_server):
         self.plasma_id_list.append(current_plasma_id)
         # 发布新的模型
         if self.global_rank == 0:
-            self.log_handler.info("============ 开始发布新模型 =========")
+            self.logger.info("============ 开始发布新模型 =========")
             self.send_model(self.total_training_steps)
             end_time = time.time()
             self.training_time_list.append(end_time - start_time)
@@ -174,7 +175,7 @@ class learner_server(basic_server):
 
     def run(self):
         # 这个函数是运行的主函数
-        self.log_handler.info("================ learner: {} 开始运行 =============".format(self.global_rank))
+        self.logger.info("================ learner: {} 开始运行 =============".format(self.global_rank))
         while True:
             self.learn()
             if time.time() > self.next_check_time:

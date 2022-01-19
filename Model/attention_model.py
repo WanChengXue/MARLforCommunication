@@ -107,7 +107,7 @@ class transformer_pointer_network_decoder(nn.Module):
                 # 计算entropy
                 conditional_entropy = Categorical(attn).entropy().unsqueeze(-1)
                 conditional_entropy.masked_fill_(terminate_batch, 0)
-                conditional_entropy_sum + conditional_entropy
+                conditional_entropy_sum += conditional_entropy
                 # 这个action向量是一个调度序列，直接从attn中取值
             prob = attn.gather(1, scheduling_index)
             # 这里会出现log 0的情况，因此增加一个小数, 这是因为前面有的batch结束了，那么就是0，但是这里强制下一次再选出0，就会出现log 0了。

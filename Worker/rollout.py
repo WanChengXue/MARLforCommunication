@@ -85,7 +85,8 @@ class rollout_sampler:
             for agent_index in range(self.agent.agent_nums):
                 agent_key = "agent_" + str(agent_index)
                 data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
-                data_dict[-1]['actions'][agent_key] = actions[agent_index]
+                # ------------ 这个actions[agent_index]的维度是一个长度为16的向量，需要变成16*1
+                data_dict[-1]['actions'][agent_key] = actions[agent_index][:,np.newaxis]
             data_dict[-1]['done'] = done
             data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
             data_dict[-1]['current_state_value'] = np.concatenate(current_state_value, 0)

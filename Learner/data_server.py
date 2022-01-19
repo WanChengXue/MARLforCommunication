@@ -32,7 +32,7 @@ class data_server(basic_server):
         self.policy_name = self.policy_config['policy_id']
 
         log_path = pathlib.Path(self.config_dict['log_dir'] + "/data_log/{}_{}/{}".format(self.local_rank, self.policy_name, self.data_server_local_rank))
-        self.logger_handler = setup_logger("DataServer_log", log_path)
+        self.logger = setup_logger("DataServer_log", log_path)
         machine_index = self.global_rank // self.gpu_num_per_machine
         self.server_ip = self.policy_config["machines"][machine_index]
         self.server_port = self.policy_config["learner_port_start"] + self.local_rank * self.policy_config["data_server_to_learner_num"] + self.data_server_local_rank
@@ -40,6 +40,7 @@ class data_server(basic_server):
         self.receiver = self.context.socket(zmq.PULL)
         self.receiver.set_hwm(1000000)
         self.receiver.bind("tcp://%s:%d"%(self.server_ip, self.server_port))
+        self.logger.info("----------------- 这个dataserver连接打开的端口为: {} -----------------".format(self.server_port))
         self.poller.register(self.receiver, zmq.POLLIN)
         self.batch_size = self.policy_config["batch_size"]
         self.traj_len = self.policy_config["traj_len"]
@@ -70,7 +71,7 @@ class data_server(basic_server):
         replay_buffer_config_dict['batch_size'] = self.batch_size
         replay_buffer_config_dict['agent_nums'] = self.policy_config['agent_nums']
         replay_buffer_config_dict['max_decoder_time'] = self.policy_config['max_decoder_time']
-        replay_buffer_config_dict['seq_len'] = self.policy_config['total_antenna_nums']
+        replay_buffer_config_dict['seq_len'] = self.policy_config['seq_len']
         replay_buffer_config_dict['max_capacity'] = self.pool_capacity
         replay_buffer_config_dict['bs_antenna_nums'] = self.config_dict['env']['bs_antenna_nums']
         return replay_buffer_config_dict
@@ -78,7 +79,7 @@ class data_server(basic_server):
     def receive_data(self, socks):
         #------------------- 接收从server传过来的数据 -------------------------
         raw_data_list = []
-        if self.reveiver in socks and socks[self.receiver] == zmq.POLLIN:
+        if self.receiver in socks and socks[self.receiver] == zmq.POLLIN:
             start_receive_time = time.time()
             while True:
                 try:
@@ -86,7 +87,7 @@ class data_server(basic_server):
                     raw_data_list.append(data)
                 except zmq.ZMQError as e:
                     if type(e) != zmq.error.Again:
-                        self.logger_handler.warn("=============== 异常错误 {} 发生! =============".format(e))
+                        self.logger.warn("=============== 异常错误 {} 发生! =============".format(e))
                     break
             if len(raw_data_list) > 0:
                 self.socket_time_list.append(time.time() - start_receive_time)
@@ -96,11 +97,10 @@ class data_server(basic_server):
             #-------------------- 接收数据, 数据加载, 保存到训练集中 --------------------
             for raw_data in raw_data_list:
                 all_data = pickle.loads(frame.decompress(raw_data))
-                self.traing_set.append_instance(all_data)
+                self.traing_set.append_instance(all_data, self.logger)
                 cur_recv_total += len(all_data)
             
             self.recv_training_instance_count += cur_recv_total
-            self.traing_set.fit_max_size()
 
             #------------------------ 考察一下这次有没有数据被接收,看一下这次解析数据消耗了多少时间 -------------------
             if len(raw_data_list) > 0:
@@ -120,22 +120,22 @@ class data_server(basic_server):
     
     def sampling_data(self):
         if self.global_rank == 0:
-            self.logger_handler.info("============== 开始采样 ===============")
+            self.logger.info("============== 开始采样 ===============")
         start_time = time.time()
         # ----------- 此处随机采样出一个batch的训练数据 ----------------
         sample_data_dict = self.traing_set.slice()
         # ----------- 数据转移到plasma client里面去 -------------------
         if self.global_rank == 0:
-            self.logger_handler.info("================= 采样时间为 {}, batch size为 {}, 目前buffer的数据为 {} =============".format(time.time()-start_time, self.batch_size, self.traing_set.cursor))
+            self.logger.info("================= 采样时间为 {}, batch size为 {}, 目前buffer的数据为 {} =============".format(time.time()-start_time, self.batch_size, self.traing_set.cursor))
         pickle_data = pickle.dumps(sample_data_dict)
         del sample_data_dict
-        self.plasma_client.put(pickle_data, self.plasma_data_id, memcopy_thread=12)
+        self.plasma_client.put(pickle_data, self.plasma_data_id, memcopy_threads=12)
         # ------------------------------------------------------------
         
 
     def run(self):
-        self.logger_handler.info("================= 数据服务启动，对应的是第{}张卡，数据服务索引为{} ==============".format(self.local_rank, self.data_server_local_rank))
-        self.logger_handler.info("================= 这个数据服务启动之后，对应的plasma id为: {} =================".format(self.plasma_data_id))
+        self.logger.info("================= 数据服务启动，对应的是第{}张卡，数据服务索引为{} ==============".format(self.local_rank, self.data_server_local_rank))
+        self.logger.info("================= 这个数据服务启动之后，对应的plasma id为: {} =================".format(self.plasma_data_id))
         while True:
             sockets = dict(self.poller.poll(timeout=100))
             if self.eval_mode:

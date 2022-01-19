@@ -138,7 +138,7 @@ class Environment(gym.Env):
         random_action_mask = []
         for i in range(self.agent_nums):
             sector_mask = np.zeros(self.user_nums)
-            for user_index in action_list[i].squeeze():
+            for user_index in action_list[i]:
                 if user_index != 0:
                     sector_mask[user_index-1] = 1
             # 添加-1，使得整个列表长度为20

@@ -14,6 +14,7 @@ class MAPPOTrainer:
         self.grad_clip = self.policy_config.get("grad_clip", None)
         self.dual_clip = self.policy_config.get("dual_clip", None)
         self.popart_start = self.policy_config.get("popart_start", False)
+        self.multi_objective_start = self.policy_config["multi_objective_start"]
         self.agent_nums = self.policy_config['agent_nums']
         self.parameter_sharing = parameter_sharing
         self.policy_net = net['policy_net']
@@ -25,7 +26,7 @@ class MAPPOTrainer:
 
     def huber_loss(self, a, b, delta=1.0):
         gap = a - b
-        flag_matrix = torch.abs(gap) <= delta
+        flag_matrix = (torch.abs(gap) <= delta).float()
         mse_loss = 0.5 * gap ** 2
         other_branch = delta * (torch.abs(gap) - 0.5 * delta)
         return flag_matrix * mse_loss + (1-flag_matrix) * other_branch
@@ -38,15 +39,17 @@ class MAPPOTrainer:
     def step(self, training_batch):
         current_state = training_batch['current_state']
         # ================= 使用了GAE估计出来了advantage value  ============
-        advantages = training_batch['advantages']
-        done = training_batch['done']
+        advantages = training_batch['advantages'].squeeze(-1)
         # ----------------- 这个值是使用采样critic网络前向计算出出来的结果，主要用来做value clip ----------------
-        old_state_value = training_batch['current_state_value']
-        target_state_value = training_batch['target_state_value']
+        old_state_value = training_batch['current_state_value'].squeeze(-1)
+        target_state_value = training_batch['target_state_value'].squeeze(-1)
         actions = training_batch['actions']
         old_action_log_probs = training_batch['old_action_log_probs']
         # -------------- 通过神经网络计算一下在当前网络下的状态值 --------------
-        predict_state_value = self.critic_net(current_state['global_state'])
+        if self.multi_objective_start:
+            predict_state_value_PF, predict_state_value_Edge = self.critic_net(current_state['global_state'])
+            predict_state_value = torch.cat([predict_state_value_PF, predict_state_value_Edge], 1)
+
         # 这个地方使用value clip操作
         if self.clip_value:
             value_clamp_range = 0.2
@@ -63,7 +66,7 @@ class MAPPOTrainer:
             else:
                 # ------------- 如果不使用popart，就不需要更新popart网络了 -----------
                 clipped_state_value_loss = self.critic_loss(target_state_value, value_pred_clipped)
-                unclipped_state_value_loss = self.critic_net(target_state_value, predict_state_value)
+                unclipped_state_value_loss = self.critic_loss(target_state_value, predict_state_value)
             value_loss_matrix = torch.max(clipped_state_value_loss, unclipped_state_value_loss)
             # ================= 将这个矩阵进行mean计算,得到两个head的loss    
         else:
@@ -92,14 +95,13 @@ class MAPPOTrainer:
         advantage_std = torch.std(advantages, 0)
         advantage = torch.sum(advantages / advantage_std, 1).unsqueeze(-1)
         if self.parameter_sharing:
-            policy_loss = 0
-            entropy_loss = 0
-            policy_surr = 0
-            self.optimizer_actor.zeros_grad()
+            policy_loss_list = []
+            entropy_loss_list = []
+            self.optimizer_actor.zero_grad()
             for index in range(self.agent_nums):
                 agent_key = 'agent_' + str(index)
-                agent_action_log_probs, agent_conditionla_entropy = self.policy_net(current_state['agent_obs'][agent_key], actions[agent_key], False)
-                importance_ratio = torch.exp(agent_action_log_probs - old_action_log_probs)
+                agent_action_log_probs, agent_conditional_entropy = self.policy_net(current_state['agent_obs'][agent_key], actions[agent_key].squeeze(-1), False)
+                importance_ratio = torch.exp(agent_action_log_probs - old_action_log_probs[agent_key])
                 surr1 = importance_ratio * advantage
                 # ================== 这个地方采用PPO算法，进行clip操作 ======================
                 surr2 = torch.clamp(importance_ratio, 1.0-self.clip_epsilon, 1.0+self.clip_epsilon) * advantage
@@ -109,11 +111,16 @@ class MAPPOTrainer:
                     surr3 = torch.min(c*advantage, torch.zeros_like(advantage))
                     surr = torch.max(surr, surr3)
                 # ================== 这个advantage是一个矩阵，需要进行额外处理一下 ==============
-                policy_loss = - torch.mean(surr) + policy_loss
+                policy_loss_list.append(-surr)
                 # ================== entropy loss =====================
-                entropy_loss = torch.mean(agent_conditionla_entropy) + entropy_loss
-                policy_surr = policy_loss + entropy_loss * self.entropy_coef + policy_surr
-            policy_surr.backward()    
+                entropy_loss_list.append(-agent_conditional_entropy)
+            # ------------------- 这个地方直接用sum也是可以的 -------------------
+            policy_loss_concatenate_tensor = torch.cat(policy_loss_list, 1)
+            entropy_loss_concatenate_tensor = torch.cat(entropy_loss_list, 1)
+            policy_loss = torch.mean(torch.sum(policy_loss_concatenate_tensor, 1))
+            entropy_loss = torch.mean(torch.sum(entropy_loss_concatenate_tensor, 1))
+            total_policy_loss = policy_loss + self.entropy_coef *  entropy_loss
+            total_policy_loss.backward()    
             if self.grad_clip is not None:
                 max_grad_norm = 10
                 nn.utils.clip_grad_norm_(self.policy_net.parameters(), max_grad_norm)
@@ -124,7 +131,7 @@ class MAPPOTrainer:
                 'conditional_entropy': entropy_loss.item(),
                 'advantage_std': advantage_std.cpu().numpy(),
                 'policy_loss': policy_loss.item(),
-                'total_policy_loss': policy_surr.item()
+                'total_policy_loss': total_policy_loss.item()
             }
         else:
             raise NotImplementedError()

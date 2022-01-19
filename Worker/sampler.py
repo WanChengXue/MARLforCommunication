@@ -31,7 +31,7 @@ class sampler_worker:
         self.statistic = StatisticsUtils()
         self.context = zmq.Context()
         logger_path = pathlib.Path(self.config_dict['log_dir']+ '/sampler')
-        self.log_handler = setup_logger('Sampler_'+ self.uuid, logger_path)
+        self.logger = setup_logger('Sampler_'+ self.uuid, logger_path)
         if "main_server_ip" in self.config_dict.keys():
             self.config_dict['log_server_address'] = self.config_dict['main_server_ip']
             self.config_dict['config_server_address'] = self.config_dict['main_server_ip']
@@ -39,7 +39,7 @@ class sampler_worker:
             self.log_sender.connect("tcp://{}:{}".format(self.config_dict['log_server_address'], self.config_dict['log_server_port']))
         
         self.rollout = rollout_sampler(args.config_path, self.config_dict, self.statistic, self.context)
-        self.log_handler.info("------------------ 完成采样端的构建，此worker的id为{} -----------------".format(self.uuid))
+        self.logger.info("------------------ 完成采样端的构建，此worker的id为{} -----------------".format(self.uuid))
     def run(self):
         start_time = time.time()
         # ----------- TODO 这个地方确定好run one episode的结果 ------------
@@ -51,7 +51,7 @@ class sampler_worker:
         self.statistic.append("sampler/episode_time/{}".format(self.policy_id), episode_time)
         self.statistic.append("result/Average_edge_SE/{}".format(self.policy_id), 0)
         # ---------- 将统计信息发送到log server -------------
-        self.log_handler.info("--------------- 发送结果日志到logServer上 --------------------")
+        self.logger.info("--------------- 发送结果日志到logServer上 --------------------")
         result_info = {"container_id": self.uuid}
         for key, value in self.statistic.iter_key_avg_value():
             result_info[key] = value
@@ -69,8 +69,8 @@ class sampler_worker:
                         break
         except Exception as e:
             error_str = traceback.format_exc()
-            self.log_handler.error(e)
-            self.log_handler.error(error_str)
+            self.logger.error(e)
+            self.logger.error(error_str)
             if not self.eval_mode:
                 # -------------- 如果不是评估模式，将报错信息也发送到logserver处 ---------
                 error_message = {"error_log": error_str}

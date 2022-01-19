@@ -1,0 +1,14 @@
+2022-01-19 14:44:44,967,967,INFO,Fether_log::---------------- policy fetcher将最新的模型存放的地方为: {'policy_path': '/home/chenliang08/Desktop/Project/Combinatorial-optimization/policy_max_average_SE.model', 'critic_path': '/home/chenliang08/Desktop/Project/Combinatorial-optimization/critic_max_average_SE.model'} ----------------
+2022-01-19 14:44:44,967,967,INFO,Fether_log::======================= 构建fetcher成功, 创建最新模型请求套接字 ===============
+2022-01-19 14:44:44,967,967,INFO,Fether_log::======================= 最新模型保存到的路径为: {'policy_path': '/home/chenliang08/Desktop/Project/Combinatorial-optimization/policy_max_average_SE.model', 'critic_path': '/home/chenliang08/Desktop/Project/Combinatorial-optimization/critic_max_average_SE.model'} ====================
+2022-01-19 14:44:45,511,511,INFO,Fether_log::=================== 获取最新模型的url地址为: {'critic_url': 'http://42.186.72.223:6020/p2p_plf_max_average_SE/model_max_average_SE_critic_1642562686.903451', 'policy_url': 'http://42.186.72.223:6020/p2p_plf_max_average_SE/model_max_average_SEpolicy_1642562686.903451'} ================
+2022-01-19 14:44:45,813,813,INFO,Fether_log::=================== 相同模型, 跳过更新模型 =================
+2022-01-19 14:44:46,433,433,INFO,Fether_log::=================== 相同模型, 跳过更新模型 =================
+2022-01-19 14:44:46,900,900,INFO,Fether_log::=================== 相同模型, 跳过更新模型 =================
+2022-01-19 14:44:47,343,343,INFO,Fether_log::=================== 相同模型, 跳过更新模型 =================
+2022-01-19 14:44:47,797,797,INFO,Fether_log::=================== 相同模型, 跳过更新模型 =================
+2022-01-19 14:44:48,231,231,INFO,Fether_log::=================== 相同模型, 跳过更新模型 =================
+2022-01-19 14:44:48,640,640,INFO,Fether_log::=================== 相同模型, 跳过更新模型 =================
+2022-01-19 14:44:49,063,63,INFO,Fether_log::=================== 相同模型, 跳过更新模型 =================
+2022-01-19 14:44:49,479,479,INFO,Fether_log::=================== 相同模型, 跳过更新模型 =================
+2022-01-19 14:44:49,902,902,INFO,Fether_log::=================== 相同模型, 跳过更新模型 =================

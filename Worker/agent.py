@@ -61,7 +61,7 @@ class AgentManager:
 
     def construct_agent(self):
         if self.parameter_sharing:
-            self.agent = Agent(self.config_dict, self.statistic)
+            self.agent = Agent(self.config_dict)
         else:
             self.agent = dict()
             for agent_index in range(self.agent_nums):
@@ -81,7 +81,7 @@ class AgentManager:
         machine_index = choose_data_server_index // data_server_per_machine
         port_num = choose_data_server_index % data_server_per_machine
         target_ip = self.policy_config['machines'][machine_index]
-        target_port = self.policy_config['learner_port_start'] + port_num
+        target_port = self.policy_config['learner_port_start'] + 0
         logger_path = pathlib.Path(self.config_dict['log_dir'] + "/agent_manager_server")
         self.logger = setup_logger('AgentManager_log', logger_path)
         self.logger.info("==================== 此智能体要发送数据到: {}, 连接的端口为: {} =================".format(target_ip, target_port))
@@ -112,8 +112,8 @@ class AgentManager:
             else:
                 agent_log_prob, agent_action = self.agent[agent_key].compute(active_agent_obs)
             # ----------- 这个地方需要将数据变成numpy类型 ------------
-            joint_log_prob_list.append(agent_log_prob.numpy())
-            actions.append(agent_action.numpy())
+            joint_log_prob_list.append(agent_log_prob.numpy().squeeze())
+            actions.append(agent_action.numpy().squeeze())
         # -------- 这个地方计算一下当前的状态值 ---------------
         with torch.no_grad():
             state_value_PF, state_value_Edge = self.global_critic(torch_format_data['global_state'])
@@ -136,14 +136,15 @@ class AgentManager:
         else:
             # 如果是非测试模式，需要使用fether进行获取最新的策略，然后调用agent里面的load model函数
             model_info = self.agent_fetcher.reset()
+            self.logger.info("------------- reset函数调用后，得到的model info为 {} ---------------------".format(model_info))
             if self.parameter_sharing:
-                self.agent.synchronize_model(model_info['policy_path'])
+                self.agent.synchronize_model(model_info['path']['policy_path'])
             else:
                 # ----- 如果采样非参数共享，需要通过循环的方式给每一个智能体进行模型加载 -----
                 for agent_key in self.agent.keys():
-                    self.agent[agent_key].synchronize_model(model_info['policy_path'][agent_key])
+                    self.agent[agent_key].synchronize_model(model_info['path']['policy_path'][agent_key])
             # ------------- 非测试模式下，global critic的参数也是需要同步进行更新的 -----------------
-            deserialize_model(self.global_critic, model_info['critic_path'])
+            deserialize_model(self.global_critic, model_info['path']['critic_path'])
 
     def step(self):
         # -------------- 这个函数是在采样函数的时候使用，每一次rollout的时候都会step，把最新的模型拿过来 ---------
@@ -161,13 +162,14 @@ class AgentManager:
             return
         else:
             model_info = self.agent_fetcher.step()
-            self.model_info = model_info
-            if self.parameter_sharing:
-                self.agent.load_model(model_info['policy_path'])
-            else:
-                for agent_key in self.agent.keys():
-                    self.agent[agent_key].load_model(model_info['policy_path'][agent_key])
-            deserialize_model(self.global_critic, model_info['critic_path'])
+            if model_info is not None:
+                self.model_info = model_info
+                if self.parameter_sharing:
+                    self.agent.synchronize_model(model_info['path']['policy_path'])
+                else:
+                    for agent_key in self.agent.keys():
+                        self.agent[agent_key].synchronize_model(model_info['path']['policy_path'][agent_key])
+                deserialize_model(self.global_critic, model_info['path']['critic_path'])
 
     def get_model_info(self):
         return self.model_info

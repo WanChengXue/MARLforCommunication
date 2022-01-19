@@ -18,6 +18,7 @@ class TrainingSet:
         self.max_decoder_time = self.replay_buffer_config['max_decoder_time']
         self.bs_antenna_nums = self.replay_buffer_config['bs_antenna_nums']
         self.transmit_antenna_dim = 2* self.bs_antenna_nums
+        self.init_replay_buffer()
         
     def init_replay_buffer(self):
         # ------------- 这个函数是用来初始化一个replaybuffer ----------
@@ -96,16 +97,17 @@ class TrainingSet:
         else:
             return False
 
-    def append_instance(self, instance):
+    def append_instance(self, instance, logger):
         # ------------- 这个地方是添加数据进去，这个instance是一个列表 --------------
         instant_number = len(instance)
+        logger.info("------------- 此次添加的数据个数为 {} ----------------".format(instant_number))
         for _ in range(instant_number):
             local_index = self.cursor % self.max_capacity
             self.data_buffer['target_state_value'][local_index, :, :] = instance[local_index]['target_state_value']
             self.data_buffer['instant_reward'][local_index, :, :] = instance[local_index]['instant_reward']
             self.data_buffer['current_state_value'][local_index, :, :] = instance[local_index]['current_state_value']
             self.data_buffer['advantages'][local_index, :, :] = instance[local_index]['advantages']
-            self.data_buffer['denormalize_current_state_value'][local_index, :, :] = instance[local_index]['denormalize_current_state_value']
+            self.data_buffer['denormalize_current_state_value'][local_index, :, :] = instance[local_index]['denormalize_current_state_value']   
             self.data_buffer['done'][local_index] = instance[local_index]['done']
             self.data_buffer['current_state']['global_state']['global_channel_matrix'][local_index, :, :, :] = instance[local_index]['current_state']['global_state']['global_channel_matrix'] 
             self.data_buffer['current_state']['global_state']['global_average_reward'][local_index, :, :] = instance[local_index]['current_state']['global_state']['global_average_reward']
@@ -121,9 +123,9 @@ class TrainingSet:
                 self.data_buffer['next_state']['agent_obs'][agent_key]['channel_matrix'][local_index, :, :, :] = instance[local_index]['next_state']['agent_obs'][agent_key]['channel_matrix']
                 self.data_buffer['next_state']['agent_obs'][agent_key]['average_reward'][local_index, :, :] = instance[local_index]['next_state']['agent_obs'][agent_key]['average_reward']
                 self.data_buffer['next_state']['agent_obs'][agent_key]['scheduling_count'][local_index, :, :] = instance[local_index]['next_state']['agent_obs'][agent_key]['scheduling_count']
-                self.data_buffer['old_action_log_probs'][agent_key][local_index, :, :] = instance[local_index]['old_action_log_probs'][agent_key]
+                self.data_buffer['old_action_log_probs'][agent_key][local_index, :] = instance[local_index]['old_action_log_probs'][agent_key]
                 self.data_buffer['actions'][agent_key][local_index, :, :] = instance[local_index]['actions'][agent_key]
-        self.cursor += 1
+            self.cursor += 1
 
     def slice(self):
         # ----------------- 这个函数随机从replaybuffer中选择出来一个batch ---------------
@@ -153,15 +155,16 @@ class TrainingSet:
         sample_dict['next_state']['global_state']['global_scheduling_count'] = self.data_buffer['next_state']['global_state']['global_scheduling_count'][random_batch, :, :]
         for index in range(self.agent_nums):
             agent_key = 'agent_' + str(index)
+            sample_dict['current_state']['agent_obs'][agent_key] = dict()
             sample_dict['next_state']['agent_obs'][agent_key] = dict()
             sample_dict['current_state']['agent_obs'][agent_key]['channel_matrix'] = self.data_buffer['current_state']['agent_obs'][agent_key]['channel_matrix'][random_batch, :, :, :]
             sample_dict['current_state']['agent_obs'][agent_key]['average_reward'] = self.data_buffer['current_state']['agent_obs'][agent_key]['average_reward'][random_batch, :, :]
             sample_dict['current_state']['agent_obs'][agent_key]['scheduling_count'] = self.data_buffer['current_state']['agent_obs'][agent_key]['scheduling_count'][random_batch, :, :]
             sample_dict['next_state']['agent_obs'][agent_key]['channel_matrix'] = self.data_buffer['next_state']['agent_obs'][agent_key]['channel_matrix'][random_batch, :, :, :]
             sample_dict['next_state']['agent_obs'][agent_key]['average_reward'] = self.data_buffer['next_state']['agent_obs'][agent_key]['average_reward'][random_batch, :, :]
-            sample_dict['next_state']['agent_obs'][agent_key]['scheduling_count'] = self.data_buffe['next_state']['agent_obs'][agent_key]['scheduling_count'][random_batch, :, :]
-            sample_dict['old_action_log_probs'][agent_key] = self.data_buffer['old_action_log_probs'][agent_key][random_batch, :, :]
-            sample_dict['actions'][agent_key] = self.data_buffer[agent_key][random_batch, :, :]
+            sample_dict['next_state']['agent_obs'][agent_key]['scheduling_count'] = self.data_buffer['next_state']['agent_obs'][agent_key]['scheduling_count'][random_batch, :, :]
+            sample_dict['old_action_log_probs'][agent_key] = self.data_buffer['old_action_log_probs'][agent_key][random_batch, :]
+            sample_dict['actions'][agent_key] = self.data_buffer['actions'][agent_key][random_batch, :, :]
         return sample_dict
 
 def conver_data_format_to_torch_interference(obs_dict):
@@ -212,15 +215,15 @@ def convert_data_format_to_torch_training(training_batch, device_index):
     torch_format_data['next_state'] = dict()
     torch_format_data['next_state']['global_state'] = dict()
     torch_format_data['next_state']['agent_obs'] = dict()
+    torch_format_data['actions'] = dict()
+    torch_format_data['old_action_log_probs'] = dict()
     torch_format_data['current_state']['global_state']['global_channel_matrix'] = torch.FloatTensor(training_batch['current_state']['global_state']['global_channel_matrix']).to(device_index)
     torch_format_data['current_state']['global_state']['global_average_reward'] = torch.FloatTensor(training_batch['current_state']['global_state']['global_average_reward']).to(device_index)
     torch_format_data['current_state']['global_state']['global_scheduling_count'] = torch.FloatTensor(training_batch['current_state']['global_state']['global_scheduling_count']).to(device_index)
     torch_format_data['next_state']['global_state']['global_channel_matrix'] = torch.FloatTensor(training_batch['next_state']['global_state']['global_channel_matrix']).to(device_index)
     torch_format_data['next_state']['global_state']['global_average_reward'] = torch.FloatTensor(training_batch['next_state']['global_state']['global_average_reward']).to(device_index)
     torch_format_data['next_state']['global_state']['global_scheduling_count'] = torch.FloatTensor(training_batch['next_state']['global_state']['global_scheduling_count']).to(device_index)
-    agent_nums = len(training_batch['actions'].keys())
-    for index in range(agent_nums):
-        agent_key = 'agent_' + str(index)
+    for agent_key in training_batch['actions'].keys():
         torch_format_data['current_state']['agent_obs'][agent_key] = dict()
         torch_format_data['next_state']['agent_obs'][agent_key] = dict()
         torch_format_data['current_state']['agent_obs'][agent_key]['channel_matrix'] = torch.FloatTensor(training_batch['current_state']['agent_obs'][agent_key]['channel_matrix']).to(device_index)

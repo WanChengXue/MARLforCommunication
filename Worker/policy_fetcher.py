@@ -43,12 +43,12 @@ class fetcher:
                 agent_key = 'agent_' + str(index)
                 self.model_path['policy_path'][agent_key] = os.path.join(os.getcwd(), "{}.model".format('policy_' + agent_key + '_' + self.policy_id))
         self.model_path['critic_path'] = os.path.join(os.getcwd(), "{}.model".format('critic_' + self.policy_id))
-
+        self.logger.info("---------------- policy fetcher将最新的模型存放的地方为: {} ----------------".format(self.model_path))
 
     def remove_exist_model(self):
         # ----------------- 删除已经存在的模型 ---------------
-        if os.path.exists(self.model_path['cirtic_path']):
-            os.remove(self.model_path['cirtic_path'])
+        if os.path.exists(self.model_path['critic_path']):
+            os.remove(self.model_path['critic_path'])
 
         if self.parameter_sharing:
             if os.path.exists(self.model_path['policy_path']):
@@ -61,7 +61,8 @@ class fetcher:
             
 
     def reset(self):
-        self.step()
+        model_info = self.step()
+        return model_info
 
     def step(self):
         if time.time() < self.next_model_update_time:
@@ -84,7 +85,7 @@ class fetcher:
         # 获取最新的模型信息
         start_time = time.time()
         raw_model_info = self.latest_model_requester.recv()
-        self.statistic.append("sampler/model_requester_time/{}".format(self.policy_id, time.time()- start_time))
+        self.statistic.append("sampler/model_requester_time/{}".format(self.policy_id), time.time()- start_time)
         # model_info: {'policy_id': self.policy_id, 'url': url_path, 'time':timestamp}，这个timestamp是configserver收到learner发送的新模型信息时自己添加的
         # --------------- url_path是一个字典类型数据 ---------------
         model_info = pickle.loads(raw_model_info)
@@ -93,9 +94,22 @@ class fetcher:
             model_info['path'] = self.model_path
             return model_info
         else:
-            self.logge.info("=================== 相同模型, 跳过更新模型 =================")
+            self.logger.info("=================== 相同模型, 跳过更新模型 =================")
             return None
         
+
+    def copy_model(self, url):
+        critic_path = '/home/chenliang08/Desktop/' + '/'.join(url['critic_url'].split("/")[3:])
+        copy_command = 'cp {} {}'.format(critic_path, self.model_path['critic_path'])
+        os.system(copy_command)
+        if self.parameter_sharing:
+            policy_path = '/home/chenliang08/Desktop/' + '/'.join(url['critic_url'].split("/")[3:])
+            copy_command = 'cp {} {}'.format(policy_path, self.model_path['policy_path'])
+            os.system(copy_command)
+
+        else:
+            pass
+
 
     def _download(self, model_info):
         if self.lastest_model_url != model_info['url']:
@@ -103,8 +117,9 @@ class fetcher:
             url = model_info['url']
             self.logger.info("=================== 获取最新模型的url地址为: {} ================".format(url))
             self.remove_exist_model()
-            # ------------- TODO,这个地方准备在Learner服务器上开一个Nginx服务，然后供其余机器进行下载最新的模型 -----------------
-            pass
+            # ------------- TODO 单机测试，这个地方暂时使用cp命令 -----------------
+            self.copy_model(url)
+            return True
         else:
             return False
             

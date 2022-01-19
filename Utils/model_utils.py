@@ -35,7 +35,7 @@ def serialize_model(model_path_prefix, model_url_prefix, net_dict, cache_size, l
         url_dict['policy_url'] = policy_url_path
         torch.save(net_dict['policy_net'].state_dict(), policy_save_path)
         remove_old_version_model(model_path_prefix + '_policy_*', cache_size, logger)
-
+    return url_dict
 
 def remove_old_version_model(model_prefix_name, cache_size, logger):
     # ------------ 这个函数是将老版本的模型移除 --------------

@@ -33,7 +33,7 @@ eval_mode: False
 # 要不要保存上一次训练得到的历史队列
 use_history: fasle
 # learning rate 为0的时间,用于优化器的初始化
-warmup_time: 10
+warmup_time: 0
 # ip of log server, config_server
 main_server_ip: '42.186.72.223'
 # 定义日志文件的文件夹
@@ -63,7 +63,7 @@ learners:
   gpu_num_per_machine: 4
   data_server_to_learner_num: 8
   # 模型相关
-  batch_size: 2048
+  batch_size: 10
   gamma: 0.997
   tau: 0.95
   clip_epsilon: 0.2
@@ -71,13 +71,15 @@ learners:
   dual_clip: 3
   learning_rate: 0.00001
   entropy_coef: 0.01
+  # ----- 这个变量一旦打开，表示同时优化边缘用户和系统性能 ------------
+  multi_objective_start: True
   # ------------ 这个32必须是和天线维度一样，天线16根，变成实数就是32
   hidden_dim: 32
   # 环境相关
   env_count: 1000
   traj_len: 300
   n_sample: 1
-  pool_capacity: 30000
+  pool_capacity: 10
   # Pytorch DDP相关
   ddp_port: 50001
   # 暴露给其他learner进程的监听端口

@@ -122,7 +122,7 @@ class LogServer(basic_server):
                                             self.config_dict["log_server_port"]))
         self.poller.register(self.receiver, zmq.POLLIN)
 
-        self.log_basic_info = setup_logger("basic", os.path.join(self.config_dict["log_dir"], "log_server_log"))
+        self.logger = setup_logger("basic", os.path.join(self.config_dict["log_dir"], "log_server_log"))
         # --------------- 定义tensorboard的文件夹 ---------------
         self.summary_logger = SummaryLog(os.path.join(self.config_dict["log_dir"], "summary_log"))
 
@@ -220,18 +220,18 @@ class LogServer(basic_server):
                         raw_data_list.append(data)
                     except zmq.ZMQError as e:
                         if type(e) != zmq.error.Again:
-                            self.log_basic_info.warn("recv zmq {}".format(e))
+                            self.logger.warn("recv zmq {}".format(e))
                         break
 
                 for raw_data in raw_data_list:
                     data = pickle.loads(raw_data)
-                    # self.log_basic_info.info(data)
+                    # self.logger.info(data)
                     for log in data:
                         if "error_log" in log:
-                            self.log_basic_info.error("client_error, %s"%(log["error_log"]))
+                            self.logger.error("client_error, %s"%(log["error_log"]))
                             self.summary_logger.add_summary("sampler/error_per_min", 1, timestamp=time.time())
                         elif "log_info" in log:
-                            self.log_basic_info.info(data)
+                            self.logger.info(data)
 
                         else:
                             self.log_detail(log)
