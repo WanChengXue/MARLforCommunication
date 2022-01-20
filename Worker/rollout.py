@@ -20,6 +20,7 @@ class rollout_sampler:
         self.config_dict = config_dict
         self.policy_id = self.config_dict['policy_id']
         self.policy_config = self.config_dict['learners']
+        self.popart_start = self.policy_config.get("popart_start", False)
         self.statistic = statistic
         logger_path = pathlib.Path(self.config_dict['log_dir'] + '/rollout_log')
         self.logger = setup_logger('Rollout_log', logger_path)
@@ -47,7 +48,7 @@ class rollout_sampler:
                 "old_action_log_probs": 智能体的决策动作的联合概率的对数, dict类型
                 "done": 这个是当前时刻i是不是terminate状态的标志
                 "current_state_value": 这个是使用global critic网络估计出来的v向量，是一个list，包含两个元素，state_value_PF, state_value_Edge
-                "denormalize_current_state_value": 这个是通过denormalize出来之后的状态值，也就是实际的v值
+                "denormalize_current_state_value": 这个是通过denormalize出来之后的状态值，也就是实际的v值,(只有在popart开启之后才使用)
                 "next_state": 下一个时刻的状态
             }
             # 使用gae之后，添加两个key，advantages，以及target state value
@@ -71,9 +72,12 @@ class rollout_sampler:
         data_dict = []
         while not done:
             self.agent.step()
-            joint_log_prob, actions, current_state_value = self.agent.compute(state)
+            joint_log_prob, actions, net_work_output = self.agent.compute(state)
             # -------------- 此处需要给这个current_state_value 进行denormalizeing操作 ----------
-            denormalize_state_value = self.agent.denormalize_state_value(current_state_value)
+            if self.popart_start:
+                current_state_value = self.agent.denormalize_state_value(net_work_output)
+            else:
+                current_state_value = net_work_output
             # -------------- 给定动作计算出对应的instant reward, 这个返回的是瞬时PF值，需要额外处理得到PF和，以及边缘用户的SE ------------
             next_state, instant_rewards, done = self.env.step(actions)
             PF_sum, edge_average_SE = self.env.specialize_reward(instant_rewards)
@@ -90,7 +94,8 @@ class rollout_sampler:
             data_dict[-1]['done'] = done
             data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
             data_dict[-1]['current_state_value'] = np.concatenate(current_state_value, 0)
-            data_dict[-1]['denormalize_current_state_value'] = np.concatenate(denormalize_state_value, 0)
+            # ----------- 这个变量是使用采样的方式，得到的网络输出 -------------------
+            data_dict[-1]['old_network_value'] = np.concatenate(net_work_output, 0)
             data_dict[-1]['next_state'] = copy.deepcopy(next_state)
             state = next_state
             # -----------------------------------------------------------------------------------------

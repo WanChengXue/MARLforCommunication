@@ -112,8 +112,8 @@ class data_server(basic_server):
         if time.time() > self.next_print_log_time:
             self.next_print_log_time += 60
             self.send_log({"data_server/dataserver_recv_instance_per_min/{}".format(self.policy_name): self.recv_training_instance_count})
-            self.send_log({"data_server/dataserver_socket_time_per_min/{}".format(self.policy_name): self.socket_time_list})
-        
+            self.send_log({"data_server/dataserver_socket_time_per_min/{}".format(self.policy_name): sum(self.socket_time_list)})
+
         self.parse_data_time_list = []
         self.socket_time_list = []
         self.recv_training_instance_count = 0

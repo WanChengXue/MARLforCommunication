@@ -103,11 +103,15 @@ class transformer_pointer_network_decoder(nn.Module):
                 # 将那些已经结束了的batch的action变成0
                 scheduling_index.masked_fill_(terminate_batch, 0)
             else:
+                if i == 0:
+                    last_prob = 1
+                else:
+                    last_prob = prob * last_prob
                 scheduling_index = action_list[:, i].unsqueeze(-1)
                 # 计算entropy
                 conditional_entropy = Categorical(attn).entropy().unsqueeze(-1)
                 conditional_entropy.masked_fill_(terminate_batch, 0)
-                conditional_entropy_sum += conditional_entropy
+                conditional_entropy_sum += conditional_entropy * last_prob
                 # 这个action向量是一个调度序列，直接从attn中取值
             prob = attn.gather(1, scheduling_index)
             # 这里会出现log 0的情况，因此增加一个小数, 这是因为前面有的batch结束了，那么就是0，但是这里强制下一次再选出0，就会出现log 0了。
@@ -170,6 +174,8 @@ class critic(nn.Module):
         self.agent_nums = self.policy_config['agent_nums']
         self.conv_channel = self.policy_config['conv_channel'] * self.agent_nums
         self.hidden_dim = self.policy_config['hidden_dim']
+        self.popart_start = self.policy_config.get("popart_start", False)
+        self.multi_objective_start = self.policy_config["multi_objective_start"]
         # ======================= 对全局状态进行卷积操作, reward需要进行线性操作, count这个状态也 =====================
         self.channel_conv_layer = nn.Conv2d(self.conv_channel, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
         # 上面通过先行变换,得到的维度是batch size * agent_nums * user_number * hidden_size
@@ -186,12 +192,17 @@ class critic(nn.Module):
         # 定义一个一维卷积操作
         self.feature_contraction = nn.Conv1d(self.policy_config['seq_len'], 1, kernel_size=3, stride=1, padding=1 ,bias=False) 
         # 因此我这个是一个多目标或者说是multi task问题,因此需要引入两个popArt
-        self.popart_head_PF = PopArt(self.embedding_dim, 1)
-        self.popart_head_Edge = PopArt(self.embedding_dim, 1)
+        if self.popart_start:
+            self.PF_head = PopArt(self.embedding_dim, 1)
+            self.Edge_head = PopArt(self.embedding_dim, 1)
+        else:
+            self.PF_head = nn.Linear(self.embedding_dim, 1)
+            self.Edge_head = nn.Linear(self.embedding_dim, 1)
+
 
     def update(self, input_vector):
-        self.popart_head_PF.update(input_vector[:, 0])
-        self.popart_head_Edge.update(input_vector[:, 1])
+        self.PF_head.update(input_vector[:, 0])
+        self.Edge_head.update(input_vector[:, 1])
 
     def forward(self, src):
         # 这个scr表示的是全局信息
@@ -215,8 +226,8 @@ class critic(nn.Module):
         # 通过transformer之后,我得到一个维度为batch size * user number * dmodel的一个矩阵,我现在需要将这个矩阵变成一个二维的矩阵,使用一维卷积
         backbone = self.feature_contraction(transformer_encoder_output).squeeze(1)
         # 通过popArt进行计算
-        state_value_PF = self.popart_head_PF(backbone)
-        state_value_Edge = self.popart_head_Edge(backbone)
+        state_value_PF = self.PF_head(backbone)
+        state_value_Edge = self.Edge_head(backbone)
         return state_value_PF, state_value_Edge
 
 def init_policy_net(policy_config):

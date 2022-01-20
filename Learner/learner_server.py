@@ -144,6 +144,13 @@ class learner_server(basic_server):
                 training_batch = convert_data_format_to_torch_training(training_batch, self.local_rank)
                 info  = self.algo.step(training_batch)
                 self.logger.info("--------------- 完成一次参数更新, 返回的数据为 {} -----------------".format(info))
+                ''' 
+                    {'value_loss': 36.82817840576172, 
+                    'conditional_entropy': -87.09746551513672, 
+                    'advantage_std': array([1.8773540e+01, 3.7253532e-03], dtype=float32), 
+                    'policy_loss': 10.446737289428711, 
+                    'total_policy_loss': 9.575762748718262}
+                '''
                 # 将日志发送到log server上面
                 # TODO, 日志发送操作
                 self.send_statistic(info, prefix="model")

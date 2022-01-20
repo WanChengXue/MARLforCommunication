@@ -6,109 +6,119 @@ import zmq
 
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
+import pathlib
+import os
+import sys
+current_path = os.path.abspath(__file__)
+root_path = '/'.join(current_path.split('/')[:-2])
+sys.path.append(root_path)
 
 from Utils import setup_logger
 from Learner.basic_server import basic_server
 
 
 
-class SummaryLog(object):
+class summary_log:
     def __init__(self, tensorboard_folder):
         self.summary_writer = SummaryWriter(tensorboard_folder)
+        # ----- 这个字典表示将tag的值 ---------
         self.tag_values_dict = {}
+        # ----- 这个表示对应的tag写了多少次 ---------
         self.tag_step_dict = {}
+        # ----- 这个值表示要超过多少才能写入到tensorboard上 ------
         self.tag_output_threshold_dict = {}
+        # ------ 这个字典表示这个tag的计算类型 ------
         self.tag_func_dict = {}
+        # ------ 这个字典表示这个tag的值被添加了多少次，和上面那个step dict还是有区别的。有些tag需要超过output_threshold_dict，对应的tag_step_dict才会+1 ------
         self.tag_total_add_count = {}
+        # ------ 下面三个字典存放的tag数据必须是要求计算类型为time_mean和time_sum --------
         self.tag_time_threshold = {}
         self.tag_time_data_timestamp = {}
         self.tag_time_last_print_time = {}
-        self.total_tag_type = [
-            "time_avg", "time_total",
-            "avg", "total", "max", "min"
-        ]
-        self.tag_bins = {}
+        # ================= 三个字典分别表示时间的threhsold,多久统计一次，时间戳的统计，最新的打印时间 ===========
+        # ------- 这个列表表示所有的tag的类型，要么是在给定时间间隔内计算平均，要么是在给定时间间隔计算总和，要么是计算mean，sum，max，min
+        self.total_tag_type = ["time_mean", "time_sum","mean", "sum", "max", "min"]
 
     def add_tag(self, tag, output_threshold, cal_type, time_threshold=0, bins=100):
+        # -------- 这个output_threshold 一般都是100，表示存了多少个点就进行一次输出 --------
         self.tag_values_dict[tag] = []
         self.tag_step_dict[tag] = 0
         self.tag_output_threshold_dict[tag] = output_threshold
         self.tag_func_dict[tag] = cal_type
         self.tag_total_add_count[tag] = 0
         if cal_type.startswith("time"):
+            # ------- 如果这个tag是time_mean或者是time_sum ---------
             self.tag_time_threshold[tag] = time_threshold
             self.tag_time_data_timestamp[tag] = []
             self.tag_time_last_print_time[tag] = 0
-        if cal_type.find("histogram") != -1:
-            self.tag_bins[tag] = bins
 
     def has_tag(self, tag):
+        # --------- 这个函数用来判断tag是不是在self.tag_step_dict这个字典中 ----------
         if tag in self.tag_step_dict.keys():
             return True
         else:
             return False
 
+    @property
     def get_tag_count(self, tag):
+        # --------- 这个函数表示这个tag被添加了多少次 ----------
         return self.tag_total_add_count[tag]
 
-    def generate_time_data_output(self):
-        for tag, threshold in self.tag_time_threshold.items():
-            cur_time = time.time()
-            if cur_time - self.tag_time_last_print_time[tag] > threshold:
-                valid_list = []
-                for i in range(len(self.tag_time_data_timestamp[tag])):
-                    if cur_time - self.tag_time_data_timestamp[tag][i] < threshold:
-                        valid_list.append(self.tag_values_dict[tag][i])
 
-                if len(valid_list) >= 1:
-                    if self.tag_func_dict[tag] == "time_avg":
-                        out = sum(valid_list) / len(valid_list)
-                    elif self.tag_func_dict[tag] == "time_total":
-                        out = sum(valid_list)
-                    else:
-                        continue
+    def generate_time_data_output(self, tag):
+        threshold = self.tag_time_threshold[tag]
+        cur_time = time.time()
+        if cur_time - self.tag_time_last_print_time[tag] > threshold:
+            ############ 对于时隙统计tag而言，需要判断delta时间是不是大于threshold ##############
+            valid_list = []
+            for i in range(len(self.tag_time_data_timestamp[tag])):
+                # ----------- 这个循环写的比较笨，比较所有列表中的时间戳，将那些合格的值放入到valid_list里面 -------------
+                if cur_time - self.tag_time_data_timestamp[tag][i] < threshold:
+                    valid_list.append(self.tag_values_dict[tag][i])
+            if len(valid_list) >= 1:
+                if self.tag_func_dict[tag] == "time_mean":
+                    out = sum(valid_list) / len(valid_list)
+                elif self.tag_func_dict[tag] == "time_sum":
+                    out = sum(valid_list)
                 else:
-                    out = 0
-
-
-                self.summary_writer.add_scalar(tag, out, step=self.tag_step_dict[tag])
-                self.tag_step_dict[tag] += 1
-                self.tag_values_dict[tag] = []
-                self.tag_time_data_timestamp[tag] = []
-                self.tag_time_last_print_time[tag] = cur_time
+                    # ------------ 关于时间的tag就这两种，出现其他tag都会报错 ------------
+                    raise NotImplementedError
+            else:
+                out = 0
+            self.summary_writer.add_scalar(tag, out, self.tag_step_dict[tag])
+            self.tag_step_dict[tag] += 1
+            self.tag_values_dict[tag] = []
+            self.tag_time_data_timestamp[tag] = []
+            self.tag_time_last_print_time[tag] = cur_time
 
 
     def add_summary(self, tag, value, timestamp=time.time()):
+        # ============= 这个函数传入tag，对应的值，以及时间戳 ==============
         self.tag_values_dict[tag].append(value)
         self.tag_total_add_count[tag] += 1
         if self.tag_func_dict[tag].startswith("time"):
+            # -------------- 如果是time类型的tag，就需要把这个tag被添加的时间戳放进去 -------------
             self.tag_time_data_timestamp[tag].append(timestamp)
-
-        if not self.tag_func_dict[tag].startswith("time") and \
-                len(self.tag_values_dict[tag]) >= self.tag_output_threshold_dict[tag]:
-            if self.tag_func_dict[tag].find("histogram") != -1:
-                # each value is a list
-                all_values = []
-                for i in self.tag_values_dict[tag]:
-                    all_values.extend(i)
-                self.log_histogram(tag, all_values, self.tag_step_dict[tag], self.tag_bins[tag])
-            else:
-                if self.tag_func_dict[tag] == "avg":
-                    avg_value = sum(self.tag_values_dict[tag]) / len(self.tag_values_dict[tag])
-                elif self.tag_func_dict[tag] == "total":
-                    avg_value = sum(self.tag_values_dict[tag])
+        
+        if not self.tag_func_dict[tag].startswith("time"):
+            if len(self.tag_values_dict[tag]) >= self.tag_output_threshold_dict[tag]:
+                # ============== 这个地方是说，如果这个tag不是time类型的，并且这个tag列表中存放的值已经到了最大长度 ========================
+                if self.tag_func_dict[tag] == "mean":
+                    fn_value = sum(self.tag_values_dict[tag]) / len(self.tag_values_dict[tag])
+                elif self.tag_func_dict[tag] == "sum":
+                    fn_value = sum(self.tag_values_dict[tag])
                 elif self.tag_func_dict[tag] == "max":
-                    avg_value = max(self.tag_values_dict[tag])
+                    fn_value = max(self.tag_values_dict[tag])
                 elif self.tag_func_dict[tag] == "min":
-                    avg_value = min(self.tag_values_dict[tag])
-                elif self.tag_func_dict[tag] == "sd":
-                    avg_value = np.array(self.tag_values_dict[tag]).std()
+                    fn_value = min(self.tag_values_dict[tag])
                 else:
-                    avg_value = sum(self.tag_values_dict[tag])
-                self.summary_writer.add_scalar(tag, avg_value, step=self.tag_step_dict[tag])
-
-            self.tag_step_dict[tag] += 1
-            self.tag_values_dict[tag] = []
+                    ################### 这一行其实就计算某一个变量的方差会用到 ###############
+                    fn_value = np.array(self.tag_values_dict[tag]).std()
+                self.summary_writer.add_scalar(tag, fn_value, self.tag_step_dict[tag])
+                self.tag_step_dict[tag] += 1
+                self.tag_values_dict[tag] = []
+        else:
+            self.generate_time_data_output(tag)
 
 
 
@@ -116,102 +126,66 @@ class SummaryLog(object):
 class LogServer(basic_server):
     def __init__(self, config_path):
         super(LogServer, self).__init__(config_path)
-
+        self.policy_id = self.config_dict['policy_id']
+        # ------- 机器的数目 * 卡的数目 * 每张卡对应的数据进程数目 = 所有的数据服务 --------------
+        self.total_data_server = self.config_dict['learners']['gpu_num_per_machine'] * self.config_dict['learners']['data_server_to_learner_num'] * len(self.config_dict['learners']['machines'])
         self.receiver = self.context.socket(zmq.PULL)
-        self.receiver.bind("tcp://%s:%d" % (self.config_dict["log_server_address"],
-                                            self.config_dict["log_server_port"]))
+        self.receiver.bind("tcp://%s:%d" % (self.config_dict["log_server_address"], self.config_dict["log_server_port"]))
         self.poller.register(self.receiver, zmq.POLLIN)
-
-        self.logger = setup_logger("basic", os.path.join(self.config_dict["log_dir"], "log_server_log"))
+        log_path = pathlib.Path(os.path.join(self.config_dict["log_dir"], "log_server_log"))
+        self.logger = setup_logger("LogServer_log", log_path)
         # --------------- 定义tensorboard的文件夹 ---------------
-        self.summary_logger = SummaryLog(os.path.join(self.config_dict["log_dir"], "summary_log"))
-
+        # "./logs/summary_log"
+        self.summary_logger = summary_log(os.path.join(self.config_dict["log_dir"], "summary_log"))
+        # --------- 这两个指标是说，采样端的数目，以及下一次计算的时间 ——--------
         self.active_docker_dict = {}
         self.next_cal_docker_time = time.time()
+        self.logger.info("================== 完成log server的构建，配置好了tensorboard的路径为 {}".format(os.path.join(self.config_dict["log_dir"], "summary_log")))
+
 
     def summary_definition(self):
-
-        # 效果类指标
-        for policy_id, policy_config in self.config_dict["learners"].items():
-            self.summary_logger.add_tag("result/episode_reward/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("result/buildin_win_rate/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("result/buildin_tie_rate/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("result/selfplay_win_rate/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("result/selfplay_tie_rate/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("result/history_win_rate/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("result/history_tie_rate/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("result/selfplay_elo_score/{}".format(policy_id), 1, "avg")
-            self.summary_logger.add_tag("result/buildin_score/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("result/sp_score/{}".format(policy_id), 100, "avg")
-
-        # sampler工程指标
-        for policy_id, policy_config in self.config_dict["learners"].items():
-            self.summary_logger.add_tag("sampler/sampler_model_request_time/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("sampler/sampler_model_update_interval/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("sampler/p2p_download_time/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("sampler/trajectory_running_time/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("sampler/error_per_min", 0, "time_total", time_threshold=60)
-
-        # self play server工程类指标
-        for policy_id, policy_config in self.config_dict["learners"].items():
-            self.summary_logger.add_tag("selfplay/eval_count/{}".format(policy_id), 1, "avg")
-            self.summary_logger.add_tag("selfplay/avg_history_win_rate/{}".format(policy_id), 1, "avg")
-            self.summary_logger.add_tag("selfplay/avg_history_draw_rate/{}".format(policy_id), 1, "avg")
-            self.summary_logger.add_tag("selfplay/avg_history_loss_rate/{}".format(policy_id), 1, "avg")
-
-        # data server 工程类指标
-        for policy_id, policy_config in self.config_dict["learners"].items():
-            total_data_server = policy_config["data_server_to_learner_num"] * \
-                policy_config["gpu_num_per_machine"] * len(policy_config["machines"])
-            self.summary_logger.add_tag("data_server/dataserver_recv_instance_per_min/{}".format(policy_id), total_data_server, "total")
-            self.summary_logger.add_tag("data_server/dataserver_parse_time_per_minutes/{}".format(policy_id), 1, "avg")
-            self.summary_logger.add_tag("data_server/dataserver_socket_time_per_minutes/{}".format(policy_id), 1, "avg")
-            self.summary_logger.add_tag("data_server/dataserver_sampling_time_per_min/{}".format(policy_id), 1, "avg")
-            self.summary_logger.add_tag("data_server/active_docker_count", 1, "avg")
-            self.summary_logger.add_tag("data_server/sample_count/{}".format(policy_id), 1, "avg")
-
-        # learner server 工程类指标
-        for policy_id, policy_config in self.config_dict["learners"].items():
-            self.summary_logger.add_tag("learner_server/sgd_round_per_min/{}".format(policy_id), 1, "avg")
-            self.summary_logger.add_tag("learner_server/sgd_total_time/{}".format(policy_id), 1, "avg")
-            self.summary_logger.add_tag("learner_server/wait_data_time_per_min/{}".format(policy_id), 1, "avg")
-
-        # 模型侧指标
-        for policy_id, policy_config in self.config_dict["learners"].items():
-            self.summary_logger.add_tag("model/entropy/{}".format(policy_id), 10, "avg")
-            self.summary_logger.add_tag("model/state_value_loss/{}".format(policy_id), 10, "avg")
-            self.summary_logger.add_tag("model/avg_q_value/{}".format(policy_id), 10, "avg")
-            # 从sampler传过来
-            self.summary_logger.add_tag("model/state_max_prob/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("model/advantage_std/{}".format(policy_id), 10, "avg")
-
-        # 游戏本身的业务指标
-        for policy_id, policy_config in self.config_dict["learners"].items():
-            self.summary_logger.add_tag("game/cat_hp_change/{}".format(policy_id), 100, "avg")
-            self.summary_logger.add_tag("game/game_length/{}".format(policy_id), 100, "avg")
-
+        ####################### 这个部分就是初始化一个tag到tensorboard上面，定义不同tag的计算方式 ########################
+        # --------- 效果类指标, 分别是采样完毕后，所有用户平均SE的和以及边缘用户的平均SE -----------
+        self.summary_logger.add_tag("result/sum_average_capacity/{}".format(self.policy_id), 100, "avg")
+        self.summary_logger.add_tag("result/edge_average_capacity/{}".format(self.policy_id), 100, "avg")
+        # --------- 采样端的指标：采样端请求模型的时间，更新模型的时间，从configserver下载模型需要的时间，完整采样一条trajectory的时间 ----------
+        self.summary_logger.add_tag("sampler/model_request_time/{}".format(self.policy_id), 100, "avg")
+        self.summary_logger.add_tag("sampler/model_update_interval/{}".format(self.policy_id), 100, "avg")
+        self.summary_logger.add_tag("sampler/p2p_download_time/{}".format(self.policy_id), 100, "avg")
+        self.summary_logger.add_tag("sampler/trajectory_running_time/{}".format(self.policy_id), 100, "avg")
+        # --------- dataserver的指标，包括每分钟接收的数据量，每分钟解析的时间，每分钟套接字的时间，从trainingSet采样放入到plasma client的时间，有多少个worker，采样的数目
+        self.summary_logger.add_tag("data_server/dataserver_recv_instance_per_min/{}".format(self.policy_id), self.total_data_server, "sum")
+        self.summary_logger.add_tag("data_server/dataserver_parse_time_per_minutes/{}".format(self.policy_id), 1, "sum")
+        self.summary_logger.add_tag("data_server/dataserver_socket_time_per_minutes/{}".format(self.policy_id), 1, "mean")
+        self.summary_logger.add_tag("data_server/dataserver_sampling_time_per_min/{}".format(self.policy_id), 1, "mean")
+        self.summary_logger.add_tag("data_server/active_docker_count", 1, "mean")
+        # -------- 添加策略的指标，包括entropy loss，两个head的状态值, MSELoss, PolicyLoss -----------------------
+        self.summary_logger.add_tag("model/entropy/{}".format(self.policy_id), 10, "mean")
+        self.summary_logger.add_tag("model/state_value_loss/{}".format(self.policy_id), 10, "mean")
+        self.summary_logger.add_tag("model/policy_loss/{}".format(self.policy_id), 10, "mean")
+       
     def log_detail(self, data):
         for field_key, value in data.items():
             # TODO: 如何区分 vs buildin
             if field_key == "docker_id":
+                # ---------- docker_id: uuid string ------------
                 self.active_docker_dict[value] = 1
             else:
                 if not self.summary_logger.has_tag(field_key):
-                    self.summary_logger.add_tag(field_key, 100, "avg")
+                    # ----------- 这个地方就是说，如果这个tag不在上面预先定义的tag里面，就重新添加进去就好了，但是最好不要这样用 --------------
+                    self.summary_logger.add_tag(field_key, 1, "mean")
                 self.summary_logger.add_summary(field_key, value)
 
     def run(self):
         self.summary_definition()
-
         while True:
             if time.time() > self.next_cal_docker_time:
+                # -------------- 每三分钟统计一下，看看有多少个worker发送了数据 --------------
                 self.next_cal_docker_time = time.time() + 60 * 3
                 self.summary_logger.add_summary("data_server/active_docker_count", len(self.active_docker_dict))
                 self.active_docker_dict = {}
 
-            self.summary_logger.generate_time_data_output()
             socks = dict(self.poller.poll(timeout=100))
-
             if self.receiver in socks and socks[self.receiver] == zmq.POLLIN:
                 raw_data_list = []
                 while True:
@@ -222,28 +196,26 @@ class LogServer(basic_server):
                         if type(e) != zmq.error.Again:
                             self.logger.warn("recv zmq {}".format(e))
                         break
-
                 for raw_data in raw_data_list:
                     data = pickle.loads(raw_data)
-                    # self.logger.info(data)
+                    self.logger.info("------------ 接收到的数据为: {} ------------------".format(data))
                     for log in data:
                         if "error_log" in log:
                             self.logger.error("client_error, %s"%(log["error_log"]))
-                            self.summary_logger.add_summary("sampler/error_per_min", 1, timestamp=time.time())
                         elif "log_info" in log:
                             self.logger.info(data)
-
                         else:
                             self.log_detail(log)
-
+                        
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, help="yaml format config")
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
-
-    server = LogServer(args.config)
+    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+    concatenate_path = abs_path + args.config_path
+    server = LogServer(concatenate_path)
     server.run()
 

@@ -41,7 +41,7 @@ class MAPPOTrainer:
         # ================= 使用了GAE估计出来了advantage value  ============
         advantages = training_batch['advantages'].squeeze(-1)
         # ----------------- 这个值是使用采样critic网络前向计算出出来的结果，主要用来做value clip ----------------
-        old_state_value = training_batch['current_state_value'].squeeze(-1)
+        old_network_value = training_batch['old_network_value'].squeeze(-1)
         target_state_value = training_batch['target_state_value'].squeeze(-1)
         actions = training_batch['actions']
         old_action_log_probs = training_batch['old_action_log_probs']
@@ -49,14 +49,16 @@ class MAPPOTrainer:
         if self.multi_objective_start:
             predict_state_value_PF, predict_state_value_Edge = self.critic_net(current_state['global_state'])
             predict_state_value = torch.cat([predict_state_value_PF, predict_state_value_Edge], 1)
+        else:
+            predict_state_value = self.critic_net(current_state['global_state'])
 
         # 这个地方使用value clip操作
         if self.clip_value:
             value_clamp_range = 0.2
-            value_pred_clipped = old_state_value + (predict_state_value - old_state_value).clamp(-value_clamp_range, value_clamp_range)
+            value_pred_clipped = old_network_value + (predict_state_value - old_network_value).clamp(-value_clamp_range, value_clamp_range)
             # ================= 由于这个value pred clipped的值是batch size * 2
             if self.popart_start:
-                # ============ 由于使用了popart算法,因此这里需要对gae估计出来的target V值进行正则化,更新出它的均值和方差 ===============
+                # ============ TODO 由于使用了popart算法,因此这里需要对gae估计出来的target V值进行正则化,更新出它的均值和方差 ===============
                 self.critic_net.update(target_state_value)
                 # ============ 更新了均值和方差之后,需要对return value进行正则化,得到正则之后的v和Q值 =================
                 normalize_state_value = self.critic_net.normalize(target_state_value)
@@ -93,7 +95,8 @@ class MAPPOTrainer:
         self.optimizer_critic.step()
         # ------------------ 这个地方开始用来更新策略网络的参数, 使用PPO算法, 把多个智能体的观测叠加到batch维度上 ----------------------------
         advantage_std = torch.std(advantages, 0)
-        advantage = torch.sum(advantages / advantage_std, 1).unsqueeze(-1)
+        advantage_mean = torch.std(advantages, 0)
+        advantage = torch.sum((advantages - advantage_mean) / advantage_std, 1).unsqueeze(-1)
         if self.parameter_sharing:
             policy_loss_list = []
             entropy_loss_list = []
@@ -129,7 +132,8 @@ class MAPPOTrainer:
             return {
                 'value_loss': total_state_loss.item(),
                 'conditional_entropy': entropy_loss.item(),
-                'advantage_std': advantage_std.cpu().numpy(),
+                'advantage_std': advantage_std.cpu().numpy().tolist(),
+                'advantage_mean': advantage_mean.cpu().numpy().tolist(),
                 'policy_loss': policy_loss.item(),
                 'total_policy_loss': total_policy_loss.item()
             }

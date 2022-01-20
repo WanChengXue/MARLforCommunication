@@ -20,7 +20,8 @@ def gae_estimator(traj_data, gamma, tau, bootstrap_value):
     # 传入的数据有多少个
     point_number = len(traj_data)
     for step in reversed(range(point_number)):
-        current_step_state_value = traj_data[step]['denormalize_current_state_value']
+        # ---------- 使用denormalize_current_state_value的条件是，不开启popart的时候，因此不使用这变量？
+        current_step_state_value = traj_data[step]['current_state_value']
         delta = traj_data[step]["instant_reward"] + gamma * next_step_state_value - current_step_state_value
         # np.concatenate(traj_data[step]['denormalize_current_state_value'], 1)是1*2的一个向量
         gae = delta + gamma * tau * gae * (1-traj_data[step]['done'])

@@ -40,16 +40,24 @@ class sampler_worker:
         
         self.rollout = rollout_sampler(args.config_path, self.config_dict, self.statistic, self.context)
         self.logger.info("------------------ 完成采样端的构建，此worker的id为{} -----------------".format(self.uuid))
+
     def run(self):
         start_time = time.time()
-        # ----------- TODO 这个地方确定好run one episode的结果 ------------
-        self.rollout.run_one_episode()
+        # ----------- TODO 这个地方确定好run one episode的结果: 返回所有用户的平均容量和，所有时刻瞬时PF的和，episode结束后边缘用户平均SE情况，以及每一个用户被调度的情况 ------------
+        sum_average_capacity, edge_average_capacity, PF_average_sum, scheduling_count = self.rollout.run_one_episode()
         if self.eval_mode:
             return
         # ------------- 将对局结果记录下来 --------------
         episode_time = time.time() - start_time
         self.statistic.append("sampler/episode_time/{}".format(self.policy_id), episode_time)
-        self.statistic.append("result/Average_edge_SE/{}".format(self.policy_id), 0)
+        self.statistic.append("result/edge_average_capacity/{}".format(self.policy_id), edge_average_capacity)
+        self.statistic.append("result/sum_average_capacity/{}".format(self.policy_id), sum_average_capacity)
+        self.statistic.append("result/average_PF_sum/{}".format(self.policy_id), PF_average_sum)
+        # -------------- 这个scheduling count应该是一个list类型，想想怎么设计比较好？ TODO -------------------------
+        for agent_index in range(self.config_dict['env']['agent_nums']):
+            agent_key = 'agent_' + str(agent_index)
+            self.statistic.append('result/user_scheduling_distribution/sector_{}'.format(agent_index), scheduling_count[agent_key])
+            
         # ---------- 将统计信息发送到log server -------------
         self.logger.info("--------------- 发送结果日志到logServer上 --------------------")
         result_info = {"container_id": self.uuid}
@@ -87,4 +95,4 @@ if __name__ == '__main__':
     concatenate_path = abs_path + args.config_path
     args.config_path = concatenate_path
     worker = sampler_worker(args)
-    worker.run()
+    worker.run_loop()

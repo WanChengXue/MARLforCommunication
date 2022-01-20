@@ -65,4 +65,5 @@ class StatisticsUtils:
         if key not in self.__data__ or len(self.__data__[key]) == 1:
             return 0
         else:
+            # ---------- 这个地方是最近的五个值计算平均数 --------------
             return sum(self.__data__[key][-5:]) / len(self.__data__[key][-5:])

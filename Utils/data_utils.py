@@ -52,7 +52,7 @@ class TrainingSet:
         self.data_buffer['target_state_value'] = np.zeros((self.max_capacity, 2, 1))
         self.data_buffer['instant_reward'] = np.zeros((self.max_capacity, 2, 1))
         self.data_buffer['current_state_value'] = np.zeros((self.max_capacity, 2, 1))
-        self.data_buffer['denormalize_current_state_value'] = np.zeros((self.max_capacity, 2, 1))
+        self.data_buffer['old_network_value'] = np.zeros((self.max_capacity, 2, 1))
         self.data_buffer['advantages'] = np.zeros((self.max_capacity, 2, 1))
         self.data_buffer['done'] = np.zeros((self.max_capacity, 1))
         self.data_buffer['old_action_log_probs'] = dict()
@@ -107,7 +107,7 @@ class TrainingSet:
             self.data_buffer['instant_reward'][local_index, :, :] = instance[local_index]['instant_reward']
             self.data_buffer['current_state_value'][local_index, :, :] = instance[local_index]['current_state_value']
             self.data_buffer['advantages'][local_index, :, :] = instance[local_index]['advantages']
-            self.data_buffer['denormalize_current_state_value'][local_index, :, :] = instance[local_index]['denormalize_current_state_value']   
+            self.data_buffer['old_network_value'][local_index, :, :] = instance[local_index]['old_network_value']   
             self.data_buffer['done'][local_index] = instance[local_index]['done']
             self.data_buffer['current_state']['global_state']['global_channel_matrix'][local_index, :, :, :] = instance[local_index]['current_state']['global_state']['global_channel_matrix'] 
             self.data_buffer['current_state']['global_state']['global_average_reward'][local_index, :, :] = instance[local_index]['current_state']['global_state']['global_average_reward']
@@ -136,7 +136,7 @@ class TrainingSet:
         sample_dict['instant_reward'] = self.data_buffer['instant_reward'][random_batch, :, :]
         sample_dict['advantages'] = self.data_buffer['advantages'][random_batch, :, :]
         sample_dict['done'] = self.data_buffer['done'][random_batch, :]
-        sample_dict['denormalize_current_state_value'] = self.data_buffer['denormalize_current_state_value'][random_batch, :, :]
+        sample_dict['old_network_value'] = self.data_buffer['old_network_value'][random_batch, :, :]
         sample_dict['current_state_value'] = self.data_buffer['current_state_value'][random_batch, :, :]
         sample_dict['old_action_log_probs'] = dict()
         sample_dict['actions'] = dict()
@@ -207,7 +207,7 @@ def convert_data_format_to_torch_training(training_batch, device_index):
     torch_format_data['instant_reward'] = torch.FloatTensor(training_batch['instant_reward']).to(device_index)
     torch_format_data['advantages'] = torch.FloatTensor(training_batch['advantages']).to(device_index)
     torch_format_data['done'] = torch.FloatTensor(training_batch['done']).to(device_index)
-    torch_format_data['denormalize_current_state_value'] = torch.FloatTensor(training_batch['denormalize_current_state_value']).to(device_index)
+    torch_format_data['old_network_value'] = torch.FloatTensor(training_batch['old_network_value']).to(device_index)
     torch_format_data['current_state_value'] = torch.FloatTensor(training_batch['current_state_value']).to(device_index)
     torch_format_data['current_state'] = dict()
     torch_format_data['current_state']['global_state'] = dict()

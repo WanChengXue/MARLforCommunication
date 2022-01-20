@@ -29,7 +29,7 @@ class basic_server:
     def send_statistic(self, info, prefix, suffix=None):
         # 这个prefix表示的是字符串的前缀，suffix表示的是后缀信息
         if isinstance(info, dict):
-            for key, value in info:
+            for key, value in info.items():
                 self.send_statistic(value, "{}/{}".format(prefix, key), suffix)
             
         elif isinstance(info, (tuple, list)):
