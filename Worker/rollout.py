@@ -70,6 +70,9 @@ class rollout_sampler:
         self.agent.reset()
         done = False
         data_dict = []
+        instant_SE_sum_list = []
+        edge_average_capacity_list = []
+        PF_sum_list = []
         while not done:
             self.agent.step()
             joint_log_prob, actions, net_work_output = self.agent.compute(state)
@@ -79,9 +82,12 @@ class rollout_sampler:
             else:
                 current_state_value = net_work_output
             # -------------- 给定动作计算出对应的instant reward, 这个返回的是瞬时PF值，需要额外处理得到PF和，以及边缘用户的SE ------------
-            next_state, instant_rewards, done = self.env.step(actions)
-            PF_sum, edge_average_SE = self.env.specialize_reward(instant_rewards)
+            next_state, PF_matrix, instant_SE, done = self.env.step(actions)
+            PF_sum, edge_average_SE, instant_SE_sum = self.env.specialize_reward(PF_matrix, instant_SE)
             # -------------- 构建一个字典，将current state, action, instant reward, old action log probs, done, current state value, next state 放入到字典 --------------
+            instant_SE_sum_list.append(instant_SE_sum)
+            edge_average_capacity_list.append(edge_average_SE)
+            PF_sum_list.append(PF_sum)
             data_dict.append({'current_state': copy.deepcopy(state)})
             data_dict[-1]['instant_reward'] = dict()
             data_dict[-1]['old_action_log_probs'] = dict()
@@ -102,7 +108,12 @@ class rollout_sampler:
         # ------------ 数据打包，然后发送，bootstrap value就给0吧 ----------------
         bootstrap_value = np.zeros((2,1))
         self.pack_data(bootstrap_value, data_dict)
-
+        mean_instant_SE_sum = np.mean(instant_SE_sum_list).item()
+        mean_edge_average_SE = np.mean(edge_average_capacity_list).item()
+        mean_PF_sum = np.mean(PF_sum_list).item()
+        # ------- 这个返回的scheduling_count的维度是3*20*1的调度矩阵 ---------
+        scheduling_count = next_state['global_state']['global_scheduling_count'].squeeze(-1)
+        return mean_instant_SE_sum, mean_edge_average_SE, mean_PF_sum, scheduling_count
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()

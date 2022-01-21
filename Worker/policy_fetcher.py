@@ -94,7 +94,7 @@ class fetcher:
             model_info['path'] = self.model_path
             return model_info
         else:
-            self.logger.info("=================== 相同模型, 跳过更新模型 =================")
+            # self.logger.info("=================== 相同模型, 跳过更新模型 =================")
             return None
         
 

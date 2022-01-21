@@ -81,7 +81,7 @@ class AgentManager:
         machine_index = choose_data_server_index // data_server_per_machine
         port_num = choose_data_server_index % data_server_per_machine
         target_ip = self.policy_config['machines'][machine_index]
-        target_port = self.policy_config['learner_port_start'] + 0
+        target_port = self.policy_config['learner_port_start'] + port_num
         logger_path = pathlib.Path(self.config_dict['log_dir'] + "/agent_manager_server")
         self.logger = setup_logger('AgentManager_log', logger_path)
         self.logger.info("==================== 此智能体要发送数据到: {}, 连接的端口为: {} =================".format(target_ip, target_port))
@@ -136,16 +136,18 @@ class AgentManager:
         else:
             # 如果是非测试模式，需要使用fether进行获取最新的策略，然后调用agent里面的load model函数
             model_info = self.agent_fetcher.reset()
-            self.logger.info("------------- reset函数调用后，得到的model info为 {} ---------------------".format(model_info))
-            if self.parameter_sharing:
-                self.agent.synchronize_model(model_info['path']['policy_path'])
+            if model_info is not None:
+                self.logger.info("------------- reset函数调用后，得到的model info为 {} ---------------------".format(model_info))
+                if self.parameter_sharing:
+                    self.agent.synchronize_model(model_info['path']['policy_path'])
+                else:
+                    # ----- 如果采样非参数共享，需要通过循环的方式给每一个智能体进行模型加载 -----
+                    for agent_key in self.agent.keys():
+                        self.agent[agent_key].synchronize_model(model_info['path']['policy_path'][agent_key])
+                # ------------- 非测试模式下，global critic的参数也是需要同步进行更新的 -----------------
+                deserialize_model(self.global_critic, model_info['path']['critic_path'])
             else:
-                # ----- 如果采样非参数共享，需要通过循环的方式给每一个智能体进行模型加载 -----
-                for agent_key in self.agent.keys():
-                    self.agent[agent_key].synchronize_model(model_info['path']['policy_path'][agent_key])
-            # ------------- 非测试模式下，global critic的参数也是需要同步进行更新的 -----------------
-            deserialize_model(self.global_critic, model_info['path']['critic_path'])
-
+                self.logger.info("------------ reset函数调用后，返回的model info为 None ----------------")
     def step(self):
         # -------------- 这个函数是在采样函数的时候使用，每一次rollout的时候都会step，把最新的模型拿过来 ---------
         '''

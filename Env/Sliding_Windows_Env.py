@@ -73,6 +73,7 @@ class Environment(gym.Env):
         self.simulation_channel = (np.load(loaded_file_name)).squeeze()
 
     def reset(self, random_seed = None):
+        self.TTI_count = 0
         if random_seed is not None:
             self.random_seed = random_seed
         if self.eval_mode:
@@ -125,13 +126,15 @@ class Environment(gym.Env):
         '''
         pass
 
-    def specialize_reward(self, PF_matrix):
+    def specialize_reward(self, PF_matrix, instant_SE):
         # ----------------- 传入PF矩阵和，然后根据调度结果，计算出边缘用户的平均SE，将所有小区最差的那个用户拿出来 -------------
         PF_sum = np.sum(PF_matrix)
         # ----------------- 这样子调用了之后，得到的是一个3*1的向量，然后对这个向量计算平均值，得到的就是边缘用户的SE ----------
         sector_min_edge_average_SE = np.min(self.current_average_se, 1)
         average_sector_edge_SE = np.mean(sector_min_edge_average_SE)
-        return PF_sum, average_sector_edge_SE
+        # ----- 返回的是这次调度的PF和，每个扇区边缘用户的SE的平均值，以及此次调度的瞬间SE之和 ----------
+        return PF_sum, average_sector_edge_SE, sum(instant_SE)
+
 
     def convert_action_list_to_scheduling_mask(self, action_list):
         '''这个函数传入一个列表，然后转变为一个bool矩阵'''
@@ -186,7 +189,7 @@ class Environment(gym.Env):
             next_state['agent_obs'][agent_key] = agent_obs
             self.current_state = next_state
         self.current_state = copy.deepcopy(next_state)
-        return next_state, proportional_factor, terminate
+        return next_state, proportional_factor, instant_se, terminate
 
 
     def is_terminal(self):

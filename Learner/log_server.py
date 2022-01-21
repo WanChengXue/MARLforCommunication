@@ -103,7 +103,7 @@ class summary_log:
         if not self.tag_func_dict[tag].startswith("time"):
             if len(self.tag_values_dict[tag]) >= self.tag_output_threshold_dict[tag]:
                 # ============== 这个地方是说，如果这个tag不是time类型的，并且这个tag列表中存放的值已经到了最大长度 ========================
-                if self.tag_func_dict[tag] == "mean":
+                if self.tag_func_dict[tag] == "mean":     
                     fn_value = sum(self.tag_values_dict[tag]) / len(self.tag_values_dict[tag])
                 elif self.tag_func_dict[tag] == "sum":
                     fn_value = sum(self.tag_values_dict[tag])
@@ -120,13 +120,19 @@ class summary_log:
         else:
             self.generate_time_data_output(tag)
 
-
+    def add_frequency(self, tag, scheduling_list):
+        # ------------ 传入，比如agent_0，调度列表是是这个episode，所有用户的调度次数, 计算平均值，显示所有用户的调度分布情况 -----------
+        self.summary_writer.add_scalar()
+        # =======================================================================
+        pass
 
 
 class LogServer(basic_server):
     def __init__(self, config_path):
         super(LogServer, self).__init__(config_path)
         self.policy_id = self.config_dict['policy_id']
+        self.agent_nums = self.config_dict['env']['agent_nums']
+        self.total_antenna_nums = self.config_dict['env']['total_antenna_nums']
         # ------- 机器的数目 * 卡的数目 * 每张卡对应的数据进程数目 = 所有的数据服务 --------------
         self.total_data_server = self.config_dict['learners']['gpu_num_per_machine'] * self.config_dict['learners']['data_server_to_learner_num'] * len(self.config_dict['learners']['machines'])
         self.receiver = self.context.socket(zmq.PULL)
@@ -146,13 +152,15 @@ class LogServer(basic_server):
     def summary_definition(self):
         ####################### 这个部分就是初始化一个tag到tensorboard上面，定义不同tag的计算方式 ########################
         # --------- 效果类指标, 分别是采样完毕后，所有用户平均SE的和以及边缘用户的平均SE -----------
-        self.summary_logger.add_tag("result/sum_average_capacity/{}".format(self.policy_id), 100, "avg")
-        self.summary_logger.add_tag("result/edge_average_capacity/{}".format(self.policy_id), 100, "avg")
+        self.summary_logger.add_tag("result/edge_average_capacity/{}".format(self.policy_id), 100, "mean")
+        self.summary_logger.add_tag("result/instant_capacity_average/{}".format(self.policy_id), 100, "mean")
+        self.summary_logger.add_tag("result/average_PF_sum/{}".format(self.policy_id), 100, "mean")
         # --------- 采样端的指标：采样端请求模型的时间，更新模型的时间，从configserver下载模型需要的时间，完整采样一条trajectory的时间 ----------
-        self.summary_logger.add_tag("sampler/model_request_time/{}".format(self.policy_id), 100, "avg")
-        self.summary_logger.add_tag("sampler/model_update_interval/{}".format(self.policy_id), 100, "avg")
-        self.summary_logger.add_tag("sampler/p2p_download_time/{}".format(self.policy_id), 100, "avg")
-        self.summary_logger.add_tag("sampler/trajectory_running_time/{}".format(self.policy_id), 100, "avg")
+        self.summary_logger.add_tag("sampler/episode_time/{}".format(self.policy_id), 100, "mean")
+        self.summary_logger.add_tag("sampler/model_request_time/{}".format(self.policy_id), 100, "mean")
+        self.summary_logger.add_tag("sampler/model_update_interval/{}".format(self.policy_id), 100, "mean")
+        self.summary_logger.add_tag("sampler/p2p_download_time/{}".format(self.policy_id), 100, "mean")
+        self.summary_logger.add_tag("sampler/trajectory_running_time/{}".format(self.policy_id), 100, "mean")
         # --------- dataserver的指标，包括每分钟接收的数据量，每分钟解析的时间，每分钟套接字的时间，从trainingSet采样放入到plasma client的时间，有多少个worker，采样的数目
         self.summary_logger.add_tag("data_server/dataserver_recv_instance_per_min/{}".format(self.policy_id), self.total_data_server, "sum")
         self.summary_logger.add_tag("data_server/dataserver_parse_time_per_minutes/{}".format(self.policy_id), 1, "sum")
@@ -163,11 +171,18 @@ class LogServer(basic_server):
         self.summary_logger.add_tag("model/entropy/{}".format(self.policy_id), 10, "mean")
         self.summary_logger.add_tag("model/state_value_loss/{}".format(self.policy_id), 10, "mean")
         self.summary_logger.add_tag("model/policy_loss/{}".format(self.policy_id), 10, "mean")
-       
+        # ---------- 添加action的指标，主要是每一个用户的调度次数 -----------------------
+        for agent_index in range(self.agent_nums):
+            agent_key = 'sector_' + str(agent_index + 1)
+            self.summary_logger.add_tag("action/{}/mean_scheduling_numbers/{}/{}".format(agent_key, self.policy_id, 'mean_scheduling_users_per_episode'), 1, 'mean')
+            for antenna_index in range(self.total_antenna_nums):
+                self.summary_logger.add_tag("action/{}/individual_scheduling_numbers/{}/{}_{}".format(agent_key, self.policy_id, 'antenna', str(antenna_index+1)), 1, 'mean')
+
+
     def log_detail(self, data):
         for field_key, value in data.items():
             # TODO: 如何区分 vs buildin
-            if field_key == "docker_id":
+            if field_key == "container_id":
                 # ---------- docker_id: uuid string ------------
                 self.active_docker_dict[value] = 1
             else:
@@ -198,7 +213,7 @@ class LogServer(basic_server):
                         break
                 for raw_data in raw_data_list:
                     data = pickle.loads(raw_data)
-                    self.logger.info("------------ 接收到的数据为: {} ------------------".format(data))
+                    # self.logger.info("------------ 接收到的数据为: {} ------------------".format(data))
                     for log in data:
                         if "error_log" in log:
                             self.logger.error("client_error, %s"%(log["error_log"]))

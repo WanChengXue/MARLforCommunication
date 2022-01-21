@@ -1,3 +1,4 @@
+from operator import index
 import time
 import os
 import sys
@@ -7,12 +8,12 @@ import pickle
 import zmq
 import argparse
 import pathlib
-import os
 import sys
 current_path = os.path.abspath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])
 sys.path.append(root_path)
 
+import numpy as np
 from Utils import setup_logger
 from Worker.rollout import rollout_sampler
 from Worker.statistics import StatisticsUtils
@@ -24,6 +25,8 @@ class sampler_worker:
         self.config_dict = config_parse.parse_config(args.config_path)
         self.policy_id = self.config_dict['policy_id']
         self.eval_mode = self.config_dict['eval_mode']
+        self.agent_nums = self.config_dict['env']['agent_nums']
+        self.total_antenna_nums = self.config_dict['env']['total_antenna_nums']
         self.sampler_numbers = args.sampler_numbers
         self.uuid = str(uuid.uuid4())
         # --------------- 根据这个uuid修改日志的保存路径 --------------
@@ -37,27 +40,27 @@ class sampler_worker:
             self.config_dict['config_server_address'] = self.config_dict['main_server_ip']
             self.log_sender = self.context.socket(zmq.PUSH)
             self.log_sender.connect("tcp://{}:{}".format(self.config_dict['log_server_address'], self.config_dict['log_server_port']))
-        
         self.rollout = rollout_sampler(args.config_path, self.config_dict, self.statistic, self.context)
         self.logger.info("------------------ 完成采样端的构建，此worker的id为{} -----------------".format(self.uuid))
 
     def run(self):
         start_time = time.time()
         # ----------- TODO 这个地方确定好run one episode的结果: 返回所有用户的平均容量和，所有时刻瞬时PF的和，episode结束后边缘用户平均SE情况，以及每一个用户被调度的情况 ------------
-        sum_average_capacity, edge_average_capacity, PF_average_sum, scheduling_count = self.rollout.run_one_episode()
+        mean_instant_SE_sum, mean_edge_average_SE, mean_PF_sum, scheduling_count = self.rollout.run_one_episode()
         if self.eval_mode:
             return
         # ------------- 将对局结果记录下来 --------------
         episode_time = time.time() - start_time
         self.statistic.append("sampler/episode_time/{}".format(self.policy_id), episode_time)
-        self.statistic.append("result/edge_average_capacity/{}".format(self.policy_id), edge_average_capacity)
-        self.statistic.append("result/sum_average_capacity/{}".format(self.policy_id), sum_average_capacity)
-        self.statistic.append("result/average_PF_sum/{}".format(self.policy_id), PF_average_sum)
-        # -------------- 这个scheduling count应该是一个list类型，想想怎么设计比较好？ TODO -------------------------
-        for agent_index in range(self.config_dict['env']['agent_nums']):
-            agent_key = 'agent_' + str(agent_index)
-            self.statistic.append('result/user_scheduling_distribution/sector_{}'.format(agent_index), scheduling_count[agent_key])
-            
+        self.statistic.append("result/edge_average_capacity/{}".format(self.policy_id), mean_edge_average_SE)
+        self.statistic.append("result/instant_capacity_average/{}".format(self.policy_id), mean_instant_SE_sum)
+        self.statistic.append("result/average_PF_sum/{}".format(self.policy_id), mean_PF_sum)
+        # -------------- 给logerServer发送每一个用户的调度信息 -------------------------
+        for agent_index in range(self.agent_nums):
+            agent_key = 'sector_' + str(agent_index + 1)
+            self.statistic.append("action/{}/mean_scheduling_numbers/{}/{}".format(agent_key, self.policy_id, 'mean_scheduling_users_per_episode'), np.mean(scheduling_count[agent_index,:]))
+            for antenna_index in range(self.total_antenna_nums):
+                self.statistic.append("action/{}/individual_scheduling_numbers/{}/{}_{}".format(agent_key, self.policy_id, 'antenna', str(antenna_index+1)), scheduling_count[agent_index,antenna_index])
         # ---------- 将统计信息发送到log server -------------
         self.logger.info("--------------- 发送结果日志到logServer上 --------------------")
         result_info = {"container_id": self.uuid}
