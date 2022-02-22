@@ -20,91 +20,71 @@ def select_sub_channel_matrix(channel_matrix, bool_user_scheduling_matrix, cycli
         # --------------------- 添加相邻小区的信道数据 ------------------
         sector_selected_channel_matrix['interfence_channel'] = []
         for interference_sector in cyclic_index_matrix[sector_index,:][1:]:
-            sector_selected_channel_matrix['interfence_channel'].append(channel_matrix[sector_index, bool_user_scheduling_matrix[interference_sector]])
-        selected_channel_matrix.append(channel_matrix[sector_index, bool_user_scheduling_matrix[sector_index].squeeze(), :, :])
+            sector_selected_channel_matrix['interfence_channel'].append(channel_matrix[sector_index, bool_user_scheduling_matrix[sector_index].squeeze(), interference_sector, :])
+        selected_channel_matrix['sector_'+str(sector_index)] = sector_selected_channel_matrix
     # --------- 返回的selected channel matrix中，每一个元素都是一个k*3*16的信道矩阵
     return selected_channel_matrix
 
-# def calculate_precoding_matrix_ZF(selected_channel_matrix):
-#     sector_number = len(selected_channel_matrix)
-#     precoding_matrix = []
-#     unitary_matrix = []
-#     for sector_id in range(sector_number):
-#         # 将这个扇区的信道矩阵拿出来
-#         sector_channel_matrix = selected_channel_matrix[sector_id][:, sector_id, :]
-#         pseudo_inverse_matrix = np.linalg.pinv(sector_channel_matrix)
-#         F_norm_square = np.linalg.norm(pseudo_inverse_matrix, 'fro') 
-#         precoding_matrix.append(pseudo_inverse_matrix/F_norm_square)
-#         unitary_matrix.append(np.eye(sector_channel_matrix.shape[0]))
-#     return precoding_matrix, unitary_matrix
+def calculate_precoding_matrix_ZF(selected_channel_matrix):
+    sector_number = len(selected_channel_matrix)
+    precoding_matrix = []
+    for sector_index in range(sector_number):
+        # 将这个扇区的信道矩阵拿出来
+        sector_channel_matrix = selected_channel_matrix['sector_'+str(sector_index)]['source_channel']
+        pseudo_inverse_matrix = np.linalg.pinv(sector_channel_matrix)
+        two_norm_distance = np.sqrt(np.sum(abs(pseudo_inverse_matrix) ** 2, 0))
+        precoding_matrix.append(pseudo_inverse_matrix/two_norm_distance)
+    return precoding_matrix
 
 def calculate_precoding_matrix_MMSE(selected_channel_matrix, noise_power, transmit_power):
     sector_number = len(selected_channel_matrix)
     precoding_matrix = []
-    for sector_id in range(sector_number):
+    for sector_index in range(sector_number):
         # 将这个扇区的信道矩阵拿出来, 维度为k*16
-        sector_channel_matrix = selected_channel_matrix[sector_id][:, sector_id, :]
+        sector_channel_matrix = selected_channel_matrix['sector_'+str(sector_index)]['source_channel']
         bs_antennas = sector_channel_matrix.shape[-1]
         scheduling_user = sector_channel_matrix.shape[0]
         # ------------------- 计算复数矩阵的共轭转置 ---------------------
         sector_channel_matrix_conjugate = sector_channel_matrix.T.conj()
-        # ------------------- 计算括号里面的 HH^H + \lambda I_K
-        pseudo_inverse_matrix = np.linalg.pinv(sector_channel_matrix_conjugate.dot(sector_channel_matrix) + noise_power/transmit_power * np.eye(bs_antennas)).dot(sector_channel_matrix_conjugate)
-        F_norm_square = np.linalg.norm(pseudo_inverse_matrix, 'fro') 
-        precoding_matrix.append(pseudo_inverse_matrix / F_norm_square * np.sqrt(transmit_power))
+        # ------------------- 计算括号里面的 (HH^H + \lambda I_K)H^H, 维度是16 × k
+        sector_precoding_matrix = np.linalg.pinv(sector_channel_matrix_conjugate.dot(sector_channel_matrix) + scheduling_user * noise_power/transmit_power * np.eye(bs_antennas)).dot(sector_channel_matrix_conjugate)
+        # ----------------- 计算列和，每一列代表一个用户的预编码向量 -------------
+        two_norm_distance = np.sqrt(np.sum(abs(sector_precoding_matrix) ** 2, 0))
+        precoding_matrix.append(sector_precoding_matrix / two_norm_distance)
     return precoding_matrix
 
-# def calculate_precoding_matrix(selected_channel_matrix):
-#     sector_number = len(selected_channel_matrix)
-#     precoding_matrix = []
-#     unitary_matrix = []
-#     for sector_id in range(sector_number):
-#         # 将这个扇区的信道矩阵拿出来
-#         sector_channel_matrix = selected_channel_matrix[sector_id][:, sector_id, :]
-#         # 进行svd分解
-#         u, sigma, v = np.linalg.svd(sector_channel_matrix)
-#         user_number = sigma.shape[0]
-#         precoding_matrix.append(v[:user_number,:].T.conj())
-#         unitary_matrix.append(u.T.conj())
-#     return precoding_matrix, unitary_matrix
-
-
-# @ti.func
-def calculate_single_user_SE(precoding_matrix, selected_channel_matrix,sector_index, noise_power):
-    current_sector_recieve_signal = selected_channel_matrix[sector_index][:, sector_index, :].dot(precoding_matrix[sector_index])
-    # 计算intra cell干扰
-    intra_recieve_signal_energy = np.abs(current_sector_recieve_signal) ** 2
-    # --------- 提取出对角线上的有效能量 ---------------
-    efficiency_recieve_signal = np.diag(intra_recieve_signal_energy)
-    # --------- 计算干扰部分，其实就是行和减去对角线的值 -------
-    intra_cell_interfecence_value = np.sum(intra_recieve_signal_energy, 1) - efficiency_recieve_signal
-    # 其中useful_signal表示的是分子，dominator表示的是分母
-    sector_list = [i for i in range(len(precoding_matrix))]
-    sector_list.remove(sector_index)
+def calculate_single_user_SE(precoding_matrix, selected_channel_matrix, noise_power, transmit_power_list, cyclic_index_vector):
+    sector_index = cyclic_index_vector[0]
+    current_sector_recieve_signal = selected_channel_matrix['source_channel'].dot(precoding_matrix[sector_index]) 
+    # ----------- 上面得到一个k*k的信道矩阵 ------------
+    current_sector_recieve_signal_norm = abs(current_sector_recieve_signal) ** 2
+    # ----------- 对角线的有效信号拿出来，维度是k*1----------
+    efficiency_recieve_signal = np.diag(current_sector_recieve_signal_norm) * transmit_power_list[sector_index]
+    intra_sector_interfecence_value = np.sum(current_sector_recieve_signal_norm, 1) * transmit_power_list[sector_index] - efficiency_recieve_signal
     inter_sector_interference_value = 0
-    # ------------- 计算小区之间的干扰 ------------------
-    for inter_sector_index in sector_list:
-        inter_sector_recieve_signal = selected_channel_matrix[sector_index][:,inter_sector_index, :].dot(precoding_matrix[inter_sector_index])
-        current_inter_sector_interference_value = np.sum(np.abs(inter_sector_recieve_signal) **2, -1)  
-        inter_sector_interference_value += current_inter_sector_interference_value
+    for index, inter_sector_index in enumerate(cyclic_index_vector[1:]):
+        current_inter_sector_interference_signal = selected_channel_matrix['interfence_channel'][index].dot(precoding_matrix[inter_sector_index])
+        current_inter_sector_interference_signal_value = np.sum(np.abs(current_inter_sector_interference_signal)**2, 1)* transmit_power_list[inter_sector_index]
+        inter_sector_interference_value += current_inter_sector_interference_signal_value
     # 计算当前sector下面每一个用户的SINR
-    SINR = efficiency_recieve_signal / (intra_cell_interfecence_value +  inter_sector_interference_value + noise_power)
+    SINR = efficiency_recieve_signal / (intra_sector_interfecence_value +  inter_sector_interference_value + noise_power)
     return np.log(1 + SINR)
 
-# @ti.kernel
-def calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, noise_power, sector_number, user_number):
+def calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, noise_power, transmit_power_list, sector_number, user_number, cyclic_index_matrix):
     user_instant_SE = np.zeros((sector_number, user_number))
     for sector_index in range(sector_number):
         # 计算一下是第几个扇区，以及是第几个用户
-        scheduling_user_instant_SE = calculate_single_user_SE(precoding_channel_matrix, selected_channel_matrix, sector_index, noise_power)
-        user_instant_SE[sector_index,bool_scheduling_matrix[sector_index,:,:].squeeze()] = scheduling_user_instant_SE       
+        scheduling_user_instant_SE = calculate_single_user_SE(precoding_channel_matrix, selected_channel_matrix['sector_'+str(sector_index)], noise_power, transmit_power_list, cyclic_index_matrix[sector_index])
+        user_instant_SE[sector_index,bool_scheduling_matrix[sector_index,:,:]] = scheduling_user_instant_SE       
     return user_instant_SE
         
 def calculate_instant_reward(channel_matrix, user_scheduling_matrix, noise_power, transmit_power, cyclic_index_matrix):
     # 将这个user_sheduling_matrix变成bool矩阵
     # ---------------- 传入的channel matrix的维度为3*20*3*32 -------------
+    # 传入的user_scheduling_matrix是一个维度为3*20的一个矩阵
     bool_scheduling_matrix = user_scheduling_matrix != 0
-    # 传入的user_scheduling_matrix是一个维度为3*20*1的一个矩阵
+    scheduling_user_list = np.sum(user_scheduling_matrix, 1)
+    transmit_power_list = transmit_power / scheduling_user_list
     sector_number, user_number = bool_scheduling_matrix.shape[0], bool_scheduling_matrix.shape[1]
     # 根据调用矩阵，判断这个调度序列是不是合法的
     user_instant_SE = np.zeros((sector_number, user_number))
@@ -114,7 +94,7 @@ def calculate_instant_reward(channel_matrix, user_scheduling_matrix, noise_power
     # sector_power = transmite_power/scheduled_user_number
     precoding_channel_matrix = calculate_precoding_matrix_MMSE(selected_channel_matrix, noise_power, transmit_power)
     # precoding_channel_matrix, unitary_matrix = calculate_precoding_matrix_ZF(selected_channel_matrix)
-    user_instant_SE = calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, noise_power, sector_number, user_number)
+    user_instant_SE = calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, noise_power, transmit_power_list, sector_number, user_number, cyclic_index_matrix)
     # 返回的矩阵维度为3*20*1，表示在此次调度过程中，每一个用户的瞬时容量
     return np.expand_dims(user_instant_SE, -1)
 

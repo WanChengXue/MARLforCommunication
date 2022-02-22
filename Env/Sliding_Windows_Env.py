@@ -153,7 +153,7 @@ class Environment(gym.Env):
     def step(self, action_list):
         scheduling_mask = self.convert_action_list_to_scheduling_mask(action_list)
         reshape_channel = self.current_state['global_state']['global_channel_matrix'].reshape(self.sector_nums, self.sector_nums, self.user_nums, self.bs_antenna_nums*2).transpose(0,2,1,3)
-        instant_se = calculate_instant_reward(reshape_channel, scheduling_mask, self.noise_power, self.transmit_power, self.cyclic_index_matrix)
+        instant_se = calculate_instant_reward(reshape_channel, scheduling_mask.squeeze(), self.noise_power, self.transmit_power, self.cyclic_index_matrix)
         # 计算PF因子，这里会出现一个问题哈，算法最开始运行的那段时间，reward会特别的大，因此需要进行clamp操作，就给1。只有当所有的用户平均容量都到了1以上，才进行解锁
         if self.decide_clip_operation():
             # ---------------- 这个地方仅仅是将PF值限制到0-0.25之间，当所有的用户的平均性能都大于0.1，就没有这个限制了 ---------------

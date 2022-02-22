@@ -38,7 +38,8 @@ def start_one_machine(config_path, log_dir, gpu_num, start_gpu_id, cur_rank, wor
 
 
 def main():
-    from config import get_config
+    from Utils.config_parse import parse_config
+
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--policy_id", type=str,
@@ -51,7 +52,7 @@ def main():
                         type=str, help="yaml format config")
     args = parser.parse_args()
 
-    config_dict = get_config(args.config)
+    config_dict = parse_config(args.config)
     log_dir = config_dict["log_dir"]
     # 需要手动删除旧 log，防止误删
     os.makedirs(log_dir, exist_ok=False)

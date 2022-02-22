@@ -1,17 +1,6 @@
-from multiprocessing import Pool, cpu_count
 import numpy as np
-import os
 
-def scheduling_is_legel(user_scheduling_matrix, legal_range):
-    # 这个legal_range表示每一个扇区调度用户时，最小的调度数目和最大的调度数目
-    min_sheduling_number, max_sheduling_number = legal_range
-    sector_scheduling_user_sum = np.sum(user_scheduling_matrix, -1)
-    legal_flag = True
-    for sector_index in range(sector_scheduling_user_sum.shape[0]):
-        if sector_scheduling_user_sum[sector_index]< min_sheduling_number or sector_scheduling_user_sum[sector_index] > max_sheduling_number:
-            legal_flag = False
-    return legal_flag, sector_scheduling_user_sum
-    
+
 
 def rebuild_channel_matrix(channel_matrix):
     bs_antenna_number = channel_matrix.shape[-1] // 2
