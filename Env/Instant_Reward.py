@@ -7,12 +7,20 @@ def rebuild_channel_matrix(channel_matrix):
     imag_part = channel_matrix[:,:,:,bs_antenna_number:]
     return real_part + 1j * imag_part
 
-def select_sub_channel_matrix(channel_matrix, bool_user_scheduling_matrix):
+def select_sub_channel_matrix(channel_matrix, bool_user_scheduling_matrix, cyclic_index_matrix):
     sector_number = bool_user_scheduling_matrix.shape[0]
+    # 目的扇区 × 用户数目 × 源扇区 × 发射天线数
     # channel_matrix的维度为3*20*3*16, bool_user_scheduling_matrix的维度喂3*20*1
-    selected_channel_matrix = []
+    # cyclic_index_matrix表示的是读取顺序，012,120,201
+    selected_channel_matrix = {}
     for sector_index in range(sector_number):
+        sector_selected_channel_matrix = {}
         # --------------------- 根据mask向量进行取值 --------------------
+        sector_selected_channel_matrix['source_channel'] = channel_matrix[sector_index, bool_user_scheduling_matrix[sector_index].squeeze(), sector_index, :]
+        # --------------------- 添加相邻小区的信道数据 ------------------
+        sector_selected_channel_matrix['interfence_channel'] = []
+        for interference_sector in cyclic_index_matrix[sector_index,:][1:]:
+            sector_selected_channel_matrix['interfence_channel'].append(channel_matrix[sector_index, bool_user_scheduling_matrix[interference_sector]])
         selected_channel_matrix.append(channel_matrix[sector_index, bool_user_scheduling_matrix[sector_index].squeeze(), :, :])
     # --------- 返回的selected channel matrix中，每一个元素都是一个k*3*16的信道矩阵
     return selected_channel_matrix
@@ -37,10 +45,10 @@ def calculate_precoding_matrix_MMSE(selected_channel_matrix, noise_power, transm
         # 将这个扇区的信道矩阵拿出来, 维度为k*16
         sector_channel_matrix = selected_channel_matrix[sector_id][:, sector_id, :]
         bs_antennas = sector_channel_matrix.shape[-1]
+        scheduling_user = sector_channel_matrix.shape[0]
         # ------------------- 计算复数矩阵的共轭转置 ---------------------
         sector_channel_matrix_conjugate = sector_channel_matrix.T.conj()
         # ------------------- 计算括号里面的 HH^H + \lambda I_K
-
         pseudo_inverse_matrix = np.linalg.pinv(sector_channel_matrix_conjugate.dot(sector_channel_matrix) + noise_power/transmit_power * np.eye(bs_antennas)).dot(sector_channel_matrix_conjugate)
         F_norm_square = np.linalg.norm(pseudo_inverse_matrix, 'fro') 
         precoding_matrix.append(pseudo_inverse_matrix / F_norm_square * np.sqrt(transmit_power))
@@ -92,16 +100,17 @@ def calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precodi
         user_instant_SE[sector_index,bool_scheduling_matrix[sector_index,:,:].squeeze()] = scheduling_user_instant_SE       
     return user_instant_SE
         
-def calculate_instant_reward(channel_matrix, user_scheduling_matrix, noise_power, transmit_power):
+def calculate_instant_reward(channel_matrix, user_scheduling_matrix, noise_power, transmit_power, cyclic_index_matrix):
     # 将这个user_sheduling_matrix变成bool矩阵
     # ---------------- 传入的channel matrix的维度为3*20*3*32 -------------
     bool_scheduling_matrix = user_scheduling_matrix != 0
+    # 传入的user_scheduling_matrix是一个维度为3*20*1的一个矩阵
     sector_number, user_number = bool_scheduling_matrix.shape[0], bool_scheduling_matrix.shape[1]
     # 根据调用矩阵，判断这个调度序列是不是合法的
     user_instant_SE = np.zeros((sector_number, user_number))
     # ---------调度一定是合法的 --------------
     complex_channel_matrix = rebuild_channel_matrix(channel_matrix)
-    selected_channel_matrix = select_sub_channel_matrix(complex_channel_matrix, bool_scheduling_matrix)
+    selected_channel_matrix = select_sub_channel_matrix(complex_channel_matrix, bool_scheduling_matrix, cyclic_index_matrix)
     # sector_power = transmite_power/scheduled_user_number
     precoding_channel_matrix = calculate_precoding_matrix_MMSE(selected_channel_matrix, noise_power, transmit_power)
     # precoding_channel_matrix, unitary_matrix = calculate_precoding_matrix_ZF(selected_channel_matrix)
