@@ -47,7 +47,7 @@ class transformer_pointer_network_decoder(nn.Module):
         self.device = policy_config.get('device', 'cpu')
         self.hidden_dim = policy_config['hidden_dim'] * 3
         # 这个action dim其实就是用户数目 + 1
-        self.action_dim = policy_config['action_dim']
+        self.action_dim = policy_config['action_dim'] +1 
         self.layer_norm_eps = policy_config.get('layer_norm_eps',  1e-5)
         decoder_layer = nn.TransformerDecoderLayer(self.d_model, self.nhead, self.dim_feedforward, self.dropout, self.activation, self.layer_norm_eps, batch_first=self.batch_first)   
         decoder_norm = LayerNorm(self.d_model, eps=self.layer_norm_eps)
@@ -95,7 +95,6 @@ class transformer_pointer_network_decoder(nn.Module):
             if i == 0:
                 attention_vector[:,0] += float("-inf") 
             # 进行softmax操作，得到概率向量
-
             attn = torch.softmax(attention_vector, dim=-1)
             if inference_mode:
                 dist = Categorical(attn)
@@ -192,13 +191,15 @@ class critic(nn.Module):
         # 定义一个一维卷积操作
         self.feature_contraction = nn.Conv1d(self.policy_config['seq_len'], 1, kernel_size=3, stride=1, padding=1 ,bias=False) 
         # 因此我这个是一个多目标或者说是multi task问题,因此需要引入两个popArt
-        if self.popart_start:
-            self.PF_head = PopArt(self.embedding_dim, 1)
-            self.Edge_head = PopArt(self.embedding_dim, 1)
+        if self.multi_objective_start:
+            if self.popart_start:
+                self.PF_head = PopArt(self.embedding_dim, 1)
+                self.Edge_head = PopArt(self.embedding_dim, 1)
+            else:
+                self.PF_head = nn.Linear(self.embedding_dim, 1)
+                self.Edge_head = nn.Linear(self.embedding_dim, 1)
         else:
-            self.PF_head = nn.Linear(self.embedding_dim, 1)
-            self.Edge_head = nn.Linear(self.embedding_dim, 1)
-
+            self.value_head = nn.Linear(self.embedding_dim, 1)
 
     def update(self, input_vector):
         self.PF_head.update(input_vector[:, 0])
@@ -226,9 +227,13 @@ class critic(nn.Module):
         # 通过transformer之后,我得到一个维度为batch size * user number * dmodel的一个矩阵,我现在需要将这个矩阵变成一个二维的矩阵,使用一维卷积
         backbone = self.feature_contraction(transformer_encoder_output).squeeze(1)
         # 通过popArt进行计算
-        state_value_PF = self.PF_head(backbone)
-        state_value_Edge = self.Edge_head(backbone)
-        return state_value_PF, state_value_Edge
+        if self.multi_objective_start:
+            state_value_PF = self.PF_head(backbone)
+            state_value_Edge = self.Edge_head(backbone)
+            return state_value_PF, state_value_Edge
+        else:
+            state_value = self.value_head(backbone)
+            return state_value
 
 def init_policy_net(policy_config):
     return model(policy_config)

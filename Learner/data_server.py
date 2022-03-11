@@ -24,12 +24,12 @@ class data_server(basic_server):
         super(data_server, self).__init__(args.config_path)
         self.global_rank = args.rank
         self.world_size = args.world_size
-        self.policy_config = self.config_dict['learners']
+        self.policy_config = self.config_dict['policy_config']
         self.gpu_num_per_machine = self.policy_config['gpu_num_per_machine']
         self.local_rank = self.global_rank % self.gpu_num_per_machine
         self.eval_mode = self.config_dict['eval_mode']
         self.data_server_local_rank = args.data_server_local_rank
-        self.policy_name = self.policy_config['policy_id']
+        self.policy_name = self.policy_config['policy_name']
 
         log_path = pathlib.Path(self.config_dict['log_dir'] + "/data_log/{}_{}/{}".format(self.local_rank, self.policy_name, self.data_server_local_rank))
         self.logger = setup_logger("DataServer_log", log_path)
@@ -44,9 +44,9 @@ class data_server(basic_server):
         self.poller.register(self.receiver, zmq.POLLIN)
         self.batch_size = self.policy_config["batch_size"]
         self.traj_len = self.policy_config["traj_len"]
-        self.pool_capacity = self.policy_config["pool_capacity"]
+        self.capacity = self.policy_config["capacity"]
         if self.eval_mode:
-            self.pool_capacity = 256
+            self.capacity = 256
 
         self.traing_set = TrainingSet(self.init_replay_buffer_config())
         #-------------------------- 定义一些相关数据指标 ------------------------------
@@ -72,7 +72,7 @@ class data_server(basic_server):
         replay_buffer_config_dict['agent_nums'] = self.policy_config['agent_nums']
         replay_buffer_config_dict['max_decoder_time'] = self.policy_config['max_decoder_time']
         replay_buffer_config_dict['seq_len'] = self.policy_config['seq_len']
-        replay_buffer_config_dict['max_capacity'] = self.pool_capacity
+        replay_buffer_config_dict['max_capacity'] = self.capacity
         replay_buffer_config_dict['bs_antenna_nums'] = self.config_dict['env']['bs_antenna_nums']
         return replay_buffer_config_dict
 

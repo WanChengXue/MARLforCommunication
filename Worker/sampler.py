@@ -23,7 +23,7 @@ from Utils import config_parse
 class sampler_worker:
     def __init__(self, args):
         self.config_dict = config_parse.parse_config(args.config_path)
-        self.policy_id = self.config_dict['policy_id']
+        self.policy_name = self.config_dict['policy_name']
         self.eval_mode = self.config_dict['eval_mode']
         self.agent_nums = self.config_dict['env']['agent_nums']
         self.total_antenna_nums = self.config_dict['env']['total_antenna_nums']
@@ -51,16 +51,16 @@ class sampler_worker:
             return
         # ------------- 将对局结果记录下来 --------------
         episode_time = time.time() - start_time
-        self.statistic.append("sampler/episode_time/{}".format(self.policy_id), episode_time)
-        self.statistic.append("result/edge_average_capacity/{}".format(self.policy_id), mean_edge_average_SE)
-        self.statistic.append("result/instant_capacity_average/{}".format(self.policy_id), mean_instant_SE_sum)
-        self.statistic.append("result/average_PF_sum/{}".format(self.policy_id), mean_PF_sum)
+        self.statistic.append("sampler/episode_time/{}".format(self.policy_name), episode_time)
+        self.statistic.append("result/edge_average_capacity/{}".format(self.policy_name), mean_edge_average_SE)
+        self.statistic.append("result/instant_capacity_average/{}".format(self.policy_name), mean_instant_SE_sum)
+        self.statistic.append("result/average_PF_sum/{}".format(self.policy_name), mean_PF_sum)
         # -------------- 给logerServer发送每一个用户的调度信息 -------------------------
         for agent_index in range(self.agent_nums):
             agent_key = 'sector_' + str(agent_index + 1)
-            self.statistic.append("action/{}/mean_scheduling_numbers/{}/{}".format(agent_key, self.policy_id, 'mean_scheduling_users_per_episode'), np.mean(scheduling_count[agent_index,:]))
+            self.statistic.append("action/{}/mean_scheduling_numbers/{}/{}".format(agent_key, self.policy_name, 'mean_scheduling_users_per_episode'), np.mean(scheduling_count[agent_index,:]))
             for antenna_index in range(self.total_antenna_nums):
-                self.statistic.append("action/{}/individual_scheduling_numbers/{}/{}_{}".format(agent_key, self.policy_id, 'antenna', str(antenna_index+1)), scheduling_count[agent_index,antenna_index])
+                self.statistic.append("action/{}/individual_scheduling_numbers/{}/{}_{}".format(agent_key, self.policy_name, 'antenna', str(antenna_index+1)), scheduling_count[agent_index,antenna_index])
         # ---------- 将统计信息发送到log server -------------
         self.logger.info("--------------- 发送结果日志到logServer上 --------------------")
         result_info = {"container_id": self.uuid}

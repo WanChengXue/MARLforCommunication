@@ -1,11 +1,11 @@
 env:
   id: "Env.env"
   user_nums: 20
-  sector_nums: 3
+  sector_nums: &sense_channel_nums 3
   cell_nums: 1
-  agent_nums: 3
-  bs_antenna_nums: 16
-  total_antenna_nums: 20
+  agent_nums: &agent_nums 3
+  bs_antenna_nums: &bs_antenna_nums 16
+  total_antenna_nums: &seq_len 20
   # 这个变量表示的是截取多少长度的TTI作为一个训练样本
   sliding_windows_length: 10
   transmit_power: 0.25
@@ -15,8 +15,8 @@ env:
   velocity: 30
   sub_carrier_nums: 50
   # 最大流的数目小于等于发射天线的数目
-  max_stream_nums: 16
-  min_stream_nums: 3
+  max_stream_nums: *bs_antenna_nums 
+  min_stream_nums: &min_decoder_time 3
   # 这个是值表示的是一个信道文件总共有多少个TTI
   training_data_total_TTI_length: 10000
   # 这个值是表示在测试阶段的时候,一个TTI信道有多少个TTI
@@ -27,15 +27,13 @@ env:
   # ----------- 在探索阶段，有些用户的分母会很小，当所有的用户都探索了一次之后，才不会有单个用户PF最大为0.25的限制 -----------
   max_user_pf_value: 0.25
 
-policy_id: max_average_SE
-parameter_sharing: True
-eval_mode: False
+policy_name: max_average_SE
 # 要不要保存上一次训练得到的历史队列
 use_history: fasle
 # learning rate 为0的时间,用于优化器的初始化
 warmup_time: 0
 # ip of log server, config_server
-main_server_ip: '42.186.72.223'
+main_server_ip: '10.19.93.9'
 # 定义日志文件的文件夹
 log_dir: "./logs"
 # 定义日志服务器的端口
@@ -44,60 +42,103 @@ log_server_port: 8100
 p2p: true
 # 这个表示的是将历史的模型保存20个
 p2p_cache_size: 20
-# 多久保存一次模型到p2p_path
-latest_update_interval: 15
 # 这两个端口分别表示,worker请求的端口,以及learner将模型通过哪一个端口发布出去
 config_server_request_model_port: 9000
 config_server_model_update_port: 9001
-# 主模型更新时间间隔
+# 主模型更新时间间隔,这个变量主要是worker端使用，没隔20s调用一次fetcher从config server获取一次最新的模型 -------
 sampler_model_update_interval: 20
-# learner related
-learners:
-  policy_id: max_average_SE
+# ----------- configserver打开http的端口 -----------
+config_server_http_port: 9002
+# ========== learner related ==============
+# ----- 这个变量是learner端使用，表示发布新模型的时间间隔 -----
+model_update_intervel: 0
+# --------- 这个变量是dataserver是从buffer里面采一个batch的数据放入到plasma client里面的时间间隔 -----------------
+data_server_sampling_interval: 0 
+# policy_config related
+policy_config:
   # 这个config下对应的模型名称
-  model_name: 'attention_model'
   # 定义训练机器的ip列表
-  machines: ['42.186.72.223']
-  # 定义主机索引, 每台机器有多少张卡, 每个卡对应多少个数据服务
   main_machine_index: 0
-  gpu_num_per_machine: 4
-  data_server_to_learner_num: 8
-  # 模型相关
-  batch_size: 10
+  machine_list: ['10.19.93.9']
+  # 定义一个设备对应与多少个数据server
+  server_number_per_device: 8
+  # 定义一个机器有多少个设备
+  device_number_per_machine: 4
+  start_data_server_port: 9527
+  eval_mode: False
+  # ---------- 策略相关 ------
+  policy_type: 'latest'
+  algorithm: 'ppo'
+  # Pytorch DDP相关
+  ddp_port: 50001
+  # -------------- 模型训练相关 --------------
+  batch_size: 10 
   gamma: 0.997
   tau: 0.95
   clip_epsilon: 0.2
-  grad_clip: 10
+  max_grad_norm: 10
   dual_clip: 3
-  learning_rate: 0.00001
   entropy_coef: 0.01
-  # ----- 这个变量一旦打开，表示同时优化边缘用户和系统性能 ------------
-  multi_objective_start: True
-  # ------------ 这个32必须是和天线维度一样，天线16根，变成实数就是32
-  hidden_dim: 32
   # 环境相关
   env_count: 1000
   traj_len: 300
   n_sample: 1
-  pool_capacity: 10
-  # Pytorch DDP相关
-  ddp_port: 50001
-  # 暴露给其他learner进程的监听端口
-  root_gpu_pub_start_port: 6500
-  # 暴露给sampler的监听端口
-  learner_port_start: 7500
-  # ------------ 这个变量表示的是使用哪一个模型,最新的还是历史模型 ------------
-  policy_type: 'latest'
-  data_server_sampling_interval: 0
+  capacity: 10
+  # -------- 每训练1000次就保存一下模型 ----------
+  model_save_interval: 1000
+  # ------ 设置模型的保存路径 ——----------
+  # ======= 两个路径一个是最新的模型构成的模型池，另外一个是每训练若干次保存下来的模型 =====
+  model_pool_path: "Exp/Model/model_pool/"
+  saved_model_path: "Exp/Model/saved_model/"
+  tensorboard_folder: "Tensorboard_log"
+  # ----- 只有一个智能体，显然是参数共享和同质化都是True ---------
+  parameter_sharing: True
+  homogeneous_agent: True
+  # ------ 这个地方采用的cosineannealingwarmrestarts()学习率调整 ------------
+  T_zero: 5
   # plasma相关
-  plasma_server_location: data_part/preprocess_data/plasma
-  model_path: 
-    policy_path: "Save_model/pointer_network/policy_net_max_average_SE.pkl"
-    # --- 如果说这个parameter sharing是False，这个value依旧是一个字典
-      # 'Agent_0': "Save_model/pointer_network/policy_Agent_0_max_average_SE.pkl"
-      # 'Agent_1': "Save_model/pointer_network/policy_Agent_1_max_average_SE.pkl"
-      # 'Agent_2': "Save_model/pointer_network/policy_Agent_2_max_average_SE.pkl"
-    critic_path: "Save_model/pointer_network/critic_max_average_SE.pkl"
+  plasma_server_location: Plasma_server/plasma
+  # ------ centralize_critic表示采用中心化的critic，seperate_critic表示每一个智能体都有一个critic
+  centralize_critic: True
+  seperate_critic: False
+  # -------- 这个表示actor和critic通过网络的前向计算会同时得到 --------------
+  actor_critic_concatenate: False
+  agent:
+    # ------- critic的逻辑，如果采用中心化的critic，则另外两个值都是False，如果采用分离critic，则seperate_critic为True，最后一个值可True可False -------
+    policy:
+      # -------- 策略网络的相关配置 -----------
+      default:
+        learning_rate: 1e-4
+        model_name: 'attention_model'
+        model_path: "agent_default_policy_net.pkl"
+        # ---- model related ----------
+        conv_channel: *sense_channel_nums # 状态的输入维度是3个channel
+        # ------------ 这个32必须是和天线维度一样，天线16根，变成实数就是32
+        hidden_dim: 32
+        action_dim: *seq_len
+        max_decoder_time: *bs_antenna_nums
+        agent_nums: *agent_nums
+        model_type: 'policy'
+
+      # -------- 状态维度和动作维度由环境直接给出 -----------
+    critic:
+      # -------- critic网络的相关配置 ---------
+      default:      
+        learning_rate: 1e-3
+        model_name: 'attention_model'
+        model_path: "agent_default_critic_net.pkl"
+        # ------ model_related -----------
+        conv_channel: *sense_channel_nums
+        seq_len: *seq_len
+        hidden_dim: 32
+        # ----- 这个变量一旦打开，表示同时优化边缘用户和系统性能 ------------
+        multi_objective_start: False
+        agent_nums: *agent_nums
+        model_type: 'critic'
+        
+        
+
+  
   
 
 

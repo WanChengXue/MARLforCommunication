@@ -1,0 +1,21 @@
+2022-02-22 22:56:04,475,475,INFO,Sampler_b1b38513-65e5-4970-9d33-d6ffda4c4e73::------------------ 完成采样端的构建，此worker的id为b1b38513-65e5-4970-9d33-d6ffda4c4e73 -----------------
+2022-02-22 22:56:05,413,413,ERROR,Sampler_b1b38513-65e5-4970-9d33-d6ffda4c4e73::'url'
+2022-02-22 22:56:05,413,413,ERROR,Sampler_b1b38513-65e5-4970-9d33-d6ffda4c4e73::Traceback (most recent call last):
+  File "Worker/sampler.py", line 76, in run_loop
+    self.run()
+  File "Worker/sampler.py", line 49, in run
+    mean_instant_SE_sum, mean_edge_average_SE, mean_PF_sum, scheduling_count = self.rollout.run_one_episode()
+  File "/home/miao/Desktop/ICC/code_part/Worker/rollout.py", line 70, in run_one_episode
+    self.agent.reset()
+  File "/home/miao/Desktop/ICC/code_part/Worker/agent.py", line 138, in reset
+    model_info = self.agent_fetcher.reset()
+  File "/home/miao/Desktop/ICC/code_part/Worker/policy_fetcher.py", line 64, in reset
+    model_info = self.step()
+  File "/home/miao/Desktop/ICC/code_part/Worker/policy_fetcher.py", line 72, in step
+    model_info = self._get_model()
+  File "/home/miao/Desktop/ICC/code_part/Worker/policy_fetcher.py", line 92, in _get_model
+    if self._download(model_info):
+  File "/home/miao/Desktop/ICC/code_part/Worker/policy_fetcher.py", line 115, in _download
+    if self.lastest_model_url != model_info['url']:
+KeyError: 'url'
+

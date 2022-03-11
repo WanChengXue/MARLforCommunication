@@ -130,11 +130,11 @@ class summary_log:
 class LogServer(basic_server):
     def __init__(self, config_path):
         super(LogServer, self).__init__(config_path)
-        self.policy_id = self.config_dict['policy_id']
+        self.policy_name = self.config_dict['policy_name']
         self.agent_nums = self.config_dict['env']['agent_nums']
         self.total_antenna_nums = self.config_dict['env']['total_antenna_nums']
         # ------- 机器的数目 * 卡的数目 * 每张卡对应的数据进程数目 = 所有的数据服务 --------------
-        self.total_data_server = self.config_dict['learners']['gpu_num_per_machine'] * self.config_dict['learners']['data_server_to_learner_num'] * len(self.config_dict['learners']['machines'])
+        self.total_data_server = self.config_dict['policy_config']['gpu_num_per_machine'] * self.config_dict['policy_config']['data_server_to_learner_num'] * len(self.config_dict['policy_config']['machines'])
         self.receiver = self.context.socket(zmq.PULL)
         self.receiver.bind("tcp://%s:%d" % (self.config_dict["log_server_address"], self.config_dict["log_server_port"]))
         self.poller.register(self.receiver, zmq.POLLIN)
@@ -152,31 +152,31 @@ class LogServer(basic_server):
     def summary_definition(self):
         ####################### 这个部分就是初始化一个tag到tensorboard上面，定义不同tag的计算方式 ########################
         # --------- 效果类指标, 分别是采样完毕后，所有用户平均SE的和以及边缘用户的平均SE -----------
-        self.summary_logger.add_tag("result/edge_average_capacity/{}".format(self.policy_id), 100, "mean")
-        self.summary_logger.add_tag("result/instant_capacity_average/{}".format(self.policy_id), 100, "mean")
-        self.summary_logger.add_tag("result/average_PF_sum/{}".format(self.policy_id), 100, "mean")
+        self.summary_logger.add_tag("result/edge_average_capacity/{}".format(self.policy_name), 100, "mean")
+        self.summary_logger.add_tag("result/instant_capacity_average/{}".format(self.policy_name), 100, "mean")
+        self.summary_logger.add_tag("result/average_PF_sum/{}".format(self.policy_name), 100, "mean")
         # --------- 采样端的指标：采样端请求模型的时间，更新模型的时间，从configserver下载模型需要的时间，完整采样一条trajectory的时间 ----------
-        self.summary_logger.add_tag("sampler/episode_time/{}".format(self.policy_id), 100, "mean")
-        self.summary_logger.add_tag("sampler/model_request_time/{}".format(self.policy_id), 100, "mean")
-        self.summary_logger.add_tag("sampler/model_update_interval/{}".format(self.policy_id), 100, "mean")
-        self.summary_logger.add_tag("sampler/p2p_download_time/{}".format(self.policy_id), 100, "mean")
-        self.summary_logger.add_tag("sampler/trajectory_running_time/{}".format(self.policy_id), 100, "mean")
+        self.summary_logger.add_tag("sampler/episode_time/{}".format(self.policy_name), 100, "mean")
+        self.summary_logger.add_tag("sampler/model_request_time/{}".format(self.policy_name), 100, "mean")
+        self.summary_logger.add_tag("sampler/model_update_interval/{}".format(self.policy_name), 100, "mean")
+        self.summary_logger.add_tag("sampler/p2p_download_time/{}".format(self.policy_name), 100, "mean")
+        self.summary_logger.add_tag("sampler/trajectory_running_time/{}".format(self.policy_name), 100, "mean")
         # --------- dataserver的指标，包括每分钟接收的数据量，每分钟解析的时间，每分钟套接字的时间，从trainingSet采样放入到plasma client的时间，有多少个worker，采样的数目
-        self.summary_logger.add_tag("data_server/dataserver_recv_instance_per_min/{}".format(self.policy_id), self.total_data_server, "sum")
-        self.summary_logger.add_tag("data_server/dataserver_parse_time_per_minutes/{}".format(self.policy_id), 1, "sum")
-        self.summary_logger.add_tag("data_server/dataserver_socket_time_per_minutes/{}".format(self.policy_id), 1, "mean")
-        self.summary_logger.add_tag("data_server/dataserver_sampling_time_per_min/{}".format(self.policy_id), 1, "mean")
+        self.summary_logger.add_tag("data_server/dataserver_recv_instance_per_min/{}".format(self.policy_name), self.total_data_server, "sum")
+        self.summary_logger.add_tag("data_server/dataserver_parse_time_per_minutes/{}".format(self.policy_name), 1, "sum")
+        self.summary_logger.add_tag("data_server/dataserver_socket_time_per_minutes/{}".format(self.policy_name), 1, "mean")
+        self.summary_logger.add_tag("data_server/dataserver_sampling_time_per_min/{}".format(self.policy_name), 1, "mean")
         self.summary_logger.add_tag("data_server/active_docker_count", 1, "mean")
         # -------- 添加策略的指标，包括entropy loss，两个head的状态值, MSELoss, PolicyLoss -----------------------
-        self.summary_logger.add_tag("model/entropy/{}".format(self.policy_id), 10, "mean")
-        self.summary_logger.add_tag("model/state_value_loss/{}".format(self.policy_id), 10, "mean")
-        self.summary_logger.add_tag("model/policy_loss/{}".format(self.policy_id), 10, "mean")
+        self.summary_logger.add_tag("model/entropy/{}".format(self.policy_name), 10, "mean")
+        self.summary_logger.add_tag("model/state_value_loss/{}".format(self.policy_name), 10, "mean")
+        self.summary_logger.add_tag("model/policy_loss/{}".format(self.policy_name), 10, "mean")
         # ---------- 添加action的指标，主要是每一个用户的调度次数 -----------------------
         for agent_index in range(self.agent_nums):
             agent_key = 'sector_' + str(agent_index + 1)
-            self.summary_logger.add_tag("action/{}/mean_scheduling_numbers/{}/{}".format(agent_key, self.policy_id, 'mean_scheduling_users_per_episode'), 1, 'mean')
+            self.summary_logger.add_tag("action/{}/mean_scheduling_numbers/{}/{}".format(agent_key, self.policy_name, 'mean_scheduling_users_per_episode'), 1, 'mean')
             for antenna_index in range(self.total_antenna_nums):
-                self.summary_logger.add_tag("action/{}/individual_scheduling_numbers/{}/{}_{}".format(agent_key, self.policy_id, 'antenna', str(antenna_index+1)), 1, 'mean')
+                self.summary_logger.add_tag("action/{}/individual_scheduling_numbers/{}/{}_{}".format(agent_key, self.policy_name, 'antenna', str(antenna_index+1)), 1, 'mean')
 
 
     def log_detail(self, data):
@@ -223,9 +223,43 @@ class LogServer(basic_server):
                             self.log_detail(log)
                         
 
+def init_string():
+    output_string  = r"""
+                              _ooOoo_
+                             o8888888o
+                             88" . "88
+                             (| -_- |)
+                             O\  =  /O
+                          ____/`---'\____
+                        .'  \\|     |//  `.
+                       /  \\|||  :  |||//  \
+                      /  _||||| -:- |||||-  \
+                      |   | \\\  -  /// |   |
+                      | \_|  ''\---/''  |   |
+                      \  .-\__  `-`  ___/-. /
+                    ___`. .'  /--.--\  `. . __
+                 ."" '<  `.___\_<|>_/___.'  >'"".
+                | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+                \  \ `-.   \_ __\ /__ _/   .-` /  /
+           ======`-.____`-.___\_____/___.-`____.-'======
+                              `=---='
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                      佛祖保佑        永无BUG
+             佛曰:
+                    写字楼里写字间，写字间里程序员；
+                    程序人员写程序，又拿程序换酒钱。
+                    酒醒只在网上坐，酒醉还来网下眠；
+                    酒醉酒醒日复日，网上网下年复年。
+                    但愿老死电脑间，不愿鞠躬老板前；
+                    奔驰宝马贵者趣，公交自行程序员。
+                    别人笑我忒疯癫，我笑自己命太贱；
+                    不见满街漂亮妹，哪个归得程序员？
+            """
+    print(output_string)
+
 if __name__ == "__main__":
     import argparse
-
+    init_string()
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()

@@ -18,8 +18,8 @@ import numpy as np
 class rollout_sampler:
     def __init__(self, config_path, config_dict, statistic, context):
         self.config_dict = config_dict
-        self.policy_id = self.config_dict['policy_id']
-        self.policy_config = self.config_dict['learners']
+        self.policy_name = self.config_dict['policy_name']
+        self.policy_config = self.config_dict['policy_config']
         self.popart_start = self.policy_config.get("popart_start", False)
         self.statistic = statistic
         logger_path = pathlib.Path(self.config_dict['log_dir'] + '/rollout_log')

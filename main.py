@@ -1,99 +1,47 @@
 import argparse
 import os
-import time
+import shutil
+from Utils.config import parse_config
 
 
-def start_one_machine(config_path, log_dir, gpu_num, start_gpu_id, cur_rank, world_size, policy_id,
-                      root_address, data_server_local_num):
-    cur_command = "plasma_store -s /home/chenliang08/Desktop/Netease/plasma/plasma_{} -m 20000000000 &".format(
-        policy_id)
-    os.system(cur_command)
-    time.sleep(2)
-    learner_log_path = os.path.join(
-        log_dir, "{}_learner_log").format(policy_id)
-    data_log_path = os.path.join(log_dir, "{}_data_log").format(policy_id)
+def start_learner_data_server(config_path, world_size, machine_index, device_number_per_machine, server_number_per_device, log_dir):
+    learner_log_path = log_dir + '/learner_log'
+    data_log_path = log_dir + '/data_server_log'
+    for local_rank in range(device_number_per_machine):
+        global_rank = machine_index * device_number_per_machine + local_rank
+        for data_server_index in range(server_number_per_device):
+            data_server_id = device_number_per_machine * server_number_per_device * machine_index + data_server_index
+            data_server_command = "CUDA_VISIBLE_DEVICES={}  nohup python -m Learner.data_server --config_path {} --server_id {} >> {} 2>&1 &".format(local_rank, config_path, data_server_id, data_log_path)
+            os.system(data_server_command)
+        # -------- 启动lerner server -----------
+        learner_server_command = "CUDA_VISIBLE_DEVICES={} nohup python -m Learner.learner_server --config_path {} --rank {} --world_size {} >> {}  2>&1 &".format(local_rank, config_path, global_rank, world_size, learner_log_path)
+        os.system(learner_server_command)
 
-    # 设置使用的GPU
-    cuda_env_setting = "CUDA_VISIBLE_DEVICES=" + \
-        ",".join(map(str, range(start_gpu_id, start_gpu_id + gpu_num)))
-    print(cuda_env_setting)
-    for i in range(gpu_num):
-        for data_i in range(data_server_local_num):
-            cur_command = cuda_env_setting + " nohup python -m learner.gpu_data_server"
-            cur_command += " --rank {}".format(cur_rank + i)
-            cur_command += " --world_size {}".format(world_size)
-            cur_command += " --data_server_local_rank {}".format(data_i)
-            cur_command += " --policy_id {}".format(policy_id)
-            cur_command += " --config {}".format(config_path)
-            cur_command += " >>{} 2>&1 &".format(data_log_path)
-            os.system(cur_command)
-        cur_command = cuda_env_setting + " nohup python -m learner.gpu_learner_server"
-        cur_command += " --init_method {}".format(root_address)
-        cur_command += " --rank {}".format(cur_rank + i)
-        cur_command += " --world_size {}".format(world_size)
-        cur_command += " --policy_id {}".format(policy_id)
-        cur_command += " --config {}".format(config_path)
-        cur_command += " >>{} 2>&1 &".format(learner_log_path)
-        os.system(cur_command)
-
-
-def main():
-    from Utils.config_parse import parse_config
-
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--policy_id", type=str,
-                        default="mouse", help="key in learners")
-    parser.add_argument("--machine_index", default=0,
-                        type=int, help="machine index in machines")
-    parser.add_argument("--start_gpu_id", default=0,
-                        type=int, help="device id")
-    parser.add_argument("--config", default="./configs/config_micro_task_mouse_rnd.yaml",
-                        type=str, help="yaml format config")
-    args = parser.parse_args()
-
-    config_dict = parse_config(args.config)
+def main(args):
+    config_dict = parse_config(args.conifg_path)
     log_dir = config_dict["log_dir"]
-    # 需要手动删除旧 log，防止误删
-    os.makedirs(log_dir, exist_ok=False)
+    # ------ 如果这个log文件夹存在，就删掉 --------
+    shutil.rmtree(log_dir)
+    # ------- 打开plasma server，log server，config server ------
+    if args.machine_index == 0:
+        # ----- 打开plasma server -----------
+        plasma_command = "nohup plasma_store -s {} -m 500000000 &".format(config_dict['policy_config']['plasma_location'])
+        os.system(plasma_command)
+        # ----- 打开log server ----------
+        log_command = "nohup python -m Learner.log_server --config {} > {} 2>&1 &".format(args.conifg_path, log_dir+'/log_output')
+        os.system(log_command)
+        # ------ 打开config server -----------
+        config_command = "nohup python -m Learner.config_server --config {} > {} 2>&1 &".format(args.conifg_path, log_dir + '/config_log_output')
+        os.system(config_command)
+    # ------ 开启learner和data server ----------
+    # -------- 计算有多少张卡 ---------
+    world_size = len(config_dict['policy_config']['machine_list']) * config_dict['policy_config']['device_number_per_machine']
+    start_learner_data_server(args.config_path, world_size, args.machine_index, config_dict['policy_config']['device_number_per_machine'], config_dict['policy_config']['server_number_per_device'], log_dir)
+    print("---------- main函数顺利启动 -----------")
 
-    # rank 0上启动log server，config server，self play server
-    unable_cuda_devices = "CUDA_VISIBLE_DEVICES=-1"
-    is_selfplay = config_dict["selfplay"]
-    policy_index = list(config_dict["learners"].keys()).index(args.policy_id)
-    if policy_index == 0 and args.machine_index == 0:
-        # log server
-        cur_command = unable_cuda_devices
-        cur_command += " nohup python -m learner.log_server"
-        cur_command += " --config {}".format(args.config)
-        cur_command += " > {} 2>&1 &".format(os.path.join(log_dir, "log_log"))
-        os.system(cur_command)
-        # config server
-        cur_command = unable_cuda_devices
-        cur_command += " nohup python -m learner.config_server{}".format(
-            " --selfplay" if is_selfplay else "")
-        cur_command += " --config {}".format(args.config)
-        cur_command += " > {} 2>&1 &".format(
-            os.path.join(log_dir, "config_log"))
-        os.system(cur_command)
-        # tensorboard
-        cur_command = unable_cuda_devices
-        cur_command += " host=`ip route get 1 | awk '{print $NF;exit}'`;"
-        cur_command += "nohup python -m tensorboard.main --logdir=./{} --host=${{host}}".format(
-            log_dir)
-        cur_command += " > /dev/null 2>&1 &"
-        os.system(cur_command)
-
-    policy_config = config_dict["learners"][args.policy_id]
-    gpu_num = policy_config["gpu_num_per_machine"]
-    cur_rank = args.machine_index * gpu_num
-    world_size = len(policy_config["machines"]) * gpu_num
-    data_server_local_num = policy_config["data_server_to_learner_num"]
-    root_address = policy_config["ddp_root_address"]
-    start_one_machine(args.config, log_dir, gpu_num, args.start_gpu_id, cur_rank, world_size,
-                      args.policy_id, root_address, data_server_local_num)
-
-
-# python start_server.py --policy_id xxx
-if __name__ == "__main__":
-    main()
+if __name__=='__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--conifg_path", type=str, default='Env/default_config.yaml')
+    parser.add_argument("--machine_index", type=int, default=0)
+    args = parser.parse_args()
+    main(args)

@@ -16,11 +16,11 @@ def select_sub_channel_matrix(channel_matrix, bool_user_scheduling_matrix, cycli
     for sector_index in range(sector_number):
         sector_selected_channel_matrix = {}
         # --------------------- 根据mask向量进行取值 --------------------
-        sector_selected_channel_matrix['source_channel'] = channel_matrix[sector_index, bool_user_scheduling_matrix[sector_index].squeeze(), sector_index, :]
+        sector_selected_channel_matrix['source_channel'] = channel_matrix[sector_index, bool_user_scheduling_matrix[sector_index,:], sector_index, :]
         # --------------------- 添加相邻小区的信道数据 ------------------
         sector_selected_channel_matrix['interfence_channel'] = []
         for interference_sector in cyclic_index_matrix[sector_index,:][1:]:
-            sector_selected_channel_matrix['interfence_channel'].append(channel_matrix[sector_index, bool_user_scheduling_matrix[sector_index].squeeze(), interference_sector, :])
+            sector_selected_channel_matrix['interfence_channel'].append(channel_matrix[sector_index, bool_user_scheduling_matrix[sector_index,:], interference_sector, :])
         selected_channel_matrix['sector_'+str(sector_index)] = sector_selected_channel_matrix
     # --------- 返回的selected channel matrix中，每一个元素都是一个k*3*16的信道矩阵
     return selected_channel_matrix
@@ -75,7 +75,7 @@ def calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precodi
     for sector_index in range(sector_number):
         # 计算一下是第几个扇区，以及是第几个用户
         scheduling_user_instant_SE = calculate_single_user_SE(precoding_channel_matrix, selected_channel_matrix['sector_'+str(sector_index)], noise_power, transmit_power_list, cyclic_index_matrix[sector_index])
-        user_instant_SE[sector_index,bool_scheduling_matrix[sector_index,:,:]] = scheduling_user_instant_SE       
+        user_instant_SE[sector_index,bool_scheduling_matrix[sector_index,:]] = scheduling_user_instant_SE       
     return user_instant_SE
         
 def calculate_instant_reward(channel_matrix, user_scheduling_matrix, noise_power, transmit_power, cyclic_index_matrix):

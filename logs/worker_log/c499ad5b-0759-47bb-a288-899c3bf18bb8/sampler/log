@@ -1,0 +1,17 @@
+2022-02-22 23:07:58,876,876,INFO,Sampler_c499ad5b-0759-47bb-a288-899c3bf18bb8::------------------ 完成采样端的构建，此worker的id为c499ad5b-0759-47bb-a288-899c3bf18bb8 -----------------
+2022-02-22 23:08:00,490,490,ERROR,Sampler_c499ad5b-0759-47bb-a288-899c3bf18bb8::too many indices for array: array is 2-dimensional, but 3 were indexed
+2022-02-22 23:08:00,490,490,ERROR,Sampler_c499ad5b-0759-47bb-a288-899c3bf18bb8::Traceback (most recent call last):
+  File "Worker/sampler.py", line 76, in run_loop
+    self.run()
+  File "Worker/sampler.py", line 49, in run
+    mean_instant_SE_sum, mean_edge_average_SE, mean_PF_sum, scheduling_count = self.rollout.run_one_episode()
+  File "/home/miao/Desktop/ICC/code_part/Worker/rollout.py", line 85, in run_one_episode
+    next_state, PF_matrix, instant_SE, done = self.env.step(actions)
+  File "/home/miao/Desktop/ICC/code_part/Env/Sliding_Windows_Env.py", line 156, in step
+    instant_se = calculate_instant_reward(reshape_channel, scheduling_mask.squeeze(), self.noise_power, self.transmit_power, self.cyclic_index_matrix)
+  File "/home/miao/Desktop/ICC/code_part/./Env/Instant_Reward.py", line 97, in calculate_instant_reward
+    user_instant_SE = calculate_sector_SE(bool_scheduling_matrix, selected_channel_matrix, precoding_channel_matrix, noise_power, transmit_power_list, sector_number, user_number, cyclic_index_matrix)
+  File "/home/miao/Desktop/ICC/code_part/./Env/Instant_Reward.py", line 78, in calculate_sector_SE
+    user_instant_SE[sector_index,bool_scheduling_matrix[sector_index,:,:]] = scheduling_user_instant_SE
+IndexError: too many indices for array: array is 2-dimensional, but 3 were indexed
+

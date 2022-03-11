@@ -1,0 +1,30 @@
+2022-02-22 23:07:36,760,760,INFO,Learner_log::================ 开始构造lerner server，这个server的global rank是: 0 =========
+2022-02-22 23:07:36,760,760,INFO,Learner_log::============== global rank 0开始创建模型 ==========
+2022-02-22 23:07:36,915,915,INFO,Learner_log::============== 完成模型的创建 =========
+2022-02-22 23:07:36,916,916,INFO,Learner_log::=========== 将初始模型发送给config server =========
+2022-02-22 23:07:37,226,226,INFO,Learner_log::============ 发送模型给config server, 发送的信息为: {'policy_name': 'max_average_SE', 'url': {'critic_url': 'http://10.19.93.9:6020/p2p_plf_max_average_SE/model_max_average_SE_critic_1645542456.9168317', 'policy_url': 'http://10.19.93.9:6020/p2p_plf_max_average_SE/model_max_average_SEpolicy_1645542456.9168317'}}, 当前的模型已经更新了1次 ==========
+2022-02-22 23:07:37,226,226,INFO,Learner_log::================ learner: 0 开始运行 =============
+2022-02-22 23:27:36,154,154,INFO,Learner_log::--------------- 完成一次参数更新, 返回的数据为 {'value_loss': 18.460437774658203, 'conditional_entropy': -8.999334335327148, 'advantage_std': [8.476519584655762, 0.06767119467258453], 'advantage_mean': [8.476519584655762, 0.06767119467258453], 'policy_loss': 17.526226043701172, 'total_policy_loss': 17.436233520507812} -----------------
+2022-02-22 23:27:36,156,156,INFO,Learner_log::============ 开始发布新模型 =========
+2022-02-22 23:27:36,564,564,INFO,Learner_log::============ 发送模型给config server, 发送的信息为: {'policy_name': 'max_average_SE', 'url': {'critic_url': 'http://10.19.93.9:6020/p2p_plf_max_average_SE/model_max_average_SE_critic_1645543656.1575913', 'policy_url': 'http://10.19.93.9:6020/p2p_plf_max_average_SE/model_max_average_SEpolicy_1645543656.1575913'}}, 当前的模型已经更新了2次 ==========
+2022-03-11 16:14:02,235,235,INFO,LearnerServer_log_0::============== 开始构造learner server，这个server的全局id是：0, 具体到某一个机器上的id是: 0 ===========
+2022-03-11 16:14:04,223,223,INFO,LearnerServer_log_0::================ 开始初始化模型 ===========
+2022-03-11 16:14:08,736,736,INFO,LearnerServer_log_0::============== global rank 0开始创建模型 ==========
+2022-03-11 17:05:13,218,218,INFO,LearnerServer_log_0::============== 开始构造learner server，这个server的全局id是：0, 具体到某一个机器上的id是: 0 ===========
+2022-03-11 17:05:15,690,690,INFO,LearnerServer_log_0::================ 开始初始化模型 ===========
+2022-03-11 17:05:17,577,577,INFO,LearnerServer_log_0::============== global rank 0开始创建模型 ==========
+2022-03-11 17:07:31,563,563,INFO,LearnerServer_log_0::============== 开始构造learner server，这个server的全局id是：0, 具体到某一个机器上的id是: 0 ===========
+2022-03-11 17:07:31,565,565,INFO,LearnerServer_log_0::================ 开始初始化模型 ===========
+2022-03-11 17:07:31,565,565,INFO,LearnerServer_log_0::============== global rank 0开始创建模型 ==========
+2022-03-11 17:08:29,142,142,INFO,LearnerServer_log_0::============== 开始构造learner server，这个server的全局id是：0, 具体到某一个机器上的id是: 0 ===========
+2022-03-11 17:08:29,144,144,INFO,LearnerServer_log_0::================ 开始初始化模型 ===========
+2022-03-11 17:08:29,144,144,INFO,LearnerServer_log_0::============== global rank 0开始创建模型 ==========
+2022-03-11 17:09:30,311,311,INFO,LearnerServer_log_0::============== 开始构造learner server，这个server的全局id是：0, 具体到某一个机器上的id是: 0 ===========
+2022-03-11 17:09:30,312,312,INFO,LearnerServer_log_0::================ 开始初始化模型 ===========
+2022-03-11 17:09:30,312,312,INFO,LearnerServer_log_0::============== global rank 0开始创建模型 ==========
+2022-03-11 17:30:13,418,418,INFO,LearnerServer_log_0::============== 开始构造learner server，这个server的全局id是：0, 具体到某一个机器上的id是: 0 ===========
+2022-03-11 17:30:13,419,419,INFO,LearnerServer_log_0::================ 开始初始化模型 ===========
+2022-03-11 17:30:13,419,419,INFO,LearnerServer_log_0::============== global rank 0开始创建模型 ==========
+2022-03-11 17:31:05,948,948,INFO,LearnerServer_log_0::============== 开始构造learner server，这个server的全局id是：0, 具体到某一个机器上的id是: 0 ===========
+2022-03-11 17:31:05,949,949,INFO,LearnerServer_log_0::================ 开始初始化模型 ===========
+2022-03-11 17:31:05,949,949,INFO,LearnerServer_log_0::============== global rank 0开始创建模型 ==========

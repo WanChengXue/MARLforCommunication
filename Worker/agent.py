@@ -18,9 +18,9 @@ class Agent:
     # 定义一个采样智能体，它能够完成的事情有：加载模型，保存模型，发送数据，给定状态计算动作
     def __init__(self, config_dict):
         self.config_dict = config_dict
-        self.policy_id = self.config_dict['policy_id']
+        self.policy_name = self.config_dict['policy_name']
         # ----------- 这个地方创建出来的net_work其实是一个策略网络 -------
-        self.net_work = create_policy_model(self.config_dict['learners'])
+        self.net_work = create_policy_model(self.config_dict['policy_config'])
         self.eval_mode = self.config_dict['eval_mode']
         
     def synchronize_model(self, model_path):
@@ -46,7 +46,7 @@ class AgentManager:
         self.config_dict = config_dict
         self.statistic = statistic
         self.agent_nums = self.config_dict['env']['agent_nums']
-        self.policy_config = self.config_dict['learners']
+        self.policy_config = self.config_dict['policy_config']
         self.data_sender = context.socket(zmq.PUSH)
         self.parameter_sharing = self.config_dict['parameter_sharing']
         self.eval_mode = self.config_dict['eval_mode']
@@ -67,7 +67,7 @@ class AgentManager:
             for agent_index in range(self.agent_nums):
                 agent_key = "agent_" + str(agent_index)
                 self.agent[agent_key] = Agent(self.config_dict)
-        self.global_critic = create_critic_net(self.config_dict['learners'])
+        self.global_critic = create_critic_net(self.config_dict['policy_config'])
 
 
     def choose_target_port(self):

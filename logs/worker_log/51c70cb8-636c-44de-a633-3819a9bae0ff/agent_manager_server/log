@@ -1,0 +1,22 @@
+2022-02-22 23:23:52,014,14,INFO,AgentManager_log::==================== 此智能体要发送数据到: 10.19.93.9, 连接的端口为: 7506 =================
+2022-02-22 23:23:52,920,920,INFO,AgentManager_log::------------- reset函数调用后，得到的model info为 {'url': {'critic_url': 'http://10.19.93.9:6020/p2p_plf_max_average_SE/model_max_average_SE_critic_1645542456.9168317', 'policy_url': 'http://10.19.93.9:6020/p2p_plf_max_average_SE/model_max_average_SEpolicy_1645542456.9168317'}, 'policy_name': 'max_average_SE', 'time': 1645542457.2275124, 'path': {'policy_path': '/home/miao/Desktop/ICC/code_part/policy_max_average_SE.model', 'critic_path': '/home/miao/Desktop/ICC/code_part/critic_max_average_SE.model'}} ---------------------
+2022-02-22 23:24:01,286,286,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:24:08,929,929,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:24:16,740,740,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:24:24,543,543,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:24:32,497,497,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:24:40,104,104,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:24:49,267,267,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:24:56,929,929,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:25:04,649,649,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:25:12,378,378,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:25:21,567,567,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:25:29,381,381,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:25:37,305,305,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:25:45,322,322,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:25:53,535,535,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:26:01,216,216,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:26:09,089,89,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:26:16,578,578,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:26:24,498,498,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
+2022-02-22 23:26:32,653,653,INFO,AgentManager_log::------------ reset函数调用后，返回的model info为 None ----------------
