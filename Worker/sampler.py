@@ -23,25 +23,26 @@ from Utils import config_parse
 class sampler_worker:
     def __init__(self, args):
         self.config_dict = config_parse.parse_config(args.config_path)
+        self.uuid = str(uuid.uuid4())
+        self.policy_config = self.config_dict['policy_config']
         self.policy_name = self.config_dict['policy_name']
         self.eval_mode = self.config_dict['eval_mode']
         self.agent_nums = self.config_dict['env']['agent_nums']
         self.total_antenna_nums = self.config_dict['env']['total_antenna_nums']
         self.sampler_numbers = args.sampler_numbers
-        self.uuid = str(uuid.uuid4())
+        
         # --------------- 根据这个uuid修改日志的保存路径 --------------
-        self.config_dict["log_dir"] = self.config_dict["log_dir"] + '/worker_log/' + self.uuid
         self.statistic = StatisticsUtils()
         self.context = zmq.Context()
-        logger_path = pathlib.Path(self.config_dict['log_dir']+ '/sampler')
-        self.logger = setup_logger('Sampler_'+ self.uuid, logger_path)
+        logger_path = pathlib.Path(self.config_dict['log_dir']+ '/sampler/'  + self.uuid[:6])
+        self.logger = setup_logger('Sampler_'+ self.uuid[:6], logger_path)
         if "main_server_ip" in self.config_dict.keys():
             self.config_dict['log_server_address'] = self.config_dict['main_server_ip']
             self.config_dict['config_server_address'] = self.config_dict['main_server_ip']
             self.log_sender = self.context.socket(zmq.PUSH)
             self.log_sender.connect("tcp://{}:{}".format(self.config_dict['log_server_address'], self.config_dict['log_server_port']))
-        self.rollout = rollout_sampler(args.config_path, self.config_dict, self.statistic, self.context)
-        self.logger.info("------------------ 完成采样端的构建，此worker的id为{} -----------------".format(self.uuid))
+        self.rollout = rollout_sampler(self.config_dict, self.statistic, self.context, self.logger, self.uuid[:6])
+        self.logger.info("------------------ 完成采样端的构建，此worker的id为{} -----------------".format(self.uuid[:6]))
 
     def run(self):
         start_time = time.time()

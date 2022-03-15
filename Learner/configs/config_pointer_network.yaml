@@ -7,11 +7,11 @@ env:
   bs_antenna_nums: &bs_antenna_nums 16
   total_antenna_nums: &seq_len 20
   # 这个变量表示的是截取多少长度的TTI作为一个训练样本
-  sliding_windows_length: 10
+  sliding_windows_length: 200
   transmit_power: 0.25
   noise_power: 3.1623e-20
-  source_data_folder: data_part/Source_data
-  save_data_folder: data_part/preprocess_data
+  source_data_folder: 'data_part/Source_data'
+  save_data_folder: 'data_part/preprocess_data'
   velocity: 30
   sub_carrier_nums: 50
   # 最大流的数目小于等于发射天线的数目
@@ -38,13 +38,11 @@ main_server_ip: '10.19.93.9'
 log_dir: "./logs"
 # 定义日志服务器的端口
 log_server_port: 8100
-# 这个表示的是新模型通过tcp下载更新
-p2p: true
 # 这个表示的是将历史的模型保存20个
-p2p_cache_size: 20
+model_cache_size: 20
 # 这两个端口分别表示,worker请求的端口,以及learner将模型通过哪一个端口发布出去
-config_server_request_model_port: 9000
-config_server_model_update_port: 9001
+config_server_model_from_learner: 9000
+config_server_model_to_worker: 9001
 # 主模型更新时间间隔,这个变量主要是worker端使用，没隔20s调用一次fetcher从config server获取一次最新的模型 -------
 sampler_model_update_interval: 20
 # ----------- configserver打开http的端口 -----------
@@ -71,19 +69,25 @@ policy_config:
   algorithm: 'ppo'
   # Pytorch DDP相关
   ddp_port: 50001
-  # -------------- 模型训练相关 --------------
-  batch_size: 10 
+  batch_size: &batch_size 10 
   gamma: 0.997
   tau: 0.95
-  clip_epsilon: 0.2
-  max_grad_norm: 10
-  dual_clip: 3
-  entropy_coef: 0.01
+  # -------------- 模型训练相关 --------------
+  training_parameters:
+    clip_epsilon: 0.2
+    max_grad_norm: 10
+    dual_clip: 3
+    entropy_coef: 0.01
+    agent_nums: *agent_nums
+    multi_objective_start: &multi_objective_start False
+    popart_start: &popart_start False
+    centralize_critic: &centralize_critic True
+    seperate_critic: &seperate_critic False
   # 环境相关
   env_count: 1000
-  traj_len: 300
+  traj_len: 10
   n_sample: 1
-  capacity: 10
+  capacity: &capacity 10000
   # -------- 每训练1000次就保存一下模型 ----------
   model_save_interval: 1000
   # ------ 设置模型的保存路径 ——----------
@@ -92,15 +96,15 @@ policy_config:
   saved_model_path: "Exp/Model/saved_model/"
   tensorboard_folder: "Tensorboard_log"
   # ----- 只有一个智能体，显然是参数共享和同质化都是True ---------
-  parameter_sharing: True
+  parameter_sharing: &parameter_sharing True
   homogeneous_agent: True
   # ------ 这个地方采用的cosineannealingwarmrestarts()学习率调整 ------------
   T_zero: 5
   # plasma相关
   plasma_server_location: Plasma_server/plasma
   # ------ centralize_critic表示采用中心化的critic，seperate_critic表示每一个智能体都有一个critic
-  centralize_critic: True
-  seperate_critic: False
+  centralize_critic: *centralize_critic
+  seperate_critic: *seperate_critic
   # -------- 这个表示actor和critic通过网络的前向计算会同时得到 --------------
   actor_critic_concatenate: False
   agent:
@@ -119,6 +123,7 @@ policy_config:
         max_decoder_time: *bs_antenna_nums
         agent_nums: *agent_nums
         model_type: 'policy'
+        parameter_sharing: *parameter_sharing
 
       # -------- 状态维度和动作维度由环境直接给出 -----------
     critic:
@@ -132,9 +137,18 @@ policy_config:
         seq_len: *seq_len
         hidden_dim: 32
         # ----- 这个变量一旦打开，表示同时优化边缘用户和系统性能 ------------
-        multi_objective_start: False
+        multi_objective_start: *multi_objective_start
+        popart_start: *popart_start
         agent_nums: *agent_nums
         model_type: 'critic'
+  # --------- replay buffer相关 -----------
+  buffer:
+    batch_size: *batch_size
+    agent_nums: *agent_nums
+    max_decoder_time: *bs_antenna_nums
+    seq_len: *seq_len
+    max_capacity: *capacity
+    bs_antenna_nums: *bs_antenna_nums
         
         
 

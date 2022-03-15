@@ -5,24 +5,58 @@ def get_cls():
     return MAPPOTrainer
 
 
+# clip_epsilon: 0.2
+# max_grad_norm: 10
+# dual_clip: 3
+# entropy_coef: 0.01
+# agent_nums: *agent_nums
+'''
+net = {
+    'policy_net': {
+        default: Net
+    },
+    'critic_net':{
+        default: Net
+    }
+}
+'''
 class MAPPOTrainer:
-    def __init__(self, net, optimizer, policy_config, parameter_sharing):
+    def __init__(self, net, optimizer, scheduler ,policy_config):
         self.policy_config = policy_config
+        self.agent_nums = self.policy_config['agent_nums']
         self.clip_epsilon = self.policy_config["clip_epsilon"]
         self.entropy_coef = self.policy_config['entropy_coef']
+        # ----- 这个地方进行value loss的clip操作 ------
         self.clip_value = self.policy_config.get("clip_value", True)
-        self.grad_clip = self.policy_config.get("grad_clip", None)
+        # ----- 这个值是最大的grad ------
+        self.grad_clip = self.policy_config.get("max_grad_norm", None)
+        # ------ 这个是双梯度剪裁 -------
         self.dual_clip = self.policy_config.get("dual_clip", None)
-        self.popart_start = self.policy_config.get("popart_start", False)
-        self.multi_objective_start = self.policy_config["multi_objective_start"]
-        self.agent_nums = self.policy_config['agent_nums']
-        self.parameter_sharing = parameter_sharing
-        self.policy_net = net['policy_net']
-        self.critic_net = net['critic_net']
-        self.optimizer_critic = optimizer['critic']
-        self.optimizer_actor = optimizer['actor']
-        self.critic_loss = self.huber_loss
-    
+        self.using_critic = self.policy_config.get("using_critic", True)
+        # -------- 下面两个值分别表示要不要开启popart算法，以及是不是用多个目标 -----
+        self.popart_start = self.policy_config["popart_start"]
+        self.multi_objective_start = self.policy_config["multi_objective_start"]        
+        self.parameter_sharing = self.policy_config.get('parameter_sharing', True)
+        # ---------- 判断有没有critic网络，以及是不是使用的分离的critic网络 ---------
+        self.centralize_critic = self.policy_config.get('centralize_critic', True)
+        self.seperate_critic = self.policy_config.get('seperate_critic', False)
+        self.policy_net = net['policy']
+        self.policy_optimizer = optimizer['policy']
+        self.policy_scheduler = scheduler['policy']
+        # ------- 如果使用了critic，无论采用中心化critic还是s
+        if self.using_critic:
+            if self.centralize_critic or self.seperate_critic:
+                # -------- 如果critic和policy网络在一起，则不需要单独的critic，则设置centralize_critic为False，seperate_critic为False --
+                self.critic_net = net['critic']
+                self.critic_optimizer = optimizer['critic']
+                self.critic_scheduler = scheduler['critic']
+                self.critic_loss = self.huber_loss
+            else:
+                # -------- 这个出现的原因，就是centralize_critic和seperate_critic都设置为False，但是using_critic为True ---
+                pass
+        else:
+            # ------ 这个就只是使用了policy网络 ---------
+            pass
 
     def huber_loss(self, a, b, delta=1.0):
         gap = a - b
@@ -36,6 +70,26 @@ class MAPPOTrainer:
         return  0.5 * (a-b) **2
 
 
+    '''
+    training_batch = {
+        'current_state':{
+            'agent_obs':{
+                'agent_1':
+                    {
+
+                    },
+            },
+            'global_state':{
+                'default':
+                    {
+
+                    },
+                # ---- 如果是
+            }
+        }
+    }
+    
+    '''
     def step(self, training_batch):
         current_state = training_batch['current_state']
         # ================= 使用了GAE估计出来了advantage value  ============
@@ -90,8 +144,7 @@ class MAPPOTrainer:
         self.optimizer_critic.zero_grad()
         total_state_loss.backward()
         if self.grad_clip is not None:
-            max_grad_norm = 10
-            nn.utils.clip_grad_norm_(self.critic_net.parameters(), max_grad_norm)
+            nn.utils.clip_grad_norm_(self.critic_net.parameters(), self.grad_clip)
         self.optimizer_critic.step()
         # ------------------ 这个地方开始用来更新策略网络的参数, 使用PPO算法, 把多个智能体的观测叠加到batch维度上 ----------------------------
         advantage_std = torch.std(advantages, 0)

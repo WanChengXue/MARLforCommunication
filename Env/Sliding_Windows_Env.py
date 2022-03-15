@@ -1,4 +1,5 @@
 # 这个函数用来模仿通信环境的变化
+from logging import root
 import numpy as np
 import os
 import sys
@@ -11,16 +12,13 @@ import random
 
 import gym
 from Instant_Reward import calculate_instant_reward
-from Utils.config_parse import parse_config
-
 class Environment(gym.Env):
     '''
     定义一个环境，这个环境通过随机数种子，任意选择一个载波（1-50）信道，然后从中截取一段固定长度的TTI信道作为模拟环境
     信道的起始位置TTI也不是固定的，需要通过这个随机数种子计算出来。
     '''
-    def __init__(self, config_path, random_seed=None):
-        self.config_dict = parse_config(config_path)
-        self.env_dict = self.config_dict['env']
+    def __init__(self, env_dict, random_seed=None):
+        self.env_dict = env_dict
         # ================ 定义工程参数 =================
         self.user_nums = self.env_dict['user_nums']
         self.sector_nums = self.env_dict['sector_nums']
@@ -32,15 +30,15 @@ class Environment(gym.Env):
         self.transmit_power = self.env_dict['transmit_power']
         self.noise_power = self.env_dict['noise_power']
         self.velocity = self.env_dict['velocity']
-        self.save_data_folder = self.env_dict['save_data_folder']
+        # ---------- 文件的路径采用绝对位置 -------------
+        self.save_data_folder = self.generate_abs_path(self.env_dict['save_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
         self.sub_carrier_nums = self.env_dict['sub_carrier_nums']
         self.delay_time_window = self.env_dict['delay_time_window']
         self.training_data_total_TTI_length = self.env_dict['training_data_total_TTI_length']
         self.eval_data_total_TTI_length = self.env_dict['eval_data_total_TTI_length']
-        self.root_path = pathlib.Path('/'.join(os.path.realpath(__file__).split('/')[:-2]))
         self.min_user_average_se  = self.env_dict['min_user_average_se']
         self.max_user_pf_value = self.env_dict['max_user_pf_value']
-        self.eval_mode = self.config_dict['eval_mode']
+        self.eval_mode = self.env_dict.get('eval_mode',False)
         # ======================================================================
         if random_seed is None:
             self.random_seed = random.randint(0, 1000000)
@@ -51,6 +49,11 @@ class Environment(gym.Env):
         self.legal_range = [self.env_dict['min_stream_nums'], self.env_dict['max_stream_nums']]
         # ------------ 生成一个cyclic index matrix -------------
         self.cyclic_index_matrix = np.array([[(i+j)%self.agent_nums for i in range(self.agent_nums)] for j in range(self.agent_nums)])
+    
+    def generate_abs_path(self, related_path):
+        file_path = os.path.abspath(__file__)
+        root_path = '/'.join(file_path.split('/')[:-3])
+        return os.path.join(root_path, related_path)
 
     def load_training_data(self):
         # 载入训练数据,根据随机数种子来看，首先是对随机数取余数，看看读取哪个载波
@@ -67,7 +70,7 @@ class Environment(gym.Env):
 
     def load_eval_data(self):
         # 载入eval数据集
-        eval_file_number = self.config_dict.get('eval_file_number', random.randint(0, self.sub_carrier_nums-1))
+        eval_file_number = self.env_dict.get('eval_file_number', random.randint(0, self.sub_carrier_nums-1))
         loaded_file_name = self.save_data_folder + '/eval_channel_file_' + str(eval_file_number) + '.npy'
         # ============== TODO 这个地方不是很完善，对于测试文件来说，需要测试所有的文件 ====================
         self.simulation_channel = (np.load(loaded_file_name)).squeeze()
@@ -137,13 +140,12 @@ class Environment(gym.Env):
 
 
     def convert_action_list_to_scheduling_mask(self, action_list):
-        '''这个函数传入一个列表，然后转变为一个bool矩阵'''
+        '''这个函数传入一个用户调度列表，然后转变为一个bool矩阵'''
         random_action_mask = []
         for i in range(self.agent_nums):
             sector_mask = np.zeros(self.user_nums)
             for user_index in action_list[i]:
-                if user_index != 0:
-                    sector_mask[user_index-1] = 1
+                sector_mask[user_index-1] = 1 
             # 添加-1，使得整个列表长度为20
             random_action_mask.append(sector_mask)
         # print(np.stack(random_action,0))
@@ -217,7 +219,9 @@ if __name__ == '__main__':
     abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     # abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
     concatenate_path = abs_path + args.config_path
-    test_env = Environment(concatenate_path) 
+    from Utils.config_parse import parse_config
+    config = parse_config(concatenate_path)
+    test_env = Environment(config['env']) 
     obs = test_env.reset()
     # 随机生成动作，然后测试step函数, 调度的动作形式为：
     '''
@@ -238,12 +242,11 @@ if __name__ == '__main__':
             for user_index in sector_action:
                 sector_mask[user_index] = 1
             # 添加-1，使得整个列表长度为20
-            sector_action = np.append(sector_action, np.zeros(test_env.user_nums-scheduling_users)-1)
             random_action.append(sector_action)
             random_action_mask.append(sector_mask)
         # print(np.stack(random_action,0))
         concatenate_mask =np.expand_dims(np.stack(random_action_mask, 0), -1)
-        next_state, reward, terminate = test_env.step(concatenate_mask)
+        next_state, reward, terminate = test_env.step(random_action)
         if terminate:
             break
     print(next_state['global_state']['global_scheduling_count'])

@@ -25,17 +25,17 @@ class data_server(basic_server):
         self.global_rank = args.rank
         self.world_size = args.world_size
         self.policy_config = self.config_dict['policy_config']
-        self.gpu_num_per_machine = self.policy_config['gpu_num_per_machine']
-        self.local_rank = self.global_rank % self.gpu_num_per_machine
-        self.eval_mode = self.config_dict['eval_mode']
+        self.device_number_per_machine = self.policy_config['device_number_per_machine']
+        self.local_rank = self.global_rank % self.device_number_per_machine
+        self.eval_mode = self.policy_config['eval_mode']
         self.data_server_local_rank = args.data_server_local_rank
-        self.policy_name = self.policy_config['policy_name']
+        self.policy_name = self.config_dict['policy_name']
 
         log_path = pathlib.Path(self.config_dict['log_dir'] + "/data_log/{}_{}/{}".format(self.local_rank, self.policy_name, self.data_server_local_rank))
         self.logger = setup_logger("DataServer_log", log_path)
-        machine_index = self.global_rank // self.gpu_num_per_machine
-        self.server_ip = self.policy_config["machines"][machine_index]
-        self.server_port = self.policy_config["learner_port_start"] + self.local_rank * self.policy_config["data_server_to_learner_num"] + self.data_server_local_rank
+        machine_index = self.global_rank // self.device_number_per_machine
+        self.server_ip = self.policy_config["machine_list"][machine_index]
+        self.server_port = self.policy_config["start_data_server_port"] + self.local_rank * self.policy_config["server_number_per_device"] + self.data_server_local_rank
         #--------------------- 数据是通过这个套接字进行接收的 ----------------------------------
         self.receiver = self.context.socket(zmq.PULL)
         self.receiver.set_hwm(1000000)
@@ -43,12 +43,11 @@ class data_server(basic_server):
         self.logger.info("----------------- 这个dataserver连接打开的端口为: {} -----------------".format(self.server_port))
         self.poller.register(self.receiver, zmq.POLLIN)
         self.batch_size = self.policy_config["batch_size"]
-        self.traj_len = self.policy_config["traj_len"]
         self.capacity = self.policy_config["capacity"]
         if self.eval_mode:
             self.capacity = 256
 
-        self.traing_set = TrainingSet(self.init_replay_buffer_config())
+        self.traing_set = TrainingSet(self.policy_config['buffer'])
         #-------------------------- 定义一些相关数据指标 ------------------------------
         self.recv_training_instance_count = 0
         self.socket_time_list = []
@@ -65,16 +64,6 @@ class data_server(basic_server):
         self.data_server_sampling_interval = self.policy_config["data_server_sampling_interval"]
         self.next_sampling_time = time.time()
 
-    def init_replay_buffer_config(self):
-        # ------------ 这个函数是用来构造replay buffer的配置参数 -----------------------------
-        replay_buffer_config_dict = dict()
-        replay_buffer_config_dict['batch_size'] = self.batch_size
-        replay_buffer_config_dict['agent_nums'] = self.policy_config['agent_nums']
-        replay_buffer_config_dict['max_decoder_time'] = self.policy_config['max_decoder_time']
-        replay_buffer_config_dict['seq_len'] = self.policy_config['seq_len']
-        replay_buffer_config_dict['max_capacity'] = self.capacity
-        replay_buffer_config_dict['bs_antenna_nums'] = self.config_dict['env']['bs_antenna_nums']
-        return replay_buffer_config_dict
 
     def receive_data(self, socks):
         #------------------- 接收从server传过来的数据 -------------------------

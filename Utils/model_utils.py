@@ -5,7 +5,6 @@ import time
 import os
 import glob
 
-from Model.attention_model import model
 
 def serialize_model(model_path_prefix, model_url_prefix, net_dict, cache_size, logger):
     # --------- 这个函数是将模型保存到本地,并且将模型的路径字典返回 --------------
@@ -49,7 +48,7 @@ def remove_prefix(state_dict, prefix):
 def deserialize_model(model_object, model_parameter_dict, device='cpu'):
     # ----------- 这个函数是从内存中载入模型，推断的时候，模型放在CPU上 --------
     # ----------- 这个函数接受的两个参数，第一个是pytorch模型，第二个是对应模型的参数 ----------
-    saved_state_dict = torch.load(model_parameter_dict)
+    saved_state_dict = torch.load(model_parameter_dict, map_location=device)
     # -------- 使用DDP包装了一层的模型，保存到本地的时候都会包一个prefix前缀 --------
     new_state_dict = remove_prefix(saved_state_dict, 'module.')
     model_object.load_state_dict(new_state_dict)

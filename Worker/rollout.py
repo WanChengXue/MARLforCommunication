@@ -11,31 +11,29 @@ sys.path.append(root_path)
 from Env.Sliding_Windows_Env import Environment
 from Worker.gae import gae_estimator
 from Worker.agent import AgentManager
-from Utils import setup_logger
 import copy
 import numpy as np
 
 class rollout_sampler:
-    def __init__(self, config_path, config_dict, statistic, context):
+    def __init__(self, config_dict, statistic, context, logger, process_uid):
         self.config_dict = config_dict
         self.policy_name = self.config_dict['policy_name']
         self.policy_config = self.config_dict['policy_config']
-        self.popart_start = self.policy_config.get("popart_start", False)
+        self.popart_start = self.policy_config['training_parameters'].get("popart_start", False)
         self.statistic = statistic
-        logger_path = pathlib.Path(self.config_dict['log_dir'] + '/rollout_log')
-        self.logger = setup_logger('Rollout_log', logger_path)
-
+        self.logger = logger
+        
         # 定义强化学习需要的一些参数
         self.gamma = self.policy_config["gamma"]
         self.tau = self.policy_config["tau"]
         self.traj_len = self.policy_config["traj_len"]
 
         # 环境声明, 传入的config dict的路径
-        self.env = Environment(config_path)
+        self.env = Environment(self.config_dict['env'])
         # 收集数据放入到字典中
         self.data_dict = dict()
         # 声明一个智能体
-        self.agent = AgentManager(self.config_dict, context, self.statistic)
+        self.agent = AgentManager(self.config_dict, context, self.statistic, self.logger, process_uid)
 
     def pack_data(self, bootstrap_value, traj_data):
         '''
@@ -98,16 +96,19 @@ class rollout_sampler:
                 # ------------ 这个actions[agent_index]的维度是一个长度为16的向量，需要变成16*1
                 data_dict[-1]['actions'][agent_key] = actions[agent_index][:,np.newaxis]
             data_dict[-1]['done'] = done
-            data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
-            data_dict[-1]['current_state_value'] = np.concatenate(current_state_value, 0)
+            data_dict[-1]['instant_reward'] = np.array([PF_sum])[:,np.newaxis]
+            # data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
+            data_dict[-1]['current_state_value'] = current_state_value
             # ----------- 这个变量是使用采样的方式，得到的网络输出 -------------------
-            data_dict[-1]['old_network_value'] = np.concatenate(net_work_output, 0)
+            data_dict[-1]['old_network_value'] = net_work_output
             data_dict[-1]['next_state'] = copy.deepcopy(next_state)
             state = next_state
             # -----------------------------------------------------------------------------------------
-        # ------------ 数据打包，然后发送，bootstrap value就给0吧 ----------------
-        bootstrap_value = np.zeros((2,1))
-        self.pack_data(bootstrap_value, data_dict)
+            if len(data_dict) == self.policy_config['traj_len'] or done:
+                # ------------ 数据打包，然后发送，bootstrap value就给0吧 ----------------
+                objective_number = current_state_value.shape[0]
+                bootstrap_value = np.zeros((objective_number,1))
+                self.pack_data(bootstrap_value, data_dict)
         mean_instant_SE_sum = np.mean(instant_SE_sum_list).item()
         mean_edge_average_SE = np.mean(edge_average_capacity_list).item()
         mean_PF_sum = np.mean(PF_sum_list).item()
@@ -127,6 +128,10 @@ if __name__ == '__main__':
     from Utils.config_parse import parse_config
     context = zmq.Context()
     from Worker.statistics import StatisticsUtils
+    from Utils import setup_logger
+    config_dict = parse_config(concatenate_path)
+    logger_path = pathlib.Path(config_dict['log_dir']+ '/sampler/testrollout')
+    logger = setup_logger('rollout_agent', logger_path)
     statistic = StatisticsUtils()
-    roll_out_test = rollout_sampler(concatenate_path, parse_config(concatenate_path), statistic, context)
+    roll_out_test = rollout_sampler(concatenate_path, parse_config(concatenate_path), statistic, context, logger)
     roll_out_test.run_one_episode()

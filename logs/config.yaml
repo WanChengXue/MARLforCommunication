@@ -1,7 +1,7 @@
 config_server_address: 10.19.93.9
 config_server_http_port: 9002
-config_server_model_update_port: 9001
-config_server_request_model_port: 9000
+config_server_model_from_learner: 9000
+config_server_model_to_worker: 9001
 data_server_sampling_interval: 0
 env:
   agent_nums: 3
@@ -17,7 +17,7 @@ env:
   noise_power: 3.1623e-20
   save_data_folder: data_part/preprocess_data
   sector_nums: 3
-  sliding_windows_length: 10
+  sliding_windows_length: 200
   source_data_folder: data_part/Source_data
   sub_carrier_nums: 50
   total_antenna_nums: 20
@@ -30,9 +30,8 @@ log_dir: ./logs
 log_server_address: 10.19.93.9
 log_server_port: 8100
 main_server_ip: 10.19.93.9
+model_cache_size: 20
 model_update_intervel: 0
-p2p: true
-p2p_cache_size: 20
 policy_config:
   T_zero: 5
   actor_critic_concatenate: false
@@ -47,6 +46,7 @@ policy_config:
         model_path: /home/miao/Desktop/ICC/code_part/Exp/Model/model_pool/max_average_SE/agent_default_critic_net.pkl
         model_type: critic
         multi_objective_start: false
+        popart_start: false
         seq_len: 20
     policy:
       default:
@@ -59,16 +59,14 @@ policy_config:
         model_name: attention_model
         model_path: /home/miao/Desktop/ICC/code_part/Exp/Model/model_pool/max_average_SE/agent_default_policy_net.pkl
         model_type: policy
+        parameter_sharing: true
   algorithm: ppo
   batch_size: 10
   capacity: 10
   centralize_critic: true
-  clip_epsilon: 0.2
   ddp_port: 50001
   ddp_root_address: tcp://10.19.93.9:50001
   device_number_per_machine: 4
-  dual_clip: 3
-  entropy_coef: 0.01
   env_count: 1000
   eval_mode: false
   gamma: 0.997
@@ -76,7 +74,6 @@ policy_config:
   machine_list:
   - 10.19.93.9
   main_machine_index: 0
-  max_grad_norm: 10
   model_pool_path: Exp/Model/model_pool/max_average_SE
   model_save_interval: 1000
   model_url: http://10.19.93.9:9002
@@ -90,7 +87,17 @@ policy_config:
   start_data_server_port: 9527
   tau: 0.95
   tensorboard_folder: ./logs/Tensorboard_log
-  traj_len: 300
+  training_parameters:
+    agent_nums: 3
+    centralize_critic: true
+    clip_epsilon: 0.2
+    dual_clip: 3
+    entropy_coef: 0.01
+    max_grad_norm: 10
+    multi_objective_start: false
+    popart_start: false
+    seperate_critic: false
+  traj_len: 10
 policy_name: max_average_SE
 sampler_model_update_interval: 20
 use_history: fasle

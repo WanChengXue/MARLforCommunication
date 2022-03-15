@@ -134,7 +134,7 @@ class LogServer(basic_server):
         self.agent_nums = self.config_dict['env']['agent_nums']
         self.total_antenna_nums = self.config_dict['env']['total_antenna_nums']
         # ------- 机器的数目 * 卡的数目 * 每张卡对应的数据进程数目 = 所有的数据服务 --------------
-        self.total_data_server = self.config_dict['policy_config']['gpu_num_per_machine'] * self.config_dict['policy_config']['data_server_to_learner_num'] * len(self.config_dict['policy_config']['machines'])
+        self.total_data_server = self.config_dict['policy_config']['device_number_per_machine'] * self.config_dict['policy_config']['server_number_per_device'] * len(self.config_dict['policy_config']['machines'])
         self.receiver = self.context.socket(zmq.PULL)
         self.receiver.bind("tcp://%s:%d" % (self.config_dict["log_server_address"], self.config_dict["log_server_port"]))
         self.poller.register(self.receiver, zmq.POLLIN)

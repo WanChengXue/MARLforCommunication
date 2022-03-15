@@ -153,7 +153,7 @@ class model(nn.Module):
         channel_matrix = src['channel_matrix']
         average_reward = src['average_reward']
         scheduling_count = src['scheduling_count']
-        channel_output = torch.relu(self.conv_layer(channel_matrix).squeeze(1))
+        channel_output = torch.relu(self.conv_layer(1e6*channel_matrix).squeeze(1))
         average_reward_output = torch.relu(self.linear_average_reward_head(average_reward))
         scheduling_count_output = torch.relu(self.linear_scheduling_count_head(scheduling_count))
         # 拼接在一起构成backbone
@@ -173,7 +173,7 @@ class critic(nn.Module):
         self.agent_nums = self.policy_config['agent_nums']
         self.conv_channel = self.policy_config['conv_channel'] * self.agent_nums
         self.hidden_dim = self.policy_config['hidden_dim']
-        self.popart_start = self.policy_config.get("popart_start", False)
+        self.popart_start = self.policy_config["popart_start"]
         self.multi_objective_start = self.policy_config["multi_objective_start"]
         # ======================= 对全局状态进行卷积操作, reward需要进行线性操作, count这个状态也 =====================
         self.channel_conv_layer = nn.Conv2d(self.conv_channel, out_channels=1, kernel_size=3, stride=1, padding=1, bias=False)
@@ -211,7 +211,7 @@ class critic(nn.Module):
         global_average_reward = src['global_average_reward']
         global_scheduling_count = src['global_scheduling_count']
         # 这个global channel_matrix的维度是batch size * agent_nums * channel_number * user_number * 32
-        conv_global_channel_output  = torch.relu(self.channel_conv_layer(global_channel_matrix))
+        conv_global_channel_output  = torch.relu(self.channel_conv_layer(1e6*global_channel_matrix))
         # global average reward的维度是batch size * agent_nums * user_number * 1
         glboal_average_reward_output = torch.relu(self.linear_average_reward_head(global_average_reward))
         conv_global_average_reward_output = torch.relu(self.reward_conv_layer(glboal_average_reward_output))

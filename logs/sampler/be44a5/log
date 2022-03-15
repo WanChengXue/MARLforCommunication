@@ -1,0 +1,21 @@
+2022-03-13 14:06:18,678,678,INFO,Sampler_be44a5::==================== 此智能体要发送数据到: 10.19.93.9, 连接的端口为: 9529 =================
+2022-03-13 14:06:20,901,901,INFO,Sampler_be44a5::---------------- policy fetcher将最新的模型存放的地方为: {'policy': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/be44a5_default_max_average_SE.model')}, 'critic': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/be44a5_default_max_average_SE.model')}} ----------------
+2022-03-13 14:06:20,902,902,INFO,Sampler_be44a5::======================= 构建fetcher成功, 创建最新模型请求套接字 ===============
+2022-03-13 14:06:22,403,403,INFO,Sampler_be44a5::------------ 完成AgentManager的构建 -----------
+2022-03-13 14:06:23,124,124,INFO,Sampler_be44a5::------------------ 完成采样端的构建，此worker的id为be44a5 -----------------
+2022-03-13 14:06:25,621,621,INFO,Sampler_be44a5::======================== 重置环境 =======================
+2022-03-13 14:06:26,313,313,INFO,Sampler_be44a5::==================== 智能体重置，对于训练模式，就是同步configserver上面的模型，测试模式就是加载本地模型 ====================
+2022-03-13 14:06:46,922,922,ERROR,Sampler_be44a5::'AgentManager' object has no attribute 'policy_fetcher'
+2022-03-13 14:06:47,396,396,ERROR,Sampler_be44a5::Traceback (most recent call last):
+  File "/home/miao/Desktop/ICC/code_part/Worker/sampler.py", line 77, in run_loop
+    self.run()
+  File "/home/miao/Desktop/ICC/code_part/Worker/sampler.py", line 50, in run
+    mean_instant_SE_sum, mean_edge_average_SE, mean_PF_sum, scheduling_count = self.rollout.run_one_episode()
+  File "/home/miao/Desktop/ICC/code_part/Worker/rollout.py", line 68, in run_one_episode
+    self.agent.reset()
+  File "/home/miao/Desktop/ICC/code_part/Worker/agent.py", line 155, in reset
+    self.synchronize_model()
+  File "/home/miao/Desktop/ICC/code_part/Worker/agent.py", line 133, in synchronize_model
+    model_info = self.policy_fetcher.reset()
+AttributeError: 'AgentManager' object has no attribute 'policy_fetcher'
+

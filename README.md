@@ -24,7 +24,7 @@
 
 ## leanrer框架的一些参数定义
 1. global rank表示的是这个server是用的第几张卡
-2. gpu_num_per_machine 表示的是一台机器有多少张卡
+2. device_number_per_machine 表示的是一台机器有多少张卡
 3. local rank是在多机多卡的情况下，可能global rank是10，但是在这台机器上其实就是第二张卡
 4. eval mode就是说需要载入模型，然后直接进行测试操作
 

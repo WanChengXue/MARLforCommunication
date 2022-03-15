@@ -1,0 +1,8 @@
+2022-03-13 21:50:22,914,914,INFO,Sampler_a835a5::==================== 此智能体要发送数据到: 10.19.93.9, 连接的端口为: 9540 =================
+2022-03-13 21:50:23,475,475,INFO,Sampler_a835a5::---------------- policy fetcher将最新的模型存放的地方为: {'policy': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/a835a5_policy_default_max_average_SE.model')}, 'critic': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/a835a5_critic_default_max_average_SE.model')}} ----------------
+2022-03-13 21:50:23,476,476,INFO,Sampler_a835a5::======================= 构建fetcher成功, 创建最新模型请求套接字 ===============
+2022-03-13 21:50:24,292,292,INFO,Sampler_a835a5::------------ 完成AgentManager的构建 -----------
+2022-03-13 21:50:26,637,637,INFO,Sampler_a835a5::------------------ 完成采样端的构建，此worker的id为a835a5 -----------------
+2022-03-13 21:50:28,119,119,INFO,Sampler_a835a5::======================== 重置环境 =======================
+2022-03-13 21:50:29,637,637,INFO,Sampler_a835a5::==================== 智能体重置，对于训练模式，就是同步configserver上面的模型，测试模式就是加载本地模型 ====================
+2022-03-13 21:50:37,143,143,INFO,Sampler_a835a5::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647144640.497976'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647144640.497976'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647144663.720485} -----------

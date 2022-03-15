@@ -66,62 +66,27 @@ class learner_server(basic_server):
         self.logger.info("============== global rank {}开始创建模型 ==========".format(self.global_rank))
         # --------------------- 开始创建网络,定义两个optimizer，一个优化actor，一个优化critic ------------------
         self.construct_model()
-        self.optimizer = {}
-        if self.parameter_sharing:
-            self.policy_net = create_policy_model(self.policy_config)
-            self.optimizer['actor'] = torch.optim.Adam(self.policy_net.parameters(), lr=self.learning_rate)
-        else:
-            self.policy_net = dict()
-            self.optimizer['actor'] = dict()
-            for agent_index in range(self.config_dict['env']['agent_nums']):
-                agent_key = "agent_" + str(agent_index)
-                self.policy_net[agent_key] = create_policy_model(self.policy_config)
-                self.optimizer['actor'][agent_key] =  torch.optim.Adam(self.policy_net[agent_key].parameters(), lr=self.learning_rate)
-        self.global_critic = create_critic_net(self.policy_config)
-        self.optimizer['critic'] = torch.optim.Adam(self.global_critic.parameters(), lr=self.learning_rate)
-        self.net = {'policy_net': self.policy_net, 'critic_net': self.global_critic}
-        if self.global_rank == 0 and self.eval_mode:
-            # 如果说是第一张卡，并且使用的是评估模式，就不需要训练网络了，直接加载即可
-            self.logger.info("=============== 评估模式直接加载模型，模型的路径为:{} =============".format(self.policy_config['model_path']))
-            deserialize_model(self.net, self.policy_config['model_path'])
-        else:
-            # torch分布式训练相关
-            if self.parameter_sharing:
-                self.local_rank = 'cpu'
-                # dist.init_process_group(init_method=args.init_method, backend="gloo", rank=self.global_rank, world_size=self.world_size)
-                self.policy_net.to(self.local_rank).train()
-                # self.net = DDP(self.net, device_ids=[self.local_rank])
-                torch.manual_seed(19930119)
-                self.logger.info("============== 完成模型的创建 =========")
-                algo_cls = get_algorithm_cls(self.policy_config.get("algorithm", "ppo"))
-                self.algo = algo_cls(self.net, self.optimizer, self.policy_config, self.parameter_sharing)
-            else:
-                # ------------------------ TODO 这里是每个智能体使用不同的模型 -------------------
-                self.logger.error("--------- 暂时不支持单卡多模型分布式的训练 --------------")
-
         self.total_training_steps = 0
         if self.global_rank == 0:
-            #------------- 模型保存路径"/home/amax/Desktop/chenliang/distributed_swap/p2p_plf_max_average_SE" -------------
-            path = self.policy_config['p2p_path']
-            # ------------ 确保这个path是存在的 ----------------------
-            pathlib.Path(path).mkdir(parents=True, exist_ok=True)
-            #------------- 发送新的模型给config server，然后config server再发布给所有的worker -------------
+            # ------------ 多卡场景下的训练，只有第0张卡的learner才会存模型下来 ----------
+            # ---------------- 发送新的模型的路径给configserver，然后configserver会将模型信息下发给所有的worker -----------
             self.model_sender = self.context.socket(zmq.PUSH)
-            self.model_sender.connect("tcp://{}:{}".format(self.config_dict["config_server_address"], self.config_dict["config_server_model_update_port"]))
-            # ------------- 每次模型发送出去后，下一次发送的时间间隔 -------------
-            self.latest_update_interval = self.config_dict['latest_update_interval']
-            self.next_model_update_time = time.time()
-            # ------------- 最新模型的保存路径prefix: /home/amax/Desktop/chenliang/distributed_swap/p2p_plf_max_average_SE/model_max_average_SE ---------------------
-            self.latest_model_path_prefix = os.path.join(path, self.policy_config['p2p_filename'])
-            # ------------- 最新模型url的保存前缀为: http://42.186.72.223:6020/p2p_plf_max_average_SE/model_max_average_SE
-            self.latest_model_url_prefix = os.path.join(self.policy_config['p2p_url'], self.policy_config['p2p_filename'])
-            self.logger.info("=========== 将初始模型发送给config server =========")
-            self.send_model(self.total_training_steps)
+            self.model_sender.connect("tcp://{}:{}".format(self.config_dict['config_server_address'], self.config_dict['config_server_model_from_learner']))
+            # ---------------- 每次模型发送出去后，下一次发送的时间间隔 -------------------------
+            self.model_update_interval = self.config_dict['model_update_intervel']
+            self.next_model_transmit_time = time.time()
+            # ---------------- 定义最新模型的保存到learner下的路径 ---------------------
+            # 注释，这个model_pool_path假设是~/Desktop/Model，然后模型存放在这个地方，发送出去的时候再加上一个前缀名称，其实不要也可以 
+            self.model_pool_path = self.policy_config['model_pool_path']
+            # ---------------- 定义最新模型发布到哪一个网站上 --------------------------
+            self.model_url = self.policy_config['model_url']
+            self.logger.info("--------------- 讲初始化模型发送给configserver --------------")
+            self._send_model(self.total_training_steps)
         # ------------- 由于一个plasma对应多个data_server，因此需要循环的从这个plasma id列表中选择 -------------
-        self.plasma_id_list = []
-        for i in range(self.policy_config['data_server_to_learner_num']):
-            plasma_id = plasma.ObjectID(generate_plasma_id(self.global_rank, i))
-            self.plasma_id_list.append(plasma_id)
+        self.plasma_id_queue = queue.Queue(maxsize=self.policy_config['server_number_per_device'])
+        for i in range(self.policy_config['server_number_per_device']):
+            plasma_id = plasma.ObjectID(generate_plasma_id(self.machine_index, self.local_rank, i))
+            self.plasma_id_queue.put(plasma_id)
 
         # ------------- 连接plasma 服务，这个地方需要提前启动这个plasma服务，然后让client进行连接 -------------
         self.plasma_client = plasma.connect(self.policy_config['plasma_server_location'], 2)
@@ -151,31 +116,8 @@ class learner_server(basic_server):
             for agent_name in self.policy_config['agent'][model_type].keys():
                 model_config = deepcopy(self.policy_config['agent'][model_type][agent_name])
                 self.model[model_type][agent_name] = create_model(model_config)
-
-        if self.homogeneous_agent and self.parameter_sharing:
-            model_config = {}
-            model_config['model_name'] = self.policy_config['agent']['policy']['model_name']['default']
-            model_config['state_dim'] = self.policy_config['agent']['policy']['state_dim']['default']
-            model_config['action_dim'] = self.policy_config['agent']['policy']['action_dim']['default']
-            self.model['policy'] = {'default': create_model(model_config)}
-            self.optimizer['policy'] = {'default': torch.optim.Adam(self.model['policy']['default'].parameters(), lr=float(self.policy_config['agent']['policy']['learning_rate']))}
-            self.model_path['policy'] = {'default': self.policy_config['agent']['policy']['model_path']['default']}
-            self.scheduler['policy'] = {'default': CosineAnnealingWarmRestarts(self.optimizer['policy']['default'], self.policy_config['T_zero'])}
-        else:
-            # ----------- 如果采用的是异构智能体，则 ------------
-            for agent_index in range(self.config_dict['env']['agent_nums']):
-                self.model['policy'] = {}
-                agent_name = 'agent_{}'.format(agent_index)
-                model_config['model_name'] = self.policy_config['agent']['policy']['model_name'][agent_name]
-                model_config['state_dim'] = self.policy_config['agent']['policy']['state_dim'][agent_name]
-                model_config['action_dim'] = self.policy_config['agent']['policy']['action_dim']['agent_{}'.format(agent_index)]
-                self.model['policy'][agent_name] = create_model(model_config)
-                self.optimizer['policy'][agent_name] = torch.optim.Adam(self.model['policy'][agent_name].parameters(), lr=float(self.policy_config['agent']['policy']['learning_rate']))
-                self.model_path['policy'][agent_name] = self.policy_config['agent']['policy'][agent_name]['model_path']
-                self.scheduler['policy'][agent_name] = CosineAnnealingWarmRestarts(self.optimizer['policy'][agent_name], self.policy_config['T_zero'])
-        if self.training_type == 'RL':
-            # -------- 这个地方建立critic网络 TODO ------------
-            pass
+                self.optimizer[model_type][agent_name] = torch.optim.Adam(self.model[model_type][agent_name].parameters(), lr=float(self.policy_config['agent'][model_type][agent_name]['learning_rate']))
+                self.scheduler[model_type][agent_name] = CosineAnnealingWarmRestarts(self.optimizer[model_type][agent_name], self.policy_config['T_zero'])
         # ----------- 训练模式, 使用DDP进行包装  --------------
         dist.init_process_group(init_method=self.policy_config["ddp_root_address"], backend="nccl",rank=self.global_rank, world_size=self.world_size)
         # ----- 把模型放入到设备上 ---------
@@ -187,85 +129,80 @@ class learner_server(basic_server):
         self.logger.info('----------- 完成模型的创建 ---------------')
         # ----------- 调用更新算法 ---------------
         algo_cls = get_algorithm_cls(self.policy_config['algorithm'])
-        self.algo = algo_cls(self.model, self.optimizer, self.scheduler, self.policy_config)
+        self.algo = algo_cls(self.model, self.optimizer, self.scheduler, self.policy_config['training_parameters'])
 
 
-    def send_model(self, training_steps):
-        if time.time()> self.next_model_update_time:
-            # ------------- 这两个变量，分别表示的是worker访问的最新模型的url地址，以及这个模型保存在计算机的路径 -------------
+    def _send_model(self, training_steps):
+        if time.time() > self.next_model_transmit_time:
             '''
-            url_path的样子:
-                如果使用了parameter sharing:
-                    url_path['policy_url']: string
-                如果没有使用parameter sharing:
-                    url_path['policy_url']['agent_0']: string 
-                    .......
-                url_path['critic_url']: string
+                url_path的样子：
+                    url_path['policy_url'] : string
+                如果说有critic网络在，则还有一个key：
+                    url_path['critic_url']: string
             '''
-            url_path = serialize_model(self.latest_model_path_prefix, self.latest_model_url_prefix, self.net, self.config_dict['p2p_cache_size'], self.logger)
-            model_info = {'policy_name': self.policy_name, 'url': url_path}
-            self.next_model_update_time += self.latest_update_interval
-            self.logger.info("============ 发送模型给config server, 发送的信息为: {}, 当前的模型已经更新了{}次 ==========".format(model_info, training_steps+1))
-            self.model_sender.send(pickle.dumps(model_info))
-    
-    def update_parameters(self, training_batch):
-        # 这个函数是通过传入训练数据，更新net的参数
-        if self.global_rank == 0:
-            if time.time() > self.warm_up_time:
-                # 这个is_warmup是说参数暂时不更新，就是为了让智能体见识一下更多的数据
-                training_batch = convert_data_format_to_torch_training(training_batch, self.local_rank)
-                info  = self.algo.step(training_batch)
-                self.logger.info("--------------- 完成一次参数更新, 返回的数据为 {} -----------------".format(info))
-                ''' 
-                    {'value_loss': 36.82817840576172, 
-                    'conditional_entropy': -87.09746551513672, 
-                    'advantage_std': array([1.8773540e+01, 3.7253532e-03], dtype=float32), 
-                    'policy_loss': 10.446737289428711, 
-                    'total_policy_loss': 9.575762748718262}
-                '''
-                # 将日志发送到log server上面
-                # TODO, 日志发送操作
-                self.send_statistic(info, prefix="model")
-            else:
-                self.logger.info("============== 模型不更新，在预热阶段 ===========")
+            url_path = serialize_model(self.policy_config['model_pool_path'], self.policy_config['model_url'], self.model, self.config_dict['model_cache_size'], self.logger)
+            model_infomation = {'policy_name': self.policy_name, 'url': url_path}
+            self.next_model_transmit_time += self.model_update_interval
+            self.logger.info("-------------------- 发送模型到configserver，发送的信息为：{}，当前的模型更新次数为：{}".format(model_infomation, training_steps+1))
+            self.model_sender.send(pickle.dumps(model_infomation))
 
-    def learn(self):
+    def training_and_publish_model(self):  
         start_time = time.time()
-        # 首先读取数据，从plasma client里
-        raw_data = self.plasma_client.get(self.plasma_id_list[0])
+        selected_plasma_id = self.plasma_id_queue.get()
+        batch_data = self.plasma_client.get(selected_plasma_id)
         if self.global_rank == 0:
-            # 添加一下等待数据所需的时间
-            self.wait_data_times.append(time.time() - start_time)
-        all_data = pickle.loads(raw_data)
-        del raw_data
-        self.update_parameters(all_data)
-        self.training_steps += 1
+            self.wait_data_times.append(time.time()-start_time)
+        self._training(batch_data)
+        self.training_steps_per_mins += 1
         self.total_training_steps += 1
-        # 这个地方其实就是将plasma id list中第一个id放到列表的最后面
-        current_plasma_id = self.plasma_id_list.pop(0)
-        self.plasma_id_list.append(current_plasma_id)
-        # 发布新的模型
+        del pickled_data
+        # ------------ 将训练数据从plasma从移除 ------------
+        self.plasma_client.delete([selected_plasma_id])
+        self.plasma_id_queue.put(selected_plasma_id)
+        self.remove_data_from_plasma_client(selected_plasma_id)
         if self.global_rank == 0:
-            self.logger.info("============ 开始发布新模型 =========")
-            self.send_model(self.total_training_steps)
+            self.logger.info("----------------- 完成第{}次训练 --------------".format(self.total_training_steps))
             end_time = time.time()
-            self.training_time_list.append(end_time - start_time)
-
-
-    def run(self):
-        # 这个函数是运行的主函数
-        self.logger.info("================ learner: {} 开始运行 =============".format(self.global_rank))
-        while True:
-            self.learn()
-            if time.time() > self.next_check_time:
-                self.next_check_time += 60
-                if self.global_rank == 0:
-                    self.send_log({"learner_server/training_times_per_mins/{}".format(self.policy_name): self.training_steps})
-                    self.send_log({"learner_server/training_consuming_times_per_turn/{}".format(self.policy_name): sum(self.training_time_list)/len(self.training_time_list)})
-                    self.send_log({"learner_server/wait_data_time_per_mins/{}".format(self.policy_name): sum(self.wait_data_times)})
-                self.training_steps = 0
+            self.training_time_list.append(end_time-start_time)
+            if self.next_send_log_time > end_time:
+                # ---------- 将每分钟更新模型的次数，每次更新模型的时间发送回去 -------------
+                self.send_log({"learner_server/model_update_times_per_min/{}".format(self.policy_name): self.training_steps_per_mins})
+                self.send_log({"learner_server/average_model_update_time_consuming_per_mins/{}".format(self.policy_name): sum(self.training_time_list)/self.training_steps_per_mins})
+                self.send_log({"learner_server/time_of_wating_data_per_mins/{}".format(self.policy_name): sum(self.wait_data_times)/self.training_steps_per_mins})
+                self.next_send_log_time += 60
+                self.training_steps_per_mins = 0
                 self.training_time_list = []
                 self.wait_data_times = []
+            if self.total_training_steps % self.policy_config['model_save_interval'] == 0:
+                self._save_model()
+
+    def _save_model(self):
+        timestamp = str(time.time())
+        for k,v in self.model:
+            model_save_path = self.policy_config['saved_model_path'] +'/' + k + '_' + timestamp
+            torch.save(v.state_dict(), model_save_path)
+        
+
+    def run(self):
+        self.logger.info("------------------ learner: {} 开始运行 ----------------".format(self.global_rank))
+        while True:
+            self.training_and_publish_model()
+    
+
+    # def run(self):
+    #     # 这个函数是运行的主函数
+    #     self.logger.info("================ learner: {} 开始运行 =============".format(self.global_rank))
+    #     while True:
+    #         self.learn()
+    #         if time.time() > self.next_check_time:
+    #             self.next_check_time += 60
+    #             if self.global_rank == 0:
+    #                 self.send_log({"learner_server/training_times_per_mins/{}".format(self.policy_name): self.training_steps})
+    #                 self.send_log({"learner_server/training_consuming_times_per_turn/{}".format(self.policy_name): sum(self.training_time_list)/len(self.training_time_list)})
+    #                 self.send_log({"learner_server/wait_data_time_per_mins/{}".format(self.policy_name): sum(self.wait_data_times)})
+    #             self.training_steps = 0
+    #             self.training_time_list = []
+    #             self.wait_data_times = []
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
