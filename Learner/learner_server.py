@@ -44,9 +44,9 @@ class learner_server(basic_server):
         self.local_rank = self.global_rank % self.policy_config['device_number_per_machine']
         # ------------ 这个eval_mode表示这个learner是进行training，还是evaluate ——--------
         self.eval_mode = self.policy_config['eval_mode']
-        logger_path = pathlib.Path(self.config_dict['log_dir'] + '/learner_log/{}_{}'.format(self.local_rank, self.policy_name)) 
+        logger_path = pathlib.Path(self.config_dict['log_dir'] + '/learner_log/{}_{}'.format(self.policy_name,self.local_rank)) 
         self.logger = setup_logger('LearnerServer_log_{}'.format(self.local_rank), logger_path)
-        self.logger.info("============== 开始构造learner server，这个server的全局id是：{}, 具体到某一个机器上的id是: {} ===========".format(self.global_rank, self.local_rank))
+        self.logger.info("============== 开始构造learner server，这个server的全局id是:{}, 具体到某一个机器上的id是: {} ===========".format(self.global_rank, self.local_rank))
         # ----------------- 开始初始化模型 ---------------------
         if self.global_rank ==0 and self.eval_mode:
             # ---------- 如果说这个learner是第一个进程，并且采用的是评估模式 -----------
@@ -67,6 +67,7 @@ class learner_server(basic_server):
         # --------------------- 开始创建网络,定义两个optimizer，一个优化actor，一个优化critic ------------------
         self.construct_model()
         self.total_training_steps = 0
+        self.training_steps_per_mins = 0
         if self.global_rank == 0:
             # ------------ 多卡场景下的训练，只有第0张卡的learner才会存模型下来 ----------
             # ---------------- 发送新的模型的路径给configserver，然后configserver会将模型信息下发给所有的worker -----------
@@ -100,7 +101,7 @@ class learner_server(basic_server):
         self.warm_up_time = time.time() + self.config_dict['warmup_time']
         # ------------- 定义一个变量，这个是每过一分钟，就朝着log server发送数据的 -------------
         self.next_check_time = time.time()
-
+        self.next_send_log_time = time.time()
     
     def construct_model(self):
         self.optimizer = {}
@@ -129,22 +130,32 @@ class learner_server(basic_server):
         self.logger.info('----------- 完成模型的创建 ---------------')
         # ----------- 调用更新算法 ---------------
         algo_cls = get_algorithm_cls(self.policy_config['algorithm'])
-        self.algo = algo_cls(self.model, self.optimizer, self.scheduler, self.policy_config['training_parameters'])
+        self.algo = algo_cls(self.model, self.optimizer, self.scheduler, self.policy_config['training_parameters'], self.local_rank)
 
 
     def _send_model(self, training_steps):
         if time.time() > self.next_model_transmit_time:
             '''
-                url_path的样子：
+                url_path的样子:
                     url_path['policy_url'] : string
-                如果说有critic网络在，则还有一个key：
+                如果说有critic网络在，则还有一个key:
                     url_path['critic_url']: string
             '''
             url_path = serialize_model(self.policy_config['model_pool_path'], self.policy_config['model_url'], self.model, self.config_dict['model_cache_size'], self.logger)
             model_infomation = {'policy_name': self.policy_name, 'url': url_path}
             self.next_model_transmit_time += self.model_update_interval
-            self.logger.info("-------------------- 发送模型到configserver，发送的信息为：{}，当前的模型更新次数为：{}".format(model_infomation, training_steps+1))
+            self.logger.info("-------------------- 发送模型到configserver，发送的信息为: {}，当前的模型更新次数为: {}".format(model_infomation, training_steps+1))
             self.model_sender.send(pickle.dumps(model_infomation))
+    
+    def _training(self, training_batch):
+        if time.time()>self.warm_up_time:
+            torch_training_batch = convert_data_format_to_torch_training(training_batch,self.local_rank)
+            info = self.algo.step(torch_training_batch)
+            self.logger.info("----------- 完成一次参数更新，更新的信息为 {} -------------".format(info))
+            self.recursive_send(info, 'model', self.policy_name)
+        else:
+            self.logger.info("----------- 模型处于预热阶段，不更新参数 ----------")
+            
 
     def training_and_publish_model(self):  
         start_time = time.time()
@@ -155,16 +166,14 @@ class learner_server(basic_server):
         self._training(batch_data)
         self.training_steps_per_mins += 1
         self.total_training_steps += 1
-        del pickled_data
         # ------------ 将训练数据从plasma从移除 ------------
         self.plasma_client.delete([selected_plasma_id])
         self.plasma_id_queue.put(selected_plasma_id)
-        self.remove_data_from_plasma_client(selected_plasma_id)
         if self.global_rank == 0:
             self.logger.info("----------------- 完成第{}次训练 --------------".format(self.total_training_steps))
             end_time = time.time()
             self.training_time_list.append(end_time-start_time)
-            if self.next_send_log_time > end_time:
+            if end_time > self.next_send_log_time:
                 # ---------- 将每分钟更新模型的次数，每次更新模型的时间发送回去 -------------
                 self.send_log({"learner_server/model_update_times_per_min/{}".format(self.policy_name): self.training_steps_per_mins})
                 self.send_log({"learner_server/average_model_update_time_consuming_per_mins/{}".format(self.policy_name): sum(self.training_time_list)/self.training_steps_per_mins})

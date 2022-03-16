@@ -26,23 +26,17 @@ class basic_server:
             self.log_sender.send(p)
             self.cached_log_list = []
 
-    def send_statistic(self, info, prefix, suffix=None):
-        # 这个prefix表示的是字符串的前缀，suffix表示的是后缀信息
-        if isinstance(info, dict):
-            for key, value in info.items():
-                self.send_statistic(value, "{}/{}".format(prefix, key), suffix)
-            
-        elif isinstance(info, (tuple, list)):
-            for i, value in enumerate(info):
-                self.send_statistic(value, "{}_{}".format(prefix, i), suffix)
-        
+    def recursive_send(self, log_info, prefix_string, suffix_string=None):
+        # ------------ 这个传入进来的数据是一个字典，需要以递归的形式全部展开加头加尾进行发送 --------------
+        if isinstance(log_info, dict):
+            for key, value in log_info.items():
+                self.recursive_send(value, "{}/{}".format(prefix_string,key),suffix_string)
+        elif isinstance(log_info, (tuple,list)):
+            for index, value in enumerate(log_info):
+                self.recursive_send(value, "{}_{}".format(prefix_string, index), suffix_string)
         else:
-            if suffix is not None:
-                key = "{}/{}".format(prefix, suffix)
-
-            else:
-                key = prefix
-            self.send_log({key: info})
+            key = "{}/{}".format(prefix_string, suffix_string) if suffix_string is not None else prefix_string
+            self.send_log({key: log_info})
 
             
         

@@ -101,30 +101,30 @@ class TrainingSet:
         # ------------- 这个地方是添加数据进去，这个instance是一个列表 --------------
         instant_number = len(instance)
         logger.info("------------- 此次添加的数据个数为 {} ----------------".format(instant_number))
-        for _ in range(instant_number):
+        for sample_index in range(instant_number):
             local_index = self.cursor % self.max_capacity
-            self.data_buffer['target_state_value'][local_index, :, :] = instance[local_index]['target_state_value']
-            self.data_buffer['instant_reward'][local_index, :, :] = instance[local_index]['instant_reward']
-            self.data_buffer['current_state_value'][local_index, :, :] = instance[local_index]['current_state_value']
-            self.data_buffer['advantages'][local_index, :, :] = instance[local_index]['advantages']
-            self.data_buffer['old_network_value'][local_index, :, :] = instance[local_index]['old_network_value']   
-            self.data_buffer['done'][local_index] = instance[local_index]['done']
-            self.data_buffer['current_state']['global_state']['global_channel_matrix'][local_index, :, :, :] = instance[local_index]['current_state']['global_state']['global_channel_matrix'] 
-            self.data_buffer['current_state']['global_state']['global_average_reward'][local_index, :, :] = instance[local_index]['current_state']['global_state']['global_average_reward']
-            self.data_buffer['current_state']['global_state']['global_scheduling_count'][local_index,:, :] = instance[local_index]['current_state']['global_state']['global_scheduling_count']
-            self.data_buffer['next_state']['global_state']['global_channel_matrix'][local_index, :, :, :] = instance[local_index]['next_state']['global_state']['global_channel_matrix'] 
-            self.data_buffer['next_state']['global_state']['global_average_reward'][local_index, :, :] = instance[local_index]['next_state']['global_state']['global_average_reward']
-            self.data_buffer['next_state']['global_state']['global_scheduling_count'][local_index,:, :] = instance[local_index]['next_state']['global_state']['global_scheduling_count']
+            self.data_buffer['target_state_value'][local_index, :, :] = instance[sample_index]['target_state_value']
+            self.data_buffer['instant_reward'][local_index, :, :] = instance[sample_index]['instant_reward']
+            self.data_buffer['current_state_value'][local_index, :, :] = instance[sample_index]['current_state_value']
+            self.data_buffer['advantages'][local_index, :, :] = instance[sample_index]['advantages']
+            self.data_buffer['old_network_value'][local_index, :, :] = instance[sample_index]['old_network_value']   
+            self.data_buffer['done'][local_index] = instance[sample_index]['done']
+            self.data_buffer['current_state']['global_state']['global_channel_matrix'][local_index, :, :, :] = instance[sample_index]['current_state']['global_state']['global_channel_matrix'] 
+            self.data_buffer['current_state']['global_state']['global_average_reward'][local_index, :, :] = instance[sample_index]['current_state']['global_state']['global_average_reward']
+            self.data_buffer['current_state']['global_state']['global_scheduling_count'][local_index,:, :] = instance[sample_index]['current_state']['global_state']['global_scheduling_count']
+            self.data_buffer['next_state']['global_state']['global_channel_matrix'][local_index, :, :, :] = instance[sample_index]['next_state']['global_state']['global_channel_matrix'] 
+            self.data_buffer['next_state']['global_state']['global_average_reward'][local_index, :, :] = instance[sample_index]['next_state']['global_state']['global_average_reward']
+            self.data_buffer['next_state']['global_state']['global_scheduling_count'][local_index,:, :] = instance[sample_index]['next_state']['global_state']['global_scheduling_count']
             for index in range(self.agent_nums):
                 agent_key = 'agent_' + str(index)
-                self.data_buffer['current_state']['agent_obs'][agent_key]['channel_matrix'][local_index, :, :, :] = instance[local_index]['current_state']['agent_obs'][agent_key]['channel_matrix']
-                self.data_buffer['current_state']['agent_obs'][agent_key]['average_reward'][local_index, :, :] = instance[local_index]['current_state']['agent_obs'][agent_key]['average_reward']
-                self.data_buffer['current_state']['agent_obs'][agent_key]['scheduling_count'][local_index, :, :] = instance[local_index]['current_state']['agent_obs'][agent_key]['scheduling_count']
-                self.data_buffer['next_state']['agent_obs'][agent_key]['channel_matrix'][local_index, :, :, :] = instance[local_index]['next_state']['agent_obs'][agent_key]['channel_matrix']
-                self.data_buffer['next_state']['agent_obs'][agent_key]['average_reward'][local_index, :, :] = instance[local_index]['next_state']['agent_obs'][agent_key]['average_reward']
-                self.data_buffer['next_state']['agent_obs'][agent_key]['scheduling_count'][local_index, :, :] = instance[local_index]['next_state']['agent_obs'][agent_key]['scheduling_count']
-                self.data_buffer['old_action_log_probs'][agent_key][local_index, :] = instance[local_index]['old_action_log_probs'][agent_key]
-                self.data_buffer['actions'][agent_key][local_index, :, :] = instance[local_index]['actions'][agent_key]
+                self.data_buffer['current_state']['agent_obs'][agent_key]['channel_matrix'][local_index, :, :, :] = instance[sample_index]['current_state']['agent_obs'][agent_key]['channel_matrix']
+                self.data_buffer['current_state']['agent_obs'][agent_key]['average_reward'][local_index, :, :] = instance[sample_index]['current_state']['agent_obs'][agent_key]['average_reward']
+                self.data_buffer['current_state']['agent_obs'][agent_key]['scheduling_count'][local_index, :, :] = instance[sample_index]['current_state']['agent_obs'][agent_key]['scheduling_count']
+                self.data_buffer['next_state']['agent_obs'][agent_key]['channel_matrix'][local_index, :, :, :] = instance[sample_index]['next_state']['agent_obs'][agent_key]['channel_matrix']
+                self.data_buffer['next_state']['agent_obs'][agent_key]['average_reward'][local_index, :, :] = instance[sample_index]['next_state']['agent_obs'][agent_key]['average_reward']
+                self.data_buffer['next_state']['agent_obs'][agent_key]['scheduling_count'][local_index, :, :] = instance[sample_index]['next_state']['agent_obs'][agent_key]['scheduling_count']
+                self.data_buffer['old_action_log_probs'][agent_key][local_index, :] = instance[sample_index]['old_action_log_probs'][agent_key]
+                self.data_buffer['actions'][agent_key][local_index, :, :] = instance[sample_index]['actions'][agent_key]
             self.cursor += 1
 
     def slice(self):

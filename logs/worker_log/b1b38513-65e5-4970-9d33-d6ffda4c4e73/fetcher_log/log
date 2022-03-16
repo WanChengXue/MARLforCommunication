@@ -1,3 +1,0 @@
-2022-02-22 22:56:04,244,244,INFO,Fether_log::---------------- policy fetcher将最新的模型存放的地方为: {'policy_path': '/home/miao/Desktop/ICC/code_part/policy_max_average_SE.model', 'critic_path': '/home/miao/Desktop/ICC/code_part/critic_max_average_SE.model'} ----------------
-2022-02-22 22:56:04,244,244,INFO,Fether_log::======================= 构建fetcher成功, 创建最新模型请求套接字 ===============
-2022-02-22 22:56:04,244,244,INFO,Fether_log::======================= 最新模型保存到的路径为: {'policy_path': '/home/miao/Desktop/ICC/code_part/policy_max_average_SE.model', 'critic_path': '/home/miao/Desktop/ICC/code_part/critic_max_average_SE.model'} ====================

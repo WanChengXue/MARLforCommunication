@@ -21,8 +21,9 @@ net = {
 }
 '''
 class MAPPOTrainer:
-    def __init__(self, net, optimizer, scheduler ,policy_config):
+    def __init__(self, net, optimizer, scheduler ,policy_config, local_rank):
         self.policy_config = policy_config
+        self.rank = local_rank
         self.agent_nums = self.policy_config['agent_nums']
         self.clip_epsilon = self.policy_config["clip_epsilon"]
         self.entropy_coef = self.policy_config['entropy_coef']
@@ -43,6 +44,7 @@ class MAPPOTrainer:
         self.policy_net = net['policy']
         self.policy_optimizer = optimizer['policy']
         self.policy_scheduler = scheduler['policy']
+        self.policy_name = list(self.policy_net.keys())
         # ------- 如果使用了critic，无论采用中心化critic还是s
         if self.using_critic:
             if self.centralize_critic or self.seperate_critic:
@@ -51,6 +53,7 @@ class MAPPOTrainer:
                 self.critic_optimizer = optimizer['critic']
                 self.critic_scheduler = scheduler['critic']
                 self.critic_loss = self.huber_loss
+                self.critic_name = list(self.critic_net.keys())
             else:
                 # -------- 这个出现的原因，就是centralize_critic和seperate_critic都设置为False，但是using_critic为True ---
                 pass
@@ -93,19 +96,22 @@ class MAPPOTrainer:
     def step(self, training_batch):
         current_state = training_batch['current_state']
         # ================= 使用了GAE估计出来了advantage value  ============
-        advantages = training_batch['advantages'].squeeze(-1)
-        # ----------------- 这个值是使用采样critic网络前向计算出出来的结果，主要用来做value clip ----------------
-        old_network_value = training_batch['old_network_value'].squeeze(-1)
-        target_state_value = training_batch['target_state_value'].squeeze(-1)
+        
         actions = training_batch['actions']
         old_action_log_probs = training_batch['old_action_log_probs']
         # -------------- 通过神经网络计算一下在当前网络下的状态值 --------------
         if self.multi_objective_start:
             predict_state_value_PF, predict_state_value_Edge = self.critic_net(current_state['global_state'])
             predict_state_value = torch.cat([predict_state_value_PF, predict_state_value_Edge], 1)
+            advantages = training_batch['advantages'].squeeze(-1)
+            # ----------------- 这个值是使用采样critic网络前向计算出出来的结果，主要用来做value clip ----------------
+            old_network_value = training_batch['old_network_value'].squeeze(-1)
+            target_state_value = training_batch['target_state_value'].squeeze(-1)
         else:
-            predict_state_value = self.critic_net(current_state['global_state'])
-
+            predict_state_value = self.critic_net[self.critic_name[0]](current_state['global_state'])
+            advantages = training_batch['advantages'][:,0,:]
+            old_network_value = training_batch['old_network_value'][:,0,:]
+            target_state_value = training_batch['target_state_value'][:,0,:]
         # 这个地方使用value clip操作
         if self.clip_value:
             value_clamp_range = 0.2
@@ -138,14 +144,18 @@ class MAPPOTrainer:
 
         mean_loss = torch.mean(value_loss_matrix, 0)
         # ================== 将这两个head的loss进行backward之后,更新这个网络的参数即可 ===================
-        state_value_loss_PF_head = mean_loss[0]
-        state_value_loss_Edge_head = mean_loss[1]
-        total_state_loss = state_value_loss_Edge_head + state_value_loss_PF_head
-        self.optimizer_critic.zero_grad()
+        if self.multi_objective_start:
+            state_value_loss_PF_head = mean_loss[0]
+            state_value_loss_Edge_head = mean_loss[1]
+            total_state_loss = state_value_loss_Edge_head + state_value_loss_PF_head
+        else:
+            total_state_loss = mean_loss
+        self.critic_optimizer[self.critic_name[0]].zero_grad()
         total_state_loss.backward()
         if self.grad_clip is not None:
-            nn.utils.clip_grad_norm_(self.critic_net.parameters(), self.grad_clip)
-        self.optimizer_critic.step()
+            nn.utils.clip_grad_norm_(self.critic_net[self.critic_name[0]].parameters(), self.grad_clip)
+        self.critic_optimizer[self.critic_name[0]].step()
+        self.critic_scheduler[self.critic_name[0]].step()
         # ------------------ 这个地方开始用来更新策略网络的参数, 使用PPO算法, 把多个智能体的观测叠加到batch维度上 ----------------------------
         advantage_std = torch.std(advantages, 0)
         advantage_mean = torch.std(advantages, 0)
@@ -153,10 +163,11 @@ class MAPPOTrainer:
         if self.parameter_sharing:
             policy_loss_list = []
             entropy_loss_list = []
-            self.optimizer_actor.zero_grad()
+            policy_key = self.policy_name[0]
+            self.policy_optimizer[policy_key].zero_grad()
             for index in range(self.agent_nums):
                 agent_key = 'agent_' + str(index)
-                agent_action_log_probs, agent_conditional_entropy = self.policy_net(current_state['agent_obs'][agent_key], actions[agent_key].squeeze(-1), False)
+                agent_action_log_probs, agent_conditional_entropy = self.policy_net[policy_key](current_state['agent_obs'][agent_key], actions[agent_key].squeeze(-1), False,device=self.rank)
                 importance_ratio = torch.exp(agent_action_log_probs - old_action_log_probs[agent_key])
                 surr1 = importance_ratio * advantage
                 # ================== 这个地方采用PPO算法，进行clip操作 ======================
@@ -179,19 +190,19 @@ class MAPPOTrainer:
             total_policy_loss.backward()    
             if self.grad_clip is not None:
                 max_grad_norm = 10
-                nn.utils.clip_grad_norm_(self.policy_net.parameters(), max_grad_norm)
-            self.optimizer_actor.step()
-
-            return {
-                'value_loss': total_state_loss.item(),
-                'conditional_entropy': entropy_loss.item(),
-                'advantage_std': advantage_std.cpu().numpy().tolist(),
-                'advantage_mean': advantage_mean.cpu().numpy().tolist(),
-                'policy_loss': policy_loss.item(),
-                'total_policy_loss': total_policy_loss.item()
+                nn.utils.clip_grad_norm_(self.policy_net[policy_key].parameters(), max_grad_norm)
+            self.policy_optimizer[policy_key].step()
+            self.policy_scheduler[policy_key].step()
+            
+        return {
+            'value_loss': total_state_loss.item(),
+            'conditional_entropy': entropy_loss.item(),
+            'advantage_std': advantage_std.cpu().numpy().tolist(),
+            'advantage_mean': advantage_mean.cpu().numpy().tolist(),
+            'policy_loss': policy_loss.item(),
+            'total_policy_loss': total_policy_loss.item()
             }
-        else:
-            raise NotImplementedError()
+
 
 
 

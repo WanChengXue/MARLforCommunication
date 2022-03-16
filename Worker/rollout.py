@@ -96,19 +96,22 @@ class rollout_sampler:
                 # ------------ 这个actions[agent_index]的维度是一个长度为16的向量，需要变成16*1
                 data_dict[-1]['actions'][agent_key] = actions[agent_index][:,np.newaxis]
             data_dict[-1]['done'] = done
-            data_dict[-1]['instant_reward'] = np.array([PF_sum])[:,np.newaxis]
+            data_dict[-1]['instant_reward'] = np.sum(instant_SE).reshape(1,1)
             # data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
             data_dict[-1]['current_state_value'] = current_state_value
             # ----------- 这个变量是使用采样的方式，得到的网络输出 -------------------
             data_dict[-1]['old_network_value'] = net_work_output
             data_dict[-1]['next_state'] = copy.deepcopy(next_state)
             state = next_state
+            # self.logger.info("------------- 当前样本的数目为 {} --------------".format(len(data_dict)))
             # -----------------------------------------------------------------------------------------
             if len(data_dict) == self.policy_config['traj_len'] or done:
                 # ------------ 数据打包，然后发送，bootstrap value就给0吧 ----------------
                 objective_number = current_state_value.shape[0]
                 bootstrap_value = np.zeros((objective_number,1))
+                # self.logger.info('---------- worker数据开始打包发送到dataserver -------------')
                 self.pack_data(bootstrap_value, data_dict)
+                data_dict = []
         mean_instant_SE_sum = np.mean(instant_SE_sum_list).item()
         mean_edge_average_SE = np.mean(edge_average_capacity_list).item()
         mean_PF_sum = np.mean(PF_sum_list).item()

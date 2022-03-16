@@ -1,7 +1,0 @@
-2022-03-13 12:22:37,097,97,INFO,Sampler_147bc3::==================== 此智能体要发送数据到: 10.19.93.9, 连接的端口为: 9558 =================
-2022-03-13 12:22:40,391,391,INFO,Sampler_147bc3::---------------- policy fetcher将最新的模型存放的地方为: {'policy': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/147bc3_default_max_average_SE.model')}, 'critic': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/147bc3_default_max_average_SE.model')}} ----------------
-2022-03-13 12:22:40,392,392,INFO,Sampler_147bc3::======================= 构建fetcher成功, 创建最新模型请求套接字 ===============
-2022-03-13 12:22:44,152,152,INFO,Sampler_147bc3::------------ 完成AgentManager的构建 -----------
-2022-03-13 12:31:45,534,534,INFO,Sampler_147bc3::------------------ 完成采样端的构建，此worker的id为147bc3 -----------------
-2022-03-13 12:32:13,544,544,INFO,Sampler_147bc3::======================== 重置环境 =======================
-2022-03-13 12:32:16,560,560,INFO,Sampler_147bc3::==================== 智能体重置，对于训练模式，就是同步configserver上面的模型，测试模式就是加载本地模型 ====================

@@ -1,0 +1,209 @@
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+
+                              _ooOoo_
+                             o8888888o
+                             88" . "88
+                             (| -_- |)
+                             O\  =  /O
+                          ____/`---'\____
+                        .'  \\|     |//  `.
+                       /  \\|||  :  |||//  \
+                      /  _||||| -:- |||||-  \
+                      |   | \\\  -  /// |   |
+                      | \_|  ''\---/''  |   |
+                      \  .-\__  `-`  ___/-. /
+                    ___`. .'  /--.--\  `. . __
+                 ."" '<  `.___\_<|>_/___.'  >'"".
+                | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+                \  \ `-.   \_ __\ /__ _/   .-` /  /
+           ======`-.____`-.___\_____/___.-`____.-'======
+                              `=---='
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                      佛祖保佑        永无BUG
+             佛曰:
+                    写字楼里写字间，写字间里程序员；
+                    程序人员写程序，又拿程序换酒钱。
+                    酒醒只在网上坐，酒醉还来网下眠；
+                    酒醉酒醒日复日，网上网下年复年。
+                    但愿老死电脑间，不愿鞠躬老板前；
+                    奔驰宝马贵者趣，公交自行程序员。
+                    别人笑我忒疯癫，我笑自己命太贱；
+                    不见满街漂亮妹，哪个归得程序员？
+            
+2022-03-16 13:52:55,787,787,INFO,LogServer_log::================== 完成log server的构建，配置好了tensorboard的路径为 ./logs/summary_log
+Traceback (most recent call last):
+  File "/home/miao/.conda/envs/Pytorch/lib/python3.8/runpy.py", line 194, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/miao/.conda/envs/Pytorch/lib/python3.8/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/miao/Desktop/ICC/code_part/Learner/log_server.py", line 269, in <module>
+    server.run()
+  File "/home/miao/Desktop/ICC/code_part/Learner/log_server.py", line 203, in run
+    socks = dict(self.poller.poll(timeout=100))
+  File "/home/miao/.conda/envs/Pytorch/lib/python3.8/site-packages/zmq/sugar/poll.py", line 103, in poll
+    return zmq_poll(self.sockets, timeout=timeout)
+  File "zmq/backend/cython/_poll.pyx", line 123, in zmq.backend.cython._poll.zmq_poll
+  File "zmq/backend/cython/checkrc.pxd", line 13, in zmq.backend.cython.checkrc._check_rc
+KeyboardInterrupt
+
+                              _ooOoo_
+                             o8888888o
+                             88" . "88
+                             (| -_- |)
+                             O\  =  /O
+                          ____/`---'\____
+                        .'  \\|     |//  `.
+                       /  \\|||  :  |||//  \
+                      /  _||||| -:- |||||-  \
+                      |   | \\\  -  /// |   |
+                      | \_|  ''\---/''  |   |
+                      \  .-\__  `-`  ___/-. /
+                    ___`. .'  /--.--\  `. . __
+                 ."" '<  `.___\_<|>_/___.'  >'"".
+                | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+                \  \ `-.   \_ __\ /__ _/   .-` /  /
+           ======`-.____`-.___\_____/___.-`____.-'======
+                              `=---='
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                      佛祖保佑        永无BUG
+             佛曰:
+                    写字楼里写字间，写字间里程序员；
+                    程序人员写程序，又拿程序换酒钱。
+                    酒醒只在网上坐，酒醉还来网下眠；
+                    酒醉酒醒日复日，网上网下年复年。
+                    但愿老死电脑间，不愿鞠躬老板前；
+                    奔驰宝马贵者趣，公交自行程序员。
+                    别人笑我忒疯癫，我笑自己命太贱；
+                    不见满街漂亮妹，哪个归得程序员？
+            
+2022-03-16 13:56:23,169,169,INFO,LogServer_log::================== 完成log server的构建，配置好了tensorboard的路径为 ./logs/summary_log
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+Traceback (most recent call last):
+  File "/home/miao/.conda/envs/Pytorch/lib/python3.8/runpy.py", line 194, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/miao/.conda/envs/Pytorch/lib/python3.8/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/miao/Desktop/ICC/code_part/Learner/log_server.py", line 269, in <module>
+    server.run()
+  File "/home/miao/Desktop/ICC/code_part/Learner/log_server.py", line 203, in run
+    socks = dict(self.poller.poll(timeout=100))
+  File "/home/miao/.conda/envs/Pytorch/lib/python3.8/site-packages/zmq/sugar/poll.py", line 103, in poll
+    return zmq_poll(self.sockets, timeout=timeout)
+  File "zmq/backend/cython/_poll.pyx", line 123, in zmq.backend.cython._poll.zmq_poll
+  File "zmq/backend/cython/checkrc.pxd", line 13, in zmq.backend.cython.checkrc._check_rc
+KeyboardInterrupt
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 7
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 7
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 7
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 7
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 7
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 7
+/arrow/cpp/src/plasma/store.cc:1197: SIGTERM Signal received, closing Plasma Server...
+/arrow/cpp/src/plasma/store.cc:1197: SIGTERM Signal received, closing Plasma Server...
+/arrow/cpp/src/plasma/store.cc:1197: SIGTERM Signal received, closing Plasma Server...
+/arrow/cpp/src/plasma/store.cc:1197: SIGTERM Signal received, closing Plasma Server...
+/arrow/cpp/src/plasma/store.cc:1197: SIGTERM Signal received, closing Plasma Server...
+/arrow/cpp/src/plasma/store.cc:1197: SIGTERM Signal received, closing Plasma Server...
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 10
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 8
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 7
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 13
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 12
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 9
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 11
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 11
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 7
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 9
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 13
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 8
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 12
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 10
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 11
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 9
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 10
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 13
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 12
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 7
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 8
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 14
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 12
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 10
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 11
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 13
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 7
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 9
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 8
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 14
+/arrow/cpp/src/plasma/store.cc/arrow/cpp/src/plasma/store.cc/arrow/cpp/src/plasma/store.cc/arrow/cpp/src/plasma/store.cc::::1197119711971197: : : : SIGTERM Signal received, closing Plasma Server...SIGTERM Signal received, closing Plasma Server...SIGTERM Signal received, closing Plasma Server...SIGTERM Signal received, closing Plasma Server...
+
+
+
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:1197: SIGTERM Signal received, closing Plasma Server...
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 0.5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 9
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 11
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 10
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 12
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 6
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 8
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 7
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 13
+/arrow/cpp/src/plasma/store.cc:754: Disconnecting client on fd 14
+/arrow/cpp/src/plasma/store.cc:1197: SIGTERM Signal received, closing Plasma Server...

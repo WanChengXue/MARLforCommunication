@@ -13,7 +13,7 @@ current_path = os.path.abspath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])
 sys.path.append(root_path)
 
-from Utils import setup_logger
+from Utils import setup_logger, create_folder
 from Learner.basic_server import basic_server
 
 
@@ -134,7 +134,7 @@ class LogServer(basic_server):
         self.agent_nums = self.config_dict['env']['agent_nums']
         self.total_antenna_nums = self.config_dict['env']['total_antenna_nums']
         # ------- 机器的数目 * 卡的数目 * 每张卡对应的数据进程数目 = 所有的数据服务 --------------
-        self.total_data_server = self.config_dict['policy_config']['device_number_per_machine'] * self.config_dict['policy_config']['server_number_per_device'] * len(self.config_dict['policy_config']['machines'])
+        self.total_data_server = self.config_dict['policy_config']['device_number_per_machine'] * self.config_dict['policy_config']['server_number_per_device'] * len(self.config_dict['policy_config']['machine_list'])
         self.receiver = self.context.socket(zmq.PULL)
         self.receiver.bind("tcp://%s:%d" % (self.config_dict["log_server_address"], self.config_dict["log_server_port"]))
         self.poller.register(self.receiver, zmq.POLLIN)
@@ -146,6 +146,11 @@ class LogServer(basic_server):
         # --------- 这两个指标是说，采样端的数目，以及下一次计算的时间 ——--------
         self.active_docker_dict = {}
         self.next_cal_docker_time = time.time()
+        # ----- 打开tensorboard服务，将输出结果和错误信息丢掉，本地打开训练机器的tensorboard，直接网页上打开,tensorboard默认6006端口，ip:6006 ---------
+        create_folder(self.config_dict['policy_config']['tensorboard_folder'], delete_origin=True)
+        tensorboard_command = "nohup python -m tensorboard.main --logdir=./{} --host={} > /dev/null 2>&1 &".format(self.config_dict['policy_config']['tensorboard_folder'], self.config_dict['log_server_address'])
+        os.system(tensorboard_command)
+        self.logger.info("----------------- 创建好了tensorboard日志文件 -----------------")
         self.logger.info("================== 完成log server的构建，配置好了tensorboard的路径为 {}".format(os.path.join(self.config_dict["log_dir"], "summary_log")))
 
 

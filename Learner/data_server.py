@@ -57,11 +57,11 @@ class data_server(basic_server):
         self.next_print_log_time = time.time()
         # 和plasma 相关的一些变量
         plasma_location = self.policy_config['plasma_server_location']
-        plasma_id = generate_plasma_id(self.global_rank, self.data_server_local_rank)
+        plasma_id = generate_plasma_id(machine_index, self.local_rank,self.data_server_local_rank)
         self.plasma_data_id = plasma.ObjectID(plasma_id)
         #---------------------- 连接server, 这个需要在服务器上提前进行打开的 ----------------------------------------
         self.plasma_client = plasma.connect(plasma_location, 2)
-        self.data_server_sampling_interval = self.policy_config["data_server_sampling_interval"]
+        self.data_server_sampling_interval = self.config_dict["data_server_sampling_interval"]
         self.next_sampling_time = time.time()
 
 
@@ -90,7 +90,7 @@ class data_server(basic_server):
                 cur_recv_total += len(all_data)
             
             self.recv_training_instance_count += cur_recv_total
-
+            self.logger.info("--------- 本次接受到数据点数目 {} ----------------".format(self.recv_training_instance_count))
             #------------------------ 考察一下这次有没有数据被接收,看一下这次解析数据消耗了多少时间 -------------------
             if len(raw_data_list) > 0:
                 self.parse_data_time_list.append(time.time()-start_process_time)
@@ -116,9 +116,8 @@ class data_server(basic_server):
         # ----------- 数据转移到plasma client里面去 -------------------
         if self.global_rank == 0:
             self.logger.info("================= 采样时间为 {}, batch size为 {}, 目前buffer的数据为 {} =============".format(time.time()-start_time, self.batch_size, self.traing_set.cursor))
-        pickle_data = pickle.dumps(sample_data_dict)
+        self.plasma_client.put(sample_data_dict, self.plasma_data_id, memcopy_threads=12)
         del sample_data_dict
-        self.plasma_client.put(pickle_data, self.plasma_data_id, memcopy_threads=12)
         # ------------------------------------------------------------
         
 

@@ -1,9 +1,0 @@
-2022-02-22 23:07:37,227,227,INFO,config_server::============= 接收到了新模型, 当前的策略是 max_average_SE, 模型路径在 {'critic_url': 'http://10.19.93.9:6020/p2p_plf_max_average_SE/model_max_average_SE_critic_1645542456.9168317', 'policy_url': 'http://10.19.93.9:6020/p2p_plf_max_average_SE/model_max_average_SEpolicy_1645542456.9168317'} =============
-2022-02-22 23:27:36,565,565,INFO,config_server::============= 接收到了新模型, 当前的策略是 max_average_SE, 模型路径在 {'critic_url': 'http://10.19.93.9:6020/p2p_plf_max_average_SE/model_max_average_SE_critic_1645543656.1575913', 'policy_url': 'http://10.19.93.9:6020/p2p_plf_max_average_SE/model_max_average_SEpolicy_1645543656.1575913'} =============
-2022-03-13 11:49:39,745,745,INFO,Config_server_log::---------------------- 构建ConfigServer成功 -----------
-2022-03-13 11:53:25,534,534,INFO,Config_server_log::---------------------- 构建ConfigServer成功 -----------
-2022-03-13 11:55:44,040,40,INFO,Config_server_log::---------------------- 构建ConfigServer成功 -----------
-2022-03-13 11:59:52,433,433,INFO,Config_server_log::---------------------- 构建ConfigServer成功 -----------
-2022-03-13 12:00:01,441,441,INFO,Config_server_log::---------------------- 构建ConfigServer成功 -----------
-2022-03-13 12:00:34,904,904,INFO,Config_server_log::---------------------- 构建ConfigServer成功 -----------
-2022-03-13 12:11:03,720,720,INFO,Config_server_log::------------ 接收到了新模型，模型路径在: {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647144640.497976'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647144640.497976'}} --------------

@@ -144,8 +144,8 @@ class AgentManager:
             for model_type in self.policy_fetcher.model_path.keys():
                 for model_name in self.policy_fetcher.model_path[model_type]:
                     self.agent[model_type][model_name].synchronize_model(self.policy_fetcher.model_path[model_type][model_name])
-        else:
-            self.logger.info("------------- agent调用reset函数之后没有获取到新模型,检测fetcher函数 ------------")
+        # else:
+        #     self.logger.info("------------- agent调用reset函数之后没有获取到新模型,检测fetcher函数 ------------")
 
     def reset(self):
         # ---------- 模型重置 ------------------
@@ -175,15 +175,7 @@ class AgentManager:
             # ------ 如果说是eval mode，那么就不需要更新模型了，直接返回就可以了 -------
             return
         else:
-            model_info = self.policy_fetcher.step()
-            if model_info is not None:
-                self.model_info = model_info
-                if self.parameter_sharing:
-                    self.agent.synchronize_model(model_info['path']['policy_path'])
-                else:
-                    for agent_key in self.agent.keys():
-                        self.agent[agent_key].synchronize_model(model_info['path']['policy_path'][agent_key])
-                deserialize_model(self.global_critic, model_info['path']['critic_path'])
+            self.synchronize_model()
 
     def get_model_info(self):
         return self.model_info

@@ -21,7 +21,7 @@ def parse_config(config_file_path):
     if "main_server_ip" in config_dict:
         config_dict["log_server_address"] = config_dict["main_server_ip"]
         config_dict["config_server_address"] = config_dict["main_server_ip"]
-
+    create_folder(config_dict['log_dir'])
     # ----------------- 覆盖掉原始的值 ----------------------------------------------------------------------
     # 使用单机多卡去运行
     main_server_ip = config_dict["main_server_ip"]

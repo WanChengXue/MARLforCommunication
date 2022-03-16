@@ -44,7 +44,6 @@ class transformer_pointer_network_decoder(nn.Module):
         self.dropout = policy_config.get('dropout', 0.0)
         self.activation = policy_config.get('activation', torch.functional.F.relu)
         self.batch_first = True
-        self.device = policy_config.get('device', 'cpu')
         self.hidden_dim = policy_config['hidden_dim'] * 3
         # 这个action dim其实就是用户数目 + 1
         self.action_dim = policy_config['action_dim'] +1 
@@ -62,7 +61,7 @@ class transformer_pointer_network_decoder(nn.Module):
         self.embedding_layer = nn.Linear(self.hidden_dim, self.d_model)
 
 
-    def forward(self, tgt, memory, inference_mode= True, action_list=None):
+    def forward(self, tgt, memory, inference_mode= True, action_list=None, device='cpu'):
         if inference_mode:
             assert action_list is None
         else:
@@ -73,8 +72,8 @@ class transformer_pointer_network_decoder(nn.Module):
         # 首先对tgt这个矩阵进行升高维度操作
         embbding_data = torch.relu(self.embedding_layer(tgt))
         # 上面是说，在推断，采样阶段，是不会传入action list这个列表的，只有在训练阶段才会，并且要计算V值的。
-        mask = torch.zeros(batch_size, self.action_dim).bool().to(self.device)
-        terminate_batch = torch.zeros(batch_size, 1).bool().to(self.device)
+        mask = torch.zeros(batch_size, self.action_dim).bool().to(device)
+        terminate_batch = torch.zeros(batch_size, 1).bool().to(device)
         repeat_init_decoder = self.init_decoder.repeat(batch_size, 1, 1)
         # 两个矩阵进行合并
         scheduling_action_list = []
@@ -122,7 +121,7 @@ class transformer_pointer_network_decoder(nn.Module):
             # 得到结束了的batch
             terminate_batch = scheduling_index == 0 
             # 构建下一次循环的输入, 通过mask选择
-            selected_mask = torch.zeros(batch_size, self.action_dim).bool()
+            selected_mask = torch.zeros(batch_size, self.action_dim).bool().to(device)
             selected_mask.scatter_(1, scheduling_index, True)
             selected_input_data = concatenate_data[selected_mask]
             decoder_input = torch.cat([decoder_input, selected_input_data.unsqueeze(1)], axis=1)
@@ -148,7 +147,7 @@ class model(nn.Module):
         self.transformer_encoder = transformer_model(self.policy_config)
         self.pointer_decoder = transformer_pointer_network_decoder(self.policy_config)
 
-    def forward(self, src, action_list=None, inference_mode=True):
+    def forward(self, src, action_list=None, inference_mode=True, device='cpu'):
         # ===================== 在采样阶段的时候,action list不会传入,并且inference_mode是True
         channel_matrix = src['channel_matrix']
         average_reward = src['average_reward']
@@ -161,7 +160,7 @@ class model(nn.Module):
         embedding_output = torch.relu(self.embedding_layer(backbone))
         # 送入到Transformer encoder, 可以得到一个bath size * seq len * d_model的矩阵
         transformer_encoder_output = self.transformer_encoder(embedding_output)
-        res = self.pointer_decoder(backbone.clone(), transformer_encoder_output, inference_mode, action_list)
+        res = self.pointer_decoder(backbone.clone(), transformer_encoder_output, inference_mode, action_list, device=device)
         return res[0], res[1] 
 
 class critic(nn.Module):

@@ -12,11 +12,12 @@ root_path = '/'.join(current_path.split('/')[:-2])
 sys.path.append(root_path)
 
 from  Learner.basic_server import basic_server
-from Utils import setup_logger
+from Utils import config_parse, setup_logger
 from Utils.zmq_utils import zmq_nonblocking_multipart_recv, zmq_nonblocking_recv
 # Learner ----> ConfigServer <---- Worker
 class config_server(basic_server):
     def __init__(self, config_path):
+        print(config_path)
         super(config_server, self).__init__(config_path)
         config_server_log_path = pathlib.Path(self.config_dict['log_dir'] + "/config_server_log")
         self.logger = setup_logger("Config_server_log", config_server_log_path)
