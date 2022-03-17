@@ -90,7 +90,7 @@ class data_server(basic_server):
                 cur_recv_total += len(all_data)
             
             self.recv_training_instance_count += cur_recv_total
-            self.logger.info("--------- 本次接受到数据点数目 {} ----------------".format(self.recv_training_instance_count))
+            self.logger.info("--------- 本次接受到数据点数目 {}, 当前buffer的样本数目为 {} ----------------".format(self.recv_training_instance_count, self.traing_set.buffer_size))
             #------------------------ 考察一下这次有没有数据被接收,看一下这次解析数据消耗了多少时间 -------------------
             if len(raw_data_list) > 0:
                 self.parse_data_time_list.append(time.time()-start_process_time)

@@ -67,6 +67,7 @@ class config_server(basic_server):
                 if self.latest_model_information:
                     assert policy_name == self.latest_model_information['policy_name']
                     model_information = self.latest_model_information 
+                    # self.logger.info("-------------- 接收到了来自于worker端的请求，发送数据为 {} ------------------".format(model_information))
                 else:
                     self.logger.warn("------------ 接收到了来自于worker端的信息, 但是configserver没有接收到learner的模型 --------------")
             else:

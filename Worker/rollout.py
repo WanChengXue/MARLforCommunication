@@ -96,7 +96,7 @@ class rollout_sampler:
                 # ------------ 这个actions[agent_index]的维度是一个长度为16的向量，需要变成16*1
                 data_dict[-1]['actions'][agent_key] = actions[agent_index][:,np.newaxis]
             data_dict[-1]['done'] = done
-            data_dict[-1]['instant_reward'] = np.sum(instant_SE).reshape(1,1)
+            data_dict[-1]['instant_reward'] = np.sum(instant_SE/60).reshape(1,1)
             # data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
             data_dict[-1]['current_state_value'] = current_state_value
             # ----------- 这个变量是使用采样的方式，得到的网络输出 -------------------

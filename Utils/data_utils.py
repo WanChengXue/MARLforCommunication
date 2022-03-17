@@ -38,7 +38,7 @@ class TrainingSet:
             }
         }
         agent_obs['agent1'] = {
-            'channel_matrix': 信道矩阵,维度为batch size * n_channel * user number * 32
+            'channel_matrix': 信道矩阵,维度为batch size * n_channel * user number * 64
             'average_reward': batch size * user number * 1
             'scheduling_count': batch size * user number * 1
         }
@@ -89,6 +89,10 @@ class TrainingSet:
 
     def clear(self):
         self.init_replay_buffer()
+    
+    @property
+    def buffer_size(self):
+        return self.cursor
     
     @property
     def full_buffer(self):
