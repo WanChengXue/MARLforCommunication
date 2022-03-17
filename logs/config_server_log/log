@@ -1,2 +1,0 @@
-2022-03-17 19:47:40,960,960,INFO,Config_server_log::---------------------- 构建ConfigServer成功 -----------
-2022-03-17 19:47:47,071,71,INFO,Config_server_log::------------ 接收到了新模型，模型路径在: {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647517666.6841047'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647517666.6841047'}} --------------
