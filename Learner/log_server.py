@@ -3,7 +3,6 @@ import os
 import pickle
 import time
 import zmq
-
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import pathlib
@@ -120,12 +119,6 @@ class summary_log:
         else:
             self.generate_time_data_output(tag)
 
-    def add_frequency(self, tag, scheduling_list):
-        # ------------ 传入，比如agent_0，调度列表是是这个episode，所有用户的调度次数, 计算平均值，显示所有用户的调度分布情况 -----------
-        self.summary_writer.add_scalar()
-        # =======================================================================
-        pass
-
 
 class LogServer(basic_server):
     def __init__(self, config_path):
@@ -142,16 +135,27 @@ class LogServer(basic_server):
         self.logger = setup_logger("LogServer_log", log_path)
         # --------------- 定义tensorboard的文件夹 ---------------
         # "./logs/summary_log"
-        self.summary_logger = summary_log(os.path.join(self.config_dict["log_dir"], "summary_log"))
+        self.summary_logger = summary_log(self.config_dict['policy_config']['tensorboard_folder'])
         # --------- 这两个指标是说，采样端的数目，以及下一次计算的时间 ——--------
         self.active_docker_dict = {}
         self.next_cal_docker_time = time.time()
         # ----- 打开tensorboard服务，将输出结果和错误信息丢掉，本地打开训练机器的tensorboard，直接网页上打开,tensorboard默认6006端口，ip:6006 ---------
+        self.open_tensorboard_server()
         create_folder(self.config_dict['policy_config']['tensorboard_folder'], delete_origin=True)
-        tensorboard_command = "nohup python -m tensorboard.main --logdir=./{} --host={} > /dev/null 2>&1 &".format(self.config_dict['policy_config']['tensorboard_folder'], self.config_dict['log_server_address'])
+        self.logger.info("================== 完成log server的构建，配置好了tensorboard的路径为 {}".format(self.config_dict['policy_config']['tensorboard_folder']))
+
+    def open_tensorboard_server(self):
+        tensorboard_folder = self.config_dict['policy_config']['tensorboard_folder']
+        # ------- 构建绝对tensorboard路径 --------------
+        function_path = os.path.abspath(__file__)
+        # ------ 这个就是到了Pretrained_model这一层路径下面 ----- ~/Desktop/ICC/code_part
+        root_path = '/'.join(function_path.split('/')[:-2])
+        # ------------ tensorboard_folder的路径是./logs/Tensorboard，需要把./去掉
+        abs_path = root_path + '/' + tensorboard_folder[2:]
+        server_ip = self.config_dict['log_server_address']
+        tensorboard_command = "nohup python -m tensorboard.main --logdir={} --host={} > /dev/null 2>&1 &".format(abs_path, server_ip)
         os.system(tensorboard_command)
-        self.logger.info("----------------- 创建好了tensorboard日志文件 -----------------")
-        self.logger.info("================== 完成log server的构建，配置好了tensorboard的路径为 {}".format(os.path.join(self.config_dict["log_dir"], "summary_log")))
+        self.logger.info("----------------- 创建好了tensorboard日志文件，命令是{} -----------------".format(tensorboard_command))
 
 
     def summary_definition(self):

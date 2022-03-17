@@ -103,13 +103,13 @@ class rollout_sampler:
             data_dict[-1]['old_network_value'] = net_work_output
             data_dict[-1]['next_state'] = copy.deepcopy(next_state)
             state = next_state
-            # self.logger.info("------------- 当前样本的数目为 {} --------------".format(len(data_dict)))
+            self.logger.info("------------- 当前样本的数目为 {} --------------".format(len(data_dict)))
             # -----------------------------------------------------------------------------------------
             if len(data_dict) == self.policy_config['traj_len'] or done:
                 # ------------ 数据打包，然后发送，bootstrap value就给0吧 ----------------
                 objective_number = current_state_value.shape[0]
                 bootstrap_value = np.zeros((objective_number,1))
-                # self.logger.info('---------- worker数据开始打包发送到dataserver -------------')
+                self.logger.info('---------- worker数据开始打包发送到dataserver -------------')
                 self.pack_data(bootstrap_value, data_dict)
                 data_dict = []
         mean_instant_SE_sum = np.mean(instant_SE_sum_list).item()

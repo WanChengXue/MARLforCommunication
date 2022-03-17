@@ -37,7 +37,7 @@ def main(args):
     # ------ 开启learner和data server ----------
     # -------- 计算有多少张卡 ---------
     world_size = len(config_dict['policy_config']['machine_list']) * config_dict['policy_config']['device_number_per_machine']
-    start_learner_data_server(args.config_path, world_size, args.machine_index, config_dict['policy_config']['device_number_per_machine'], config_dict['policy_config']['server_number_per_device'], log_dir)
+    # start_learner_data_server(args.config_path, world_size, args.machine_index, config_dict['policy_config']['device_number_per_machine'], config_dict['policy_config']['server_number_per_device'], log_dir)
     print("---------- main函数顺利启动 -----------")
 
 if __name__=='__main__':
@@ -46,5 +46,3 @@ if __name__=='__main__':
     parser.add_argument("--machine_index", type=int, default=0)
     args = parser.parse_args()
     main(args)
-
-# ps -ef | grep Learner | grep -v grep | awk '{print "kill "$2}' | sh

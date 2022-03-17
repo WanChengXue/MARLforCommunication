@@ -34,7 +34,6 @@ class config_server(basic_server):
         # ------ 最新的模型信息 -----------
         self.latest_model_information = dict()
         self.policy_name = self.config_dict['policy_name']
-        self.latest_model_information['policy_name'] = {}
         self.logger.info("---------------------- 构建ConfigServer成功 -----------")
 
         # ----------- 此处需要开一个子线程，运行http服务，让worker端能够通过requests从这个ip上面下载文件 --------------
@@ -57,6 +56,7 @@ class config_server(basic_server):
         p = Process(target=_help, args=(model_folder, server_ip, server_port, ))
         p.start()
 
+
     def process_model_request(self, raw_data_list):
         # --------- 这个函数用来处理来自于worker的请求 ——-------
         for raw_data in raw_data_list:
@@ -64,16 +64,18 @@ class config_server(basic_server):
             request_information = pickle.loads(raw_data[-1])
             policy_name = request_information['policy_name']
             if request_information['type'] == 'latest':
-                if policy_name in self.latest_model_information:
-                    model_information = self.latest_model_information[policy_name]
+                if self.latest_model_information:
+                    assert policy_name == self.latest_model_information['policy_name']
+                    model_information = self.latest_model_information 
                 else:
-                    self.logger.warn("------------ 接收到了来自于worker端的信息, 但是policy name不统一 --------------")
+                    self.logger.warn("------------ 接收到了来自于worker端的信息, 但是configserver没有接收到learner的模型 --------------")
             else:
                 self.logger.warn("------------- 目前只支持使用最新的模型 ----------")
             # ---------------- 将数据返回给worker --------------
             if model_information is not None:
                 raw_data[-1] = pickle.dumps(model_information)
                 self.model_request.send_multipart(raw_data)
+
 
     def process_new_model(self, raw_data_list):
         # ---------- 这个函数是用来处理来自于learner的最新模型 ——----------
@@ -83,7 +85,7 @@ class config_server(basic_server):
             # ------- 更新latest model information ------------
             policy_name = model_information['policy_name']
             assert policy_name == self.policy_name, '--- learner发送过来的策略信息有错误 ----'
-            self.latest_model_information[policy_name] = {
+            self.latest_model_information = {
                 'url': model_information['url'],
                 'policy_name': policy_name,
                 'time_stamp': time.time()
