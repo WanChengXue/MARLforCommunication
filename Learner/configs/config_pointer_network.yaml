@@ -7,7 +7,7 @@ env:
   bs_antenna_nums: &bs_antenna_nums 16
   total_antenna_nums: &seq_len 20
   # 这个变量表示的是截取多少长度的TTI作为一个训练样本
-  sliding_windows_length: 1000
+  sliding_windows_length: 200
   transmit_power: 0.25
   noise_power: 3.1623e-20
   source_data_folder: 'data_part/Source_data'

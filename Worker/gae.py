@@ -32,3 +32,5 @@ def gae_estimator(traj_data, gamma, tau, bootstrap_value):
         traj_data[step]['advantages'] = copy.deepcopy(advantages)
         traj_data[step]['target_state_value'] = copy.deepcopy(target_state_value)
     return traj_data
+
+
