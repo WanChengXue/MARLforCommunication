@@ -166,6 +166,7 @@ class learner_server(basic_server):
         self._training(batch_data)
         self.training_steps_per_mins += 1
         self.total_training_steps += 1
+        self._send_model(self.total_training_steps)
         # ------------ 将训练数据从plasma从移除 ------------
         self.plasma_client.delete([selected_plasma_id])
         self.plasma_id_queue.put(selected_plasma_id)
@@ -187,10 +188,10 @@ class learner_server(basic_server):
 
     def _save_model(self):
         timestamp = str(time.time())
-        for k,v in self.model:
-            model_save_path = self.policy_config['saved_model_path'] +'/' + k + '_' + timestamp
-            torch.save(v.state_dict(), model_save_path)
-        
+        for model_type in self.policy_config['agent'].keys():
+            for agent_name in self.policy_config['agent'][model_type].keys():
+                model_save_path = self.policy_config['saved_model_path'] + '/' + agent_name + '/' + model_type + '_' + timestamp
+                torch.save(self.model[model_type][agent_name].state_dict(), model_save_path)
 
     def run(self):
         self.logger.info("------------------ learner: {} 开始运行 ----------------".format(self.global_rank))
@@ -218,7 +219,7 @@ if __name__ == '__main__':
     parser.add_argument('--rank', default= 0, type=int, help="rank of current process")
     parser.add_argument('--world_size', default=1, type=int, help='total gpu card')
     parser.add_argument('--init_method', default='tcp://120.0.0.1:23456')
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_multi_cell_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path

@@ -55,14 +55,18 @@ class fetcher:
         # ----------- 这个函数是用来获取最新的模型 ---------------
         self.latest_model_requester.send(pickle.dumps({'policy_name':self.policy_name, 'type': self.policy_type}))
         start_time = time.time()
+        self.logger.info('------------ 等待configserver发送回来的信息 -----------')
         raw_model_info = self.latest_model_requester.recv()
         self.statistic.append("sampler/model_requester_time/{}".format(self.policy_name), time.time()-start_time)
         model_info = pickle.loads(raw_model_info)
+        self.logger.info('-------------- 收到configserver发送回来的信息 {}------------'.format(model_info))
         if model_info['time_stamp'] == self.current_model_time_stamp:
             # ---------- 这个表示接收回来模型的时间戳没有发生变化，判断为同一个模型
             return None
         else:
+            self.logger.info('----------- 开始从configserver下载模型 ------------')
             self._download_model(model_info)
+            self.logger.info('------------- 完成模型下载 ----------------')
             return model_info
 
     def _download_model(self, model_info):

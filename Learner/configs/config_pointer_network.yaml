@@ -7,7 +7,7 @@ env:
   bs_antenna_nums: &bs_antenna_nums 16
   total_antenna_nums: &seq_len 20
   # 这个变量表示的是截取多少长度的TTI作为一个训练样本
-  sliding_windows_length: 200
+  sliding_windows_length: 2
   transmit_power: 0.25
   noise_power: 3.1623e-20
   source_data_folder: 'data_part/Source_data'
@@ -123,7 +123,7 @@ policy_config:
         agent_nums: *agent_nums
         model_type: 'policy'
         parameter_sharing: *parameter_sharing
-
+        min_stream_nums: *min_decoder_time
       # -------- 状态维度和动作维度由环境直接给出 -----------
     critic:
       # -------- critic网络的相关配置 ---------

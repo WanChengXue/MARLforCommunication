@@ -67,6 +67,7 @@ class config_server(basic_server):
                 if self.latest_model_information:
                     assert policy_name == self.latest_model_information['policy_name']
                     model_information = self.latest_model_information 
+                    self.logger.info('---------------- 收到了来自worker端的请求，收到的数据为:{} -----------------'.format(request_information))
                     # self.logger.info("-------------- 接收到了来自于worker端的请求，发送数据为 {} ------------------".format(model_information))
                 else:
                     self.logger.warn("------------ 接收到了来自于worker端的信息, 但是configserver没有接收到learner的模型 --------------")
@@ -76,7 +77,7 @@ class config_server(basic_server):
             if model_information is not None:
                 raw_data[-1] = pickle.dumps(model_information)
                 self.model_request.send_multipart(raw_data)
-
+                self.logger.info('------------- 已经给worker发送了信息 {}--------------'.format(model_information))
 
     def process_new_model(self, raw_data_list):
         # ---------- 这个函数是用来处理来自于learner的最新模型 ——----------

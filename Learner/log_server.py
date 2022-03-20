@@ -161,15 +161,14 @@ class LogServer(basic_server):
     def summary_definition(self):
         ####################### 这个部分就是初始化一个tag到tensorboard上面，定义不同tag的计算方式 ########################
         # --------- 效果类指标, 分别是采样完毕后，所有用户平均SE的和以及边缘用户的平均SE -----------
-        self.summary_logger.add_tag("result/edge_average_capacity/{}".format(self.policy_name), 100, "mean")
-        self.summary_logger.add_tag("result/instant_capacity_average/{}".format(self.policy_name), 100, "mean")
-        self.summary_logger.add_tag("result/average_PF_sum/{}".format(self.policy_name), 100, "mean")
+        self.summary_logger.add_tag("result/edge_average_capacity/{}".format(self.policy_name), 1, "mean")
+        self.summary_logger.add_tag("result/instant_capacity_average/{}".format(self.policy_name), 1, "mean")
+        self.summary_logger.add_tag("result/average_PF_sum/{}".format(self.policy_name), 1, "mean")
         # --------- 采样端的指标：采样端请求模型的时间，更新模型的时间，从configserver下载模型需要的时间，完整采样一条trajectory的时间 ----------
-        self.summary_logger.add_tag("sampler/episode_time/{}".format(self.policy_name), 100, "mean")
-        self.summary_logger.add_tag("sampler/model_request_time/{}".format(self.policy_name), 100, "mean")
-        self.summary_logger.add_tag("sampler/model_update_interval/{}".format(self.policy_name), 100, "mean")
-        self.summary_logger.add_tag("sampler/p2p_download_time/{}".format(self.policy_name), 100, "mean")
-        self.summary_logger.add_tag("sampler/trajectory_running_time/{}".format(self.policy_name), 100, "mean")
+        self.summary_logger.add_tag("sampler/episode_time/{}".format(self.policy_name), 1, "mean")
+        self.summary_logger.add_tag("sampler/model_request_time/{}".format(self.policy_name), 1, "mean")
+        self.summary_logger.add_tag("sampler/model_update_interval/{}".format(self.policy_name), 1, "mean")
+        self.summary_logger.add_tag("sampler/trajectory_running_time/{}".format(self.policy_name), 1, "mean")
         # --------- dataserver的指标，包括每分钟接收的数据量，每分钟解析的时间，每分钟套接字的时间，从trainingSet采样放入到plasma client的时间，有多少个worker，采样的数目
         self.summary_logger.add_tag("data_server/dataserver_recv_instance_per_min/{}".format(self.policy_name), self.total_data_server, "sum")
         self.summary_logger.add_tag("data_server/dataserver_parse_time_per_minutes/{}".format(self.policy_name), 1, "sum")

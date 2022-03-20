@@ -8,7 +8,7 @@ current_path = os.path.abspath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])
 sys.path.append(root_path)
 
-from Env.Sliding_Windows_Env import Environment
+import importlib
 from Worker.gae import gae_estimator
 from Worker.agent import AgentManager
 import copy
@@ -22,14 +22,14 @@ class rollout_sampler:
         self.popart_start = self.policy_config['training_parameters'].get("popart_start", False)
         self.statistic = statistic
         self.logger = logger
-        
         # 定义强化学习需要的一些参数
         self.gamma = self.policy_config["gamma"]
         self.tau = self.policy_config["tau"]
+        # -------------- 定义环境相关的参数 --------------
         self.traj_len = self.policy_config["traj_len"]
-
-        # 环境声明, 传入的config dict的路径
-        self.env = Environment(self.config_dict['env'])
+        self.env_name = self.config_dict['env']['id']
+        self.env = importlib.import_module(self.env_name).Environment(self.config_dict['env'])
+        
         # 收集数据放入到字典中
         self.data_dict = dict()
         # 声明一个智能体
@@ -72,7 +72,6 @@ class rollout_sampler:
         edge_average_capacity_list = []
         PF_sum_list = []
         while not done:
-            self.agent.step()
             joint_log_prob, actions, net_work_output = self.agent.compute(state)
             # -------------- 此处需要给这个current_state_value 进行denormalizeing操作 ----------
             if self.popart_start:
@@ -111,6 +110,7 @@ class rollout_sampler:
                 bootstrap_value = np.zeros((objective_number,1))
                 self.logger.info('---------- worker数据开始打包发送到dataserver -------------')
                 self.pack_data(bootstrap_value, data_dict)
+                self.agent.step()
                 data_dict = []
         mean_instant_SE_sum = np.mean(instant_SE_sum_list).item()
         mean_edge_average_SE = np.mean(edge_average_capacity_list).item()
@@ -118,6 +118,35 @@ class rollout_sampler:
         # ------- 这个返回的scheduling_count的维度是3*20*1的调度矩阵 ---------
         scheduling_count = next_state['global_state']['global_scheduling_count'].squeeze(-1)
         return mean_instant_SE_sum, mean_edge_average_SE, mean_PF_sum, scheduling_count
+
+    def run_one_episode_single_step(self):
+        '''
+        这个函数表示这个worker随机生成一个环境，然后使用当前策略进行交互收集数据, 整个环境进行one step 决策就停止了 
+        '''
+        '''
+        这个函数表示这个worker随机生成一个环境，然后使用当前策略进行交互收集数据, obs的数据格式见
+        '''
+        self.logger.info("======================== 重置环境 =======================")
+        self.agent.reset()
+        state = self.env.reset()
+        # --------- 首先同步最新 config server上面的模型 ------
+        joint_log_prob, actions, net_work_output = self.agent.compute(state)
+        instant_SE_sum_list = self.env.step(actions)
+        # ------------ instant_SE_sum_list的维度为bs×1 ------------
+        data_dict = [{'state': copy.deepcopy(state), 'instant_reward':np.array(instant_SE_sum_list)}]
+        # ------------- old_action_log_probs是一个字典，每一个key的维度都bs×1 ---------
+        data_dict[-1]['old_action_log_probs'] = dict()
+        # ------------ actions也是一个字典，每一个key的维度都是bs×user_nums ------------
+        data_dict[-1]['actions'] = dict()
+        for agent_index in range(self.agent.agent_nums):
+            agent_key = "agent_" + str(agent_index)
+            data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
+            data_dict[-1]['actions'][agent_key] = actions[agent_index]
+        # ------------- net work output 的维度为bs×1 -----------
+        data_dict[-1]['old_network_value'] = net_work_output
+        self.agent.send_data(data_dict)
+        return instant_SE_sum_list
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()

@@ -62,6 +62,7 @@ class transformer_pointer_network_decoder(nn.Module):
 
 
     def forward(self, tgt, memory, inference_mode= True, action_list=None, device='cpu'):
+        # bs * 20 * h, bs*21*h
         if inference_mode:
             assert action_list is None
         else:
@@ -147,24 +148,27 @@ class model(nn.Module):
         self.transformer_encoder = transformer_model(self.policy_config)
         self.pointer_decoder = transformer_pointer_network_decoder(self.policy_config)
 
+
     def forward(self, src, action_list=None, inference_mode=True, device='cpu'):
         # ===================== 在采样阶段的时候,action list不会传入,并且inference_mode是True
-        channel_matrix = src['channel_matrix']
-        average_reward = src['average_reward']
-        scheduling_count = src['scheduling_count']
-        channel_output = torch.relu(self.conv_layer(1e6*channel_matrix).squeeze(1))
-        average_reward_output = torch.relu(self.linear_average_reward_head(average_reward))
-        scheduling_count_output = torch.relu(self.linear_scheduling_count_head(scheduling_count))
+        channel_matrix = src['channel_matrix'] # bs * 3* 20*32  -- bs * 20 * 96
+        average_reward = src['average_reward'] # bs * 20 * 1 
+        scheduling_count = src['scheduling_count'] # bs * 20 * 1 
+        channel_output = torch.relu(self.conv_layer(1e6*channel_matrix).squeeze(1)) # bs*20 * h
+        average_reward_output = torch.relu(self.linear_average_reward_head(average_reward)) #  bs * 20 * h
+        scheduling_count_output = torch.relu(self.linear_scheduling_count_head(scheduling_count)) # bs * 20 * h
         # 拼接在一起构成backbone
         backbone = torch.cat([channel_output, average_reward_output, scheduling_count_output], -1)
         embedding_output = torch.relu(self.embedding_layer(backbone))
+        # ----affine layer， softmax， bs * 20 *2, 依照概率采样，出现1就调度，0就不调度 ----- 
+        # ---- affine layer, bs*20*1, --- KNN --- A, K个点，--  AI+Search ----  2^N, 
         # 送入到Transformer encoder, 可以得到一个bath size * seq len * d_model的矩阵
         transformer_encoder_output = self.transformer_encoder(embedding_output)
         res = self.pointer_decoder(backbone.clone(), transformer_encoder_output, inference_mode, action_list, device=device)
         return res[0], res[1] 
 
 class critic(nn.Module):
-    # 这个是一个critic类,传入全局的状态,返回对应的v值.因为R是一个向量,传入一个状态batch,前向得到一个v向量
+    # 这个是一个critic类,传入全局的状态,返回对应的v值.因为R是一个向量,传入一个状态batch,前向得到一个v向量C: bs * 9 * 20 * 16 -> R^1
     def __init__(self, policy_config):
         super(critic, self).__init__()
         self.policy_config = policy_config
@@ -210,7 +214,7 @@ class critic(nn.Module):
         global_average_reward = src['global_average_reward']
         global_scheduling_count = src['global_scheduling_count']
         # 这个global channel_matrix的维度是batch size * agent_nums * channel_number * user_number * 32
-        conv_global_channel_output  = torch.relu(self.channel_conv_layer(1e6*global_channel_matrix))
+        conv_global_channel_output  = torch.relu(self.channel_conv_layer(1e8*global_channel_matrix))
         # global average reward的维度是batch size * agent_nums * user_number * 1
         glboal_average_reward_output = torch.relu(self.linear_average_reward_head(global_average_reward))
         conv_global_average_reward_output = torch.relu(self.reward_conv_layer(glboal_average_reward_output))
@@ -231,7 +235,7 @@ class critic(nn.Module):
             state_value_Edge = self.Edge_head(backbone)
             return state_value_PF, state_value_Edge
         else:
-            state_value = self.value_head(backbone)
+            state_value = 100 * self.value_head(backbone)
             return state_value
 
 def init_policy_net(policy_config):

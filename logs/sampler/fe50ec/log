@@ -1,0 +1,596 @@
+2022-03-21 00:55:58,232,232,INFO,Sampler_fe50ec::==================== 此智能体要发送数据到: 10.19.93.9, 连接的端口为: 9527 =================
+2022-03-21 00:55:58,233,233,INFO,Sampler_fe50ec::---------------- policy fetcher将最新的模型存放的地方为: {'policy': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/fe50ec_policy_default_max_average_SE.model')}, 'critic': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/fe50ec_critic_default_max_average_SE.model')}} ----------------
+2022-03-21 00:55:58,233,233,INFO,Sampler_fe50ec::======================= 构建fetcher成功, 创建最新模型请求套接字 ===============
+2022-03-21 00:55:58,245,245,INFO,Sampler_fe50ec::------------ 完成AgentManager的构建 -----------
+2022-03-21 00:55:58,246,246,INFO,Sampler_fe50ec::------------------ 完成采样端的构建，此worker的id为fe50ec -----------------
+2022-03-21 00:55:58,246,246,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:55:58,247,247,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:55:58,248,248,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795358.1154017'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795358.1154017'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795358.1231604}------------
+2022-03-21 00:55:58,248,248,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:55:58,268,268,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:55:58,268,268,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795358.1154017'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795358.1154017'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795358.1231604} -----------
+2022-03-21 00:55:59,314,314,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:55:59,315,315,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:55:59,315,315,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:55:59,318,318,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795359.1785092'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795359.1785092'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795359.1904867}------------
+2022-03-21 00:55:59,319,319,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:55:59,337,337,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:55:59,338,338,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795359.1785092'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795359.1785092'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795359.1904867} -----------
+2022-03-21 00:56:00,647,647,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:00,647,647,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:00,648,648,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:00,651,651,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795360.5771198'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795360.5771198'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795360.585632}------------
+2022-03-21 00:56:00,652,652,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:00,673,673,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:00,673,673,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795360.5771198'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795360.5771198'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795360.585632} -----------
+2022-03-21 00:56:02,102,102,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:02,103,103,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:02,104,104,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:02,109,109,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795361.9532878'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795361.9532878'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795361.9629514}------------
+2022-03-21 00:56:02,110,110,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:02,147,147,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:02,148,148,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795361.9532878'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795361.9532878'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795361.9629514} -----------
+2022-03-21 00:56:03,534,534,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:03,536,536,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:03,537,537,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:03,538,538,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795363.4167566'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795363.4167566'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795363.4295912}------------
+2022-03-21 00:56:03,538,538,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:03,557,557,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:03,558,558,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795363.4167566'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795363.4167566'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795363.4295912} -----------
+2022-03-21 00:56:05,291,291,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:05,292,292,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:05,292,292,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:05,296,296,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795365.2373955'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795365.2373955'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795365.2464893}------------
+2022-03-21 00:56:05,296,296,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:05,319,319,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:05,321,321,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795365.2373955'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795365.2373955'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795365.2464893} -----------
+2022-03-21 00:56:06,673,673,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:06,673,673,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:06,673,673,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:06,682,682,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795366.6252851'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795366.6252851'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795366.637491}------------
+2022-03-21 00:56:06,682,682,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:06,701,701,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:06,701,701,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795366.6252851'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795366.6252851'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795366.637491} -----------
+2022-03-21 00:56:08,500,500,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:08,501,501,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:08,501,501,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:08,507,507,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795368.4649622'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795368.4649622'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795368.472055}------------
+2022-03-21 00:56:08,508,508,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:08,523,523,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:08,523,523,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795368.4649622'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795368.4649622'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795368.472055} -----------
+2022-03-21 00:56:09,815,815,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:09,817,817,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:09,820,820,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:09,823,823,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795369.6885056'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795369.6885056'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795369.7008898}------------
+2022-03-21 00:56:09,825,825,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:09,848,848,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:09,850,850,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795369.6885056'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795369.6885056'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795369.7008898} -----------
+2022-03-21 00:56:10,891,891,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:10,893,893,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:10,894,894,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:10,898,898,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795370.787936'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795370.787936'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795370.8004222}------------
+2022-03-21 00:56:10,898,898,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:10,926,926,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:10,927,927,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795370.787936'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795370.787936'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795370.8004222} -----------
+2022-03-21 00:56:12,507,507,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:12,509,509,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:12,510,510,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:12,511,511,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795372.3984742'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795372.3984742'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795372.4056518}------------
+2022-03-21 00:56:12,511,511,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:12,533,533,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:12,534,534,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795372.3984742'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795372.3984742'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795372.4056518} -----------
+2022-03-21 00:56:14,571,571,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:14,572,572,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:14,572,572,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:14,578,578,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795374.299973'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795374.299973'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795374.3086112}------------
+2022-03-21 00:56:14,578,578,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:14,595,595,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:14,595,595,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795374.299973'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795374.299973'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795374.3086112} -----------
+2022-03-21 00:56:16,153,153,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:16,154,154,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:16,154,154,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:16,160,160,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795376.05207'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795376.05207'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795376.0634947}------------
+2022-03-21 00:56:16,161,161,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:16,176,176,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:16,176,176,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795376.05207'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795376.05207'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795376.0634947} -----------
+2022-03-21 00:56:18,285,285,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:18,285,285,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:18,285,285,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:18,292,292,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795378.086166'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795378.086166'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795378.0949914}------------
+2022-03-21 00:56:18,292,292,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:18,309,309,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:18,309,309,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795378.086166'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795378.086166'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795378.0949914} -----------
+2022-03-21 00:56:19,819,819,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:19,819,819,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:19,819,819,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:19,828,828,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795379.7777765'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795379.7777765'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795379.7849326}------------
+2022-03-21 00:56:19,828,828,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:19,844,844,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:19,844,844,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795379.7777765'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795379.7777765'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795379.7849326} -----------
+2022-03-21 00:56:21,221,221,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:21,222,222,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:21,222,222,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:21,227,227,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795381.2046778'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795381.2046778'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795381.212671}------------
+2022-03-21 00:56:21,227,227,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:21,241,241,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:21,241,241,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795381.2046778'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795381.2046778'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795381.212671} -----------
+2022-03-21 00:56:23,208,208,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:23,209,209,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:23,209,209,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:23,215,215,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795383.0461032'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795383.0461032'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795383.0637336}------------
+2022-03-21 00:56:23,220,220,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:23,244,244,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:23,246,246,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795383.0461032'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795383.0461032'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795383.0637336} -----------
+2022-03-21 00:56:25,154,154,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:25,155,155,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:25,155,155,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:25,162,162,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795384.8647687'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795384.8647687'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795384.876956}------------
+2022-03-21 00:56:25,163,163,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:25,184,184,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:25,184,184,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795384.8647687'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795384.8647687'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795384.876956} -----------
+2022-03-21 00:56:26,475,475,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:26,475,475,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:26,475,475,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:26,483,483,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795386.208655'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795386.208655'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795386.2196286}------------
+2022-03-21 00:56:26,483,483,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:26,502,502,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:26,503,503,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795386.208655'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795386.208655'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795386.2196286} -----------
+2022-03-21 00:56:27,776,776,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:27,777,777,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:27,777,777,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:27,789,789,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795387.4423275'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795387.4423275'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795387.4573786}------------
+2022-03-21 00:56:27,790,790,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:27,806,806,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:27,806,806,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795387.4423275'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795387.4423275'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795387.4573786} -----------
+2022-03-21 00:56:29,178,178,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:29,179,179,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:29,198,198,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:29,200,200,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795389.1517756'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795389.1517756'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795389.160552}------------
+2022-03-21 00:56:29,201,201,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:29,221,221,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:29,222,222,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795389.1517756'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795389.1517756'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795389.160552} -----------
+2022-03-21 00:56:30,694,694,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:30,695,695,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:30,695,695,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:30,702,702,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795390.668009'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795390.668009'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795390.6752186}------------
+2022-03-21 00:56:30,702,702,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:30,726,726,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:30,727,727,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795390.668009'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795390.668009'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795390.6752186} -----------
+2022-03-21 00:56:32,044,44,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:32,045,45,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:32,047,47,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:32,048,48,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795391.8980124'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795391.8980124'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795391.907566}------------
+2022-03-21 00:56:32,051,51,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:32,080,80,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:32,081,81,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795391.8980124'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795391.8980124'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795391.907566} -----------
+2022-03-21 00:56:33,960,960,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:33,961,961,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:33,964,964,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:33,965,965,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795393.8113265'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795393.8113265'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795393.8226936}------------
+2022-03-21 00:56:33,967,967,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:33,988,988,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:33,990,990,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795393.8113265'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795393.8113265'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795393.8226936} -----------
+2022-03-21 00:56:35,596,596,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:35,596,596,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:35,596,596,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:35,602,602,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795395.385878'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795395.385878'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795395.4005582}------------
+2022-03-21 00:56:35,602,602,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:35,614,614,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:35,614,614,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795395.385878'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795395.385878'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795395.4005582} -----------
+2022-03-21 00:56:36,884,884,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:36,885,885,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:36,885,885,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:36,891,891,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795396.7393713'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795396.7393713'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795396.7470567}------------
+2022-03-21 00:56:36,891,891,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:36,906,906,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:36,907,907,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795396.7393713'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795396.7393713'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795396.7470567} -----------
+2022-03-21 00:56:38,195,195,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:38,195,195,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:38,196,196,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:38,206,206,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795398.0546975'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795398.0546975'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795398.0692687}------------
+2022-03-21 00:56:38,206,206,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:38,220,220,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:38,220,220,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795398.0546975'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795398.0546975'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795398.0692687} -----------
+2022-03-21 00:56:39,675,675,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:39,676,676,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:39,677,677,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:39,683,683,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795399.503512'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795399.503512'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795399.5152035}------------
+2022-03-21 00:56:39,684,684,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:39,702,702,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:39,703,703,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795399.503512'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795399.503512'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795399.5152035} -----------
+2022-03-21 00:56:41,821,821,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:41,822,822,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:41,822,822,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:41,830,830,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795401.6176121'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795401.6176121'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795401.6259325}------------
+2022-03-21 00:56:41,830,830,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:41,845,845,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:41,846,846,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795401.6176121'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795401.6176121'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795401.6259325} -----------
+2022-03-21 00:56:43,144,144,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:43,145,145,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:43,147,147,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:43,152,152,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795402.9584014'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795402.9584014'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795402.9767425}------------
+2022-03-21 00:56:43,154,154,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:43,177,177,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:43,178,178,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795402.9584014'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795402.9584014'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795402.9767425} -----------
+2022-03-21 00:56:44,507,507,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:44,508,508,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:44,508,508,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:44,509,509,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795404.4594595'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795404.4594595'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795404.4703515}------------
+2022-03-21 00:56:44,510,510,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:44,532,532,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:44,535,535,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795404.4594595'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795404.4594595'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795404.4703515} -----------
+2022-03-21 00:56:45,848,848,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:45,849,849,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:45,851,851,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:45,856,856,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795405.535557'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795405.535557'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795405.5485337}------------
+2022-03-21 00:56:45,857,857,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:45,879,879,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:45,879,879,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795405.535557'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795405.535557'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795405.5485337} -----------
+2022-03-21 00:56:47,304,304,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:47,305,305,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:47,305,305,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:47,309,309,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795407.0672023'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795407.0672023'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795407.0748317}------------
+2022-03-21 00:56:47,309,309,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:47,322,322,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:47,322,322,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795407.0672023'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795407.0672023'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795407.0748317} -----------
+2022-03-21 00:56:48,853,853,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:48,854,854,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:48,854,854,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:48,863,863,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795408.57706'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795408.57706'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795408.5844996}------------
+2022-03-21 00:56:48,864,864,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:48,879,879,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:48,879,879,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795408.57706'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795408.57706'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795408.5844996} -----------
+2022-03-21 00:56:49,993,993,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:49,994,994,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:49,994,994,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:49,997,997,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795409.8482955'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795409.8482955'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795409.8570087}------------
+2022-03-21 00:56:49,997,997,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:50,018,18,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:50,019,19,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795409.8482955'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795409.8482955'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795409.8570087} -----------
+2022-03-21 00:56:51,875,875,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:51,876,876,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:51,876,876,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:51,878,878,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795411.7086725'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795411.7086725'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795411.7203317}------------
+2022-03-21 00:56:51,883,883,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:51,903,903,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:51,903,903,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795411.7086725'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795411.7086725'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795411.7203317} -----------
+2022-03-21 00:56:52,940,940,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:52,942,942,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:52,942,942,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:52,943,943,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795412.8420308'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795412.8420308'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795412.8507457}------------
+2022-03-21 00:56:52,944,944,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:52,978,978,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:52,978,978,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795412.8420308'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795412.8420308'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795412.8507457} -----------
+2022-03-21 00:56:54,410,410,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:54,411,411,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:54,412,412,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:54,419,419,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795414.3598273'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795414.3598273'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795414.3742454}------------
+2022-03-21 00:56:54,420,420,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:54,443,443,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:54,444,444,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795414.3598273'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795414.3598273'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795414.3742454} -----------
+2022-03-21 00:56:55,800,800,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:55,801,801,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:55,801,801,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:55,804,804,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.564582'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.564582'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.5734804}------------
+2022-03-21 00:56:55,807,807,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:55,828,828,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:55,829,829,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.564582'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.564582'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.5734804} -----------
+2022-03-21 00:56:57,116,116,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:57,117,117,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:57,117,117,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:57,125,125,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:56:57,125,125,INFO,Sampler_fe50ec::----------- 开始从configserver下载模型 ------------
+2022-03-21 00:56:57,144,144,INFO,Sampler_fe50ec::------------- 完成模型下载 ----------------
+2022-03-21 00:56:57,145,145,INFO,Sampler_fe50ec::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958} -----------
+2022-03-21 00:56:58,215,215,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:58,215,215,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:58,216,216,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:58,225,225,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:56:59,364,364,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:56:59,365,365,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:56:59,365,365,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:56:59,373,373,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:00,306,306,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:00,307,307,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:00,307,307,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:00,308,308,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:01,377,377,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:01,377,377,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:01,377,377,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:01,384,384,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:02,360,360,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:02,361,361,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:02,362,362,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:02,369,369,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:03,443,443,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:03,444,444,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:03,444,444,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:03,448,448,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:04,430,430,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:04,431,431,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:04,431,431,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:04,438,438,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:05,402,402,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:05,402,402,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:05,402,402,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:05,410,410,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:06,339,339,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:06,339,339,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:06,340,340,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:06,347,347,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:07,228,228,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:07,228,228,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:07,228,228,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:07,234,234,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:08,132,132,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:08,132,132,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:08,133,133,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:08,138,138,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:08,949,949,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:08,949,949,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:08,950,950,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:08,955,955,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:09,749,749,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:09,749,749,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:09,749,749,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:09,755,755,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:10,714,714,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:10,717,717,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:10,718,718,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:10,719,719,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:11,763,763,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:11,763,763,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:11,763,763,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:11,772,772,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:12,644,644,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:12,644,644,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:12,644,644,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:12,652,652,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:13,543,543,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:13,543,543,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:13,544,544,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:13,549,549,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:14,439,439,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:14,440,440,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:14,440,440,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:14,446,446,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:15,342,342,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:15,343,343,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:15,343,343,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:15,350,350,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:16,241,241,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:16,241,241,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:16,241,241,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:16,247,247,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:17,138,138,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:17,138,138,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:17,138,138,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:17,145,145,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:18,061,61,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:18,062,62,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:18,062,62,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:18,070,70,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:18,928,928,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:18,929,929,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:18,929,929,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:18,934,934,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:19,751,751,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:19,751,751,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:19,752,752,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:19,758,758,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:20,587,587,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:20,587,587,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:20,588,588,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:20,594,594,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:21,507,507,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:21,507,507,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:21,507,507,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:21,514,514,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:22,401,401,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:22,401,401,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:22,401,401,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:22,406,406,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:23,300,300,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:23,300,300,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:23,300,300,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:23,306,306,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:24,139,139,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:24,139,139,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:24,140,140,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:24,151,151,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:25,040,40,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:25,041,41,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:25,041,41,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:25,050,50,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:25,871,871,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:25,871,871,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:25,871,871,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:25,881,881,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:26,897,897,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:26,898,898,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:26,898,898,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:26,904,904,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:27,778,778,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:27,778,778,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:27,778,778,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:27,784,784,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:28,682,682,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:28,683,683,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:28,683,683,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:28,690,690,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:29,550,550,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:29,550,550,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:29,550,550,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:29,560,560,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:30,429,429,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:30,430,430,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:30,430,430,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:30,436,436,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:31,314,314,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:31,315,315,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:31,315,315,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:31,320,320,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:32,191,191,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:32,192,192,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:32,192,192,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:32,198,198,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:33,097,97,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:33,097,97,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:33,097,97,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:33,104,104,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:34,050,50,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:34,051,51,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:34,051,51,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:34,058,58,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:34,904,904,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:34,904,904,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:34,905,905,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:34,910,910,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:35,778,778,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:35,779,779,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:35,779,779,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:35,787,787,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:36,676,676,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:36,677,677,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:36,677,677,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:36,683,683,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:37,465,465,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:37,466,466,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:37,466,466,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:37,469,469,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:38,383,383,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:38,384,384,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:38,384,384,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:38,390,390,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:39,254,254,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:39,254,254,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:39,255,255,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:39,261,261,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:40,108,108,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:40,108,108,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:40,108,108,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:40,116,116,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:40,996,996,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:40,997,997,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:40,997,997,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:41,001,1,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:41,871,871,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:41,871,871,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:41,871,871,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:41,877,877,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:42,869,869,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:42,870,870,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:42,870,870,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:42,876,876,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:43,797,797,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:43,798,798,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:43,798,798,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:43,804,804,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:44,649,649,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:44,649,649,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:44,649,649,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:44,656,656,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:45,514,514,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:45,514,514,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:45,515,515,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:45,521,521,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:46,402,402,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:46,403,403,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:46,403,403,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:46,408,408,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:47,298,298,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:47,298,298,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:47,299,299,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:47,303,303,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:48,138,138,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:48,138,138,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:48,138,138,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:48,144,144,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:49,008,8,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:49,008,8,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:49,009,9,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:49,012,12,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:49,882,882,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:49,883,883,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:49,883,883,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:49,888,888,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:50,806,806,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:50,807,807,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:50,807,807,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:50,814,814,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:51,784,784,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:51,784,784,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:51,785,785,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:51,790,790,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:52,713,713,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:52,714,714,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:52,714,714,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:52,718,718,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:53,651,651,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:53,652,652,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:53,652,652,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:53,659,659,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:54,564,564,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:54,564,564,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:54,565,565,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:54,566,566,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:55,593,593,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:55,594,594,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:55,594,594,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:55,599,599,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:56,488,488,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:56,488,488,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:56,488,488,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:56,495,495,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:57,411,411,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:57,411,411,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:57,412,412,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:57,418,418,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:58,575,575,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:58,576,576,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:58,576,576,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:58,582,582,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:57:59,581,581,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:57:59,581,581,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:57:59,581,581,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:57:59,588,588,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:58:00,529,529,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:58:00,530,530,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:58:00,530,530,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:58:00,536,536,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:58:01,536,536,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:58:01,536,536,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:58:01,537,537,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:58:01,544,544,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:58:02,449,449,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:58:02,449,449,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:58:02,449,449,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:58:02,456,456,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:58:03,337,337,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:58:03,337,337,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:58:03,338,338,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:58:03,341,341,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:58:04,215,215,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:58:04,216,216,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:58:04,216,216,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:58:04,222,222,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:58:05,078,78,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:58:05,079,79,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:58:05,079,79,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:58:05,086,86,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:58:05,981,981,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:58:05,981,981,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:58:05,981,981,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:58:05,987,987,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:58:06,824,824,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:58:06,825,825,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:58:06,825,825,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:58:06,835,835,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:58:07,794,794,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:58:07,794,794,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:58:07,795,795,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:58:07,798,798,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------
+2022-03-21 00:58:08,675,675,INFO,Sampler_fe50ec::--------------- 发送结果日志到logServer上 --------------------
+2022-03-21 00:58:08,675,675,INFO,Sampler_fe50ec::======================== 重置环境 =======================
+2022-03-21 00:58:08,676,676,INFO,Sampler_fe50ec::------------ 等待configserver发送回来的信息 -----------
+2022-03-21 00:58:08,682,682,INFO,Sampler_fe50ec::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647795415.8388462'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647795415.8388462'}}, 'policy_name': 'max_average_SE', 'time_stamp': 1647795415.8495958}------------

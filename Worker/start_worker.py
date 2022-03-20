@@ -23,7 +23,7 @@ def single_process_generate_sample(config_path):
 if __name__=='__main__':
     # ---------- 导入配置文件 ------------
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_multi_cell_pointer_network.yaml')
     args = parser.parse_args()
     abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path

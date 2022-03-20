@@ -23,7 +23,6 @@ def main(args):
     # shutil.rmtree(log_dir)
     # ------- 打开plasma server，log server，config server ------
     args.config_path = '/' + args.config_path
-    print(args.config_path)
     if args.machine_index == 0:
         # ----- 打开plasma server -----------
         plasma_command = "nohup plasma_store -s {} -m 500000000 &".format(config_dict['policy_config']['plasma_server_location'])
@@ -42,7 +41,7 @@ def main(args):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config_path", type=str, default='Learner/configs/config_pointer_network.yaml')
+    parser.add_argument("--config_path", type=str, default='Learner/configs/config_multi_cell_pointer_network.yaml')
     parser.add_argument("--machine_index", type=int, default=0)
     args = parser.parse_args()
     main(args)

@@ -15,7 +15,7 @@ root_path = '/'.join(current_path.split('/')[:-2])
 sys.path.append(root_path)
 from Worker.policy_fetcher import fetcher
 from Utils.model_utils import deserialize_model, create_model
-from Utils.data_utils import conver_data_format_to_torch_interference
+from Utils.data_utils import convert_data_format_to_torch_interference
 
 class Agent:
     # 定义一个采样智能体，它能够完成的事情有：加载模型，保存模型，发送数据，给定状态计算动作
@@ -34,7 +34,7 @@ class Agent:
             # 因为还是遵循的CTDE的训练方式，每次决策之后，需要将所有智能体的backbone汇聚在一起进行V值的计算，由于action的长度有长有短，因此需要进行mask操作，统一到
             # 固定长度。如果是单个点进行决策，返回的log_probs表示的是联合概率的对数，action表示的是调度序列，mask表示的是固定长度的0-1向量
             # 按理来说，在eval mode的时候，每次决策都需要选择概率最大的动作的
-            log_joint_prob, scheduling_action = self.net_work(agent_obs, inference_mode = True)
+            log_joint_prob, scheduling_action = self.net_work(agent_obs)
             return log_joint_prob, scheduling_action
 
     def compute_state_value(self, agent_obs):
@@ -45,7 +45,7 @@ class Agent:
 
     def compute_action_and_state_value(self, agent_obs):
         with torch.no_grad():
-            log_prob, action, state_value = self.net_work(agent_obs, inference_mode=True)
+            log_prob, action, state_value = self.net_work(agent_obs)
         return log_prob, action, state_value
 
 class AgentManager:
@@ -113,7 +113,7 @@ class AgentManager:
     def compute(self, obs):
         # -------- 这个函数是用使用神经网络计算动作，以及动作对应的概率 ---------
         # 首先将这个obs_dict变成pytorch支持的数据，由于采样的时候，统一使用cpu就可以了，不需要用 GPU
-        torch_format_data = conver_data_format_to_torch_interference(obs)
+        torch_format_data = convert_data_format_to_torch_interference(obs)
         # ----- 需要将动作构成列表，然后回传，以及将对应的log prob和prob -------
         joint_log_prob_list = []
         actions = []
@@ -124,11 +124,11 @@ class AgentManager:
             else:
                 agent_log_prob, agent_action = self.agent['policy'][agent_key].compute(active_agent_obs)
             # ----------- 这个地方需要将数据变成numpy类型 ------------
-            joint_log_prob_list.append(agent_log_prob.numpy().squeeze())
-            actions.append(agent_action.numpy().squeeze())
+            joint_log_prob_list.append(agent_log_prob.numpy())
+            actions.append(agent_action.numpy())
         # -------- 这个地方计算一下当前的状态值 ---------------
         with torch.no_grad():
-            state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data['global_state'])
+            state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data['global_channel_matrix'])
         if isinstance(state_value, tuple):
             state_value = np.array(item.numpy() for item in state_value)
         else:

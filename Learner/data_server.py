@@ -16,7 +16,7 @@ sys.path.append(root_path)
 
 from Learner.basic_server import basic_server
 from Utils import setup_logger
-from Utils.data_utils import TrainingSet
+from Utils.data_utils import TrainingSet, TraningSet_one_step
 from Utils.plasma import generate_plasma_id
 
 class data_server(basic_server):
@@ -30,7 +30,7 @@ class data_server(basic_server):
         self.eval_mode = self.policy_config['eval_mode']
         self.data_server_local_rank = args.data_server_local_rank
         self.policy_name = self.config_dict['policy_name']
-
+        self.one_step_env = self.config_dict['env'].get('one_step_env', False)
         log_path = pathlib.Path(self.config_dict['log_dir'] + "/data_log/{}_{}/{}".format(self.local_rank, self.policy_name, self.data_server_local_rank))
         self.logger = setup_logger("DataServer_log", log_path)
         machine_index = self.global_rank // self.device_number_per_machine
@@ -46,8 +46,10 @@ class data_server(basic_server):
         self.capacity = self.policy_config["capacity"]
         if self.eval_mode:
             self.capacity = 256
-
-        self.traing_set = TrainingSet(self.policy_config['buffer'])
+        if self.one_step_env:
+            self.traing_set = TraningSet_one_step(self.policy_config['buffer'])
+        else:
+            self.traing_set = TrainingSet(self.policy_config['buffer'])
         #-------------------------- 定义一些相关数据指标 ------------------------------
         self.recv_training_instance_count = 0
         self.socket_time_list = []
@@ -143,7 +145,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--rank', default=0, type=int, help='rank of current process')
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_multi_cell_pointer_network.yaml', help='yaml format config')
     parser.add_argument('--data_server_local_rank', default=0, type=int, help='data_server_local_rank')
     parser.add_argument('--world_size', default=1, type=int, help='world_size')
     args = parser.parse_args()
