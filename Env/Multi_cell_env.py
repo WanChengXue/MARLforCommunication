@@ -57,12 +57,14 @@ class Environment(gym.Env):
         loaded_file_name = self.save_data_folder + '/training_channel_file_' +str(load_subcarrier_index) + '.npy'
         channel_data = np.load(loaded_file_name)
         # 需要随机生成一个随机数，作为开始采样的位置
-        max_start_TTI = self.training_data_total_TTI_length - self.sliding_windows_length
-        start_TTI = random.randint(0,max_start_TTI-1)
-        # ---------- 这个地方将start_TTI clamp在0- max_start_TTI - 1之间
-        end_TTI = start_TTI + self.sliding_windows_length
+        # max_start_TTI = self.training_data_total_TTI_length - self.sliding_windows_length
+        # start_TTI = random.randint(0,max_start_TTI-1)
+        # # ---------- 这个地方将start_TTI clamp在0- max_start_TTI - 1之间
+        # end_TTI = start_TTI + self.sliding_windows_length
+        # 随机生成一个矩阵进行采样
+        random_tti = random.sample(range(0,self.training_data_total_TTI_length), self.sliding_windows_length)
         # ------- 通过squeeze函数之后，得到的仿真信道维度为，3 * 20 * 3 *16 * TTI,表示目的扇区 * 用户数目 * 源扇区 * 基站天线数目
-        self.simulation_channel = (channel_data[:,:,:,:,:,:,:,start_TTI:end_TTI]).squeeze()
+        self.simulation_channel = (channel_data[:,:,:,:,:,:,:,random_tti]).squeeze()
 
     def load_eval_data(self):
         # 载入eval数据集

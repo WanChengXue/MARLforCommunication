@@ -7,7 +7,7 @@ env:
   bs_antenna_nums: &bs_antenna_nums 16
   total_antenna_nums: &seq_len 20
   # 这个变量表示的是截取多少长度的TTI作为一个训练样本
-  sliding_windows_length: 200
+  sliding_windows_length: 400
   transmit_power: 0.25
   noise_power: 3.1623e-20
   source_data_folder: 'data_part/Source_data'
@@ -70,7 +70,7 @@ policy_config:
   algorithm: 'ppo_multi_cell_se'
   # Pytorch DDP相关
   ddp_port: 50001
-  batch_size: &batch_size 256
+  batch_size: &batch_size 1024
   gamma: 0.997
   tau: 0.95
   # -------------- 模型训练相关 --------------
@@ -87,7 +87,7 @@ policy_config:
   # 环境相关
   traj_len: 32
   n_sample: 1
-  capacity: &capacity 10000
+  capacity: &capacity 50000
   # -------- 每训练1000次就保存一下模型 ----------
   model_save_interval: 1000
   # ------ 设置模型的保存路径 ——----------

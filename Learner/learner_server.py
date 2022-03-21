@@ -190,7 +190,7 @@ class learner_server(basic_server):
         timestamp = str(time.time())
         for model_type in self.policy_config['agent'].keys():
             for agent_name in self.policy_config['agent'][model_type].keys():
-                model_save_path = self.policy_config['saved_model_path'] + '/' + agent_name + '/' + model_type + '_' + timestamp
+                model_save_path = self.policy_config['saved_model_path'] + '/' + model_type + '_' + agent_name + '_'+ timestamp
                 torch.save(self.model[model_type][agent_name].state_dict(), model_save_path)
 
     def run(self):

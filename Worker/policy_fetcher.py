@@ -24,7 +24,7 @@ class fetcher:
         #------------------- 定义变量,模型下一次用来更新的时间 -------------------
         self.next_model_update_time = 0
         # -------------- 当前模型的timestamp，url ------------------
-        self.current_model_time_stamp = None
+        self.current_model_time_stamp = time.time()
         self.current_model_url = None
         # -------------- 定义获取模型类型，可以获取过去时刻的模型, value就两种，latest，history -------
         self.policy_type = self.policy_config['policy_type']
@@ -94,7 +94,7 @@ class fetcher:
                 # ------------- 如果模型信息不是None，则表示从configserver那里拿到了新的信息 -------
                 self.next_model_update_time += self.sampler_model_interval
                 # ------------- 统计模型的更新时间 ----------------
-                self.statistic.append("sampler/model_update_interval/{}".format(self.policy_name), model_info['time_stamp'])
+                self.statistic.append("sampler/model_update_interval/{}".format(self.policy_name), model_info['time_stamp']-self.current_model_time_stamp)
                 self.current_model_time_stamp = model_info['time_stamp']
             return model_info
 
