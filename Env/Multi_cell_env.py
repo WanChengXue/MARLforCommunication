@@ -1,4 +1,3 @@
-# 这个函数用来模仿通信环境的变化
 import random
 import numpy as np
 import os
@@ -8,7 +7,7 @@ root_path = '/'.join(current_path.split('/')[:-2])
 sys.path.append(root_path)
 import random
 import gym
-from Instant_Reward import calculate_instant_reward
+from Instant_Reward import Multi_cell_instant_reward
 
 class Environment(gym.Env):
     '''
@@ -33,7 +32,6 @@ class Environment(gym.Env):
         self.sub_carrier_nums = self.env_dict['sub_carrier_nums']
         self.delay_time_window = self.env_dict['delay_time_window']
         self.training_data_total_TTI_length = self.env_dict['training_data_total_TTI_length']
-        self.eval_data_total_TTI_length = self.env_dict['eval_data_total_TTI_length']
         self.min_user_average_se  = self.env_dict['min_user_average_se']
         self.max_user_pf_value = self.env_dict['max_user_pf_value']
         self.eval_mode = self.env_dict.get('eval_mode',False)
@@ -45,11 +43,14 @@ class Environment(gym.Env):
         self.legal_range = [self.env_dict['min_stream_nums'], self.env_dict['max_stream_nums']]
         # ------------ 生成一个cyclic index matrix -------------
         self.cyclic_index_matrix = np.array([[(i+j)%self.agent_nums for i in range(self.agent_nums)] for j in range(self.agent_nums)])
-    
+        self.reward_calculator = Multi_cell_instant_reward(self.transmit_power, self.noise_power, self.cyclic_index_matrix, self.sector_nums, self.user_nums, self.bs_antenna_nums)
+
+
     def generate_abs_path(self, related_path):
         file_path = os.path.abspath(__file__)
         root_path = '/'.join(file_path.split('/')[:-3])
         return os.path.join(root_path, related_path)
+
 
     def load_training_data(self):
         # 载入训练数据,根据随机数种子来看，首先是对随机数取余数，看看读取哪个载波
@@ -66,12 +67,14 @@ class Environment(gym.Env):
         # ------- 通过squeeze函数之后，得到的仿真信道维度为，3 * 20 * 3 *16 * TTI,表示目的扇区 * 用户数目 * 源扇区 * 基站天线数目
         self.simulation_channel = (channel_data[:,:,:,:,:,:,:,random_tti]).squeeze()
 
+
     def load_eval_data(self):
         # 载入eval数据集
         eval_file_number = self.env_dict.get('eval_file_number', random.randint(0, self.sub_carrier_nums-1))
         loaded_file_name = self.save_data_folder + '/eval_channel_file_' + str(eval_file_number) + '.npy'
         # ============== TODO 这个地方不是很完善，对于测试文件来说，需要测试所有的文件 ====================
         self.simulation_channel = (np.load(loaded_file_name)).squeeze()
+
 
     def reset(self):
         if self.eval_mode:
@@ -143,15 +146,14 @@ class Environment(gym.Env):
         
     def step(self, action_list):
         # ---------------------------- 这个函数传入一个调度列表，维度是3个bs*20的列表 ------------------------------
-        # self.current_state['global_state']['global_channel_matrix'].reshape(self.sector_nums, self.sector_nums, self.user_nums, self.bs_antenna_nums*2).transpose(0,2,1,3)
         # -------- 首先把这个动作列表变成numpy类型，bs×3*20的矩阵 ---------
         numpy_type_action_list = np.stack(action_list, 1)
         SE_list = []
         for i in range(self.sliding_windows_length):
             # ----------- 将传入的动作矩阵变成0-1矩阵 -----------
             scheduling_mask = self.convert_action_list_to_scheduling_mask(numpy_type_action_list[i,:,:])
-            active_instant_se = calculate_instant_reward(self.simulation_channel[:,:,:,:,i], scheduling_mask.squeeze(), self.noise_power, self.transmit_power, self.cyclic_index_matrix)
-            SE_list.append(sum(sum(active_instant_se))/(self.user_nums*self.cell_nums))
+            active_instant_se = self.reward_calculator.calculate_instant_reward(self.simulation_channel[:,:,:,:,i], scheduling_mask.squeeze())
+            SE_list.append(sum(sum(active_instant_se))/(self.user_nums*self.sector_nums))
         return SE_list
 
 # -------------- 测试一下环境 --------------
@@ -178,14 +180,20 @@ if __name__ == '__main__':
     ]
     由于0表示的是终止用户的标志，因此，需要对所有用户减去1，之后，需要得到一个mask矩阵
     '''
-    test_action = np.array([[[16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0],
-        [13,  1, 14,  5, 12,  7, 19, 20,  6, 11,  4,  9,  8,  3, 16, 15],
-        [16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0]
-        ],
-        [[16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0],
-        [13,  1, 14,  5, 12,  7, 19, 20,  6, 11,  4,  9,  8,  3, 16, 15],
-        [16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0]
-        ]])
+    # test_action = np.array([[[16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0],
+    #     [13,  1, 14,  5, 12,  7, 19, 20,  6, 11,  4,  9,  8,  3, 16, 15],
+    #     [16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0]
+    #     ],
+    #     [[16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0],
+    #     [13,  1, 14,  5, 12,  7, 19, 20,  6, 11,  4,  9,  8,  3, 16, 15],
+    #     [16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0]
+    #     ]])
+
+    test_action = [
+        [[0,  0,  0, 0,  0,  0,  0,  0,  0, 0,  0,  0, 0,  0,  0,  0],[16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0]],
+        [[13,  1, 14,  5, 12,  7, 19, 20,  6, 11,  4,  9,  8,  3, 16, 15],[13,  1, 14,  5, 12,  7, 19, 20,  6, 11,  4,  9,  8,  3, 16, 15]],
+        [[16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0],[16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0]]
+    ]
     test_env.step(test_action)
     # convert_list = convert_action_list_to_scheduling_mask(test_action)
     # action_label = np.array(

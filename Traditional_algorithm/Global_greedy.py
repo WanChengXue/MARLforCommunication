@@ -1,4 +1,3 @@
-# 这个地方采用贪婪策略结合PF调度计算出最优的调度序列
 import numpy as np
 from tqdm import tqdm
 import sys
@@ -6,48 +5,65 @@ import os
 current_path = os.path.abspath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])
 sys.path.append(root_path)
-import shutil
-from multiprocessing import Pool
+
+from Utils import create_folder
+from Utils.config_parse import load_yaml
+from Env.Instant_Reward import Multi_cell_instant_reward
 import copy
-import json
-import time
-from Env.Instant_Reward import calculate_instant_reward
+from multiprocessing import Process
+import shutil
 import pathlib
-from Tool.arguments import get_common_args 
+import random
 
 class Greedy:
-    def __init__(self, args, channel_matrix):
-        self.args=args
-        self.sector_number = self.args.sector_number
-        self.cell_number = self.args.cell_number
-        self.agent_nums = self.cell_number * self.sector_number
-        self.bs_antenna_number = self.args.bs_antennas
-        self.user_numbers = self.args.user_numbers
-        self.transmit_power = [self.args.transmit_power] * self.agent_nums
-        self.noise_power = self.args.noise_spectrum_density
-        # self.system_bandwidth = self.args.system_bandwidth
-        # self.subcarriers_numbers = self.args.subcarrier_numbers
-        # self.subcarrier_gaps = self.args.subcarrier_gaps
-        # # 计算单个载波的频带宽度
-        # self.subcarrier_bandwidth = self.system_bandwidth / self.subcarriers_numbers - self.subcarrier_gaps
-        # self.noise_power = self.noise_spectrum_density * self.subcarrier_bandwidth
-        self.legal_range = [self.args.min_stream, self.args.max_stream]
-        self.transmit_power = [self.args.transmit_power] * self.agent_nums
-        self.channel_matrix = channel_matrix
+    def __init__(self, env_dict):
+        self.env_dict = env_dict
+        # ================ 定义工程参数 =================
+        self.user_nums = self.env_dict['user_nums']
+        self.sector_nums = self.env_dict['sector_nums']
+        self.cell_nums = self.env_dict['cell_nums']
+        self.agent_nums = self.env_dict['agent_nums']
+        self.bs_antenna_nums = self.env_dict['bs_antenna_nums']
+        self.total_antenna_nums = self.env_dict['total_antenna_nums']
+        self.transmit_power = self.env_dict['transmit_power']
+        self.noise_power = self.env_dict['noise_power']
+        self.velocity = self.env_dict['velocity']
+        # ---------- 文件的路径采用绝对位置 -------------
+        self.save_data_folder = self.generate_abs_path(self.env_dict['save_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
+        self.construct_save_path()
+        self.cyclic_index_matrix = np.array([[(i+j)%self.agent_nums for i in range(self.agent_nums)] for j in range(self.agent_nums)])
+        self.reward_calculator = Multi_cell_instant_reward(self.transmit_power, self.noise_power, self.cyclic_index_matrix, self.sector_nums, self.user_nums, self.bs_antenna_nums)
+
+    def load_eval_file(self, eval_file_number):
+        # ----------- 载入测试文件 ------------
+        loaded_file_name = self.save_data_folder + '/eval_channel_file_' + str(eval_file_number) + '.npy'
+        self.simulation_channel = (np.load(loaded_file_name)).squeeze()
+
+    def generate_abs_path(self, related_path):
+        file_path = os.path.abspath(__file__)
+        root_path = '/'.join(file_path.split('/')[:-3])
+        return os.path.join(root_path, related_path)
+
+    def construct_save_path(self):
+        # ----------- 构建结果保存路径 -------------
+        related_path = 'data_part/Greedy_result/global_greedy/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM'
+        self.abs_result_save_prefix = self.generate_abs_path(related_path)
+        create_folder(self.abs_result_save_prefix)
 
     def greedy_add_users(self, last_action):
         # 这个函数是遍历一次，找一个用户出来
         max_se = 0
         optimal_sector = None
         optimal_user = None
-        for sector_index in range(self.sector_number):
-            for user_index in range(self.user_numbers):
+        for sector_index in range(self.sector_nums):
+            for user_index in range(self.user_nums):
                 current_action = copy.deepcopy(last_action)
                 if last_action[sector_index, user_index] == 0:
                     # 如果当前用户没有被选到，则动作进行跳转
                     # 调用函数计算给定的信道矩阵，以及在当前的调度序列下面的SE
                     current_action[sector_index, user_index] = 1
-                    sum_SE = calculate_instant_reward(self.channel_matrix, current_action, self.legal_range, self.noise_power, self.transmit_power)
+                    SE_array = self.reward_calculator.calculate_instant_reward(self.channel_matrix, current_action)
+                    sum_SE = np.sum(np.sum(SE_array)).item() /(self.sector_nums * self.user_nums)
                     if max_se < sum_SE:
                         max_se = sum_SE
                         optimal_sector = sector_index
@@ -55,13 +71,8 @@ class Greedy:
         return max_se, optimal_sector, optimal_user
                 
     def recyle_add_user(self):
-        current_scheduling_sequence = np.zeros((self.sector_number, self.user_numbers), dtype=int)
+        current_scheduling_sequence = np.zeros((self.sector_nums, self.user_nums), dtype=int)
         current_max_se = 0
-        # 最开始的时候，三个小区，随机选出三个用户出来
-        random_center_user = np.random.choice(self.user_numbers, self.sector_number)
-        for sector_index in range(self.sector_number):
-            current_scheduling_sequence[sector_index, random_center_user[sector_index]] = 1
-            
         while True:
             # 判断循环结束的标志是下一次遍历无法添加新用户的时候，则跳出
             SE_after_new_user_append, new_user_sector_id, new_user_id = self.greedy_add_users(current_scheduling_sequence)
@@ -73,68 +84,38 @@ class Greedy:
                 break
         return current_scheduling_sequence, current_max_se
 
-def simulation(args):
-    # 这个函数用来遍历一下所有的TTI测试信道数据，包括了将instant SE和调度序列进行存储两种功能
-    file_path = args.testing_path
-    channel_data = np.load(file_path)
-    TTI_length = channel_data.shape[-1]
-    scheduling_sequence = []
-    SE = []
-    for TTI in tqdm(range(TTI_length)):
-        agent = Greedy(args, channel_data[:,:,:,:,TTI])
-        greedy_scheduling_sequence, max_se = agent.recyle_add_user()
-        scheduling_sequence.append(greedy_scheduling_sequence)
-        SE.append(max_se)
-    # 路径格式，data_part/preprocess_data/Greedy_result/用户数目/移动速度/
-    Sum_se_path = args.greedy_folder / 'Global_greedy_sum_SE'
-    Scheduling_path = args.greedy_folder / 'Global_greedy_shceduling_sequence'
-    np.save(Sum_se_path, np.array(SE))
-    np.save(Scheduling_path, np.stack(scheduling_sequence, axis=0))
 
+    def simulation(self, file_index):
+        self.load_eval_file(file_index)
+        TTI_length = self.simulation_channel.shape[-1]
+        # TTI_length = 10
+        scheduling_sequence = []
+        SE = []
+        scheduling_sequence_saved_path = self.abs_result_save_prefix + '/' + 'scheduling_sequence.npy'
+        SE_result_saved_path = self.abs_result_save_prefix + '/' + 'se_sum_result.npy'
+        for TTI in tqdm(range(TTI_length)):
+            self.channel_matrix = self.simulation_channel[:,:,:,:,TTI]
+            greedy_scheduling_sequence, max_se = self.recyle_add_user()
+            scheduling_sequence.append(greedy_scheduling_sequence)
+            SE.append(max_se)
+        # ------------------ 将来步
+        np.save(scheduling_sequence_saved_path, np.stack(scheduling_sequence, 0))
+        np.save(SE_result_saved_path, np.array(SE))
 
-# def main():
-#     from arguments import get_common_args, get_agent_args, get_MADDPG_args
-#     user_number = ['10_user','20_user','30_user','40_user']
-#     velocity = ['3KM','30KM','90KM']
-#     args_list = []
-#     for user_index in user_number:
-#         for velocity_index in velocity:
-#             common_args = get_common_args(user_number)
-#             common_args.data_folder = common_args.data_folder + user_index +'/' + velocity_index
-#             common_args.greedy_folder = common_args.greedy_folder + user_index + '/' + velocity_index + '/'  + 'Greedy_PF_result/'
-#             common_args.TTI_length = 200
-#             common_args.user_numbers = int(user_index.split('_')[0])
-#             common_args.user_velocity = int(velocity_index.split('K')[0])
-#             agent_args = get_agent_args(common_args)
-#             args = get_MADDPG_args(agent_args)
-#             args_list.append(args)
-#     testing_length = len(args_list)
-#     pool = Pool(testing_length)
-
-#     for i in range(testing_length):
-#         pool.apply_async(Greedy_solver, (args_list[i],))
-#     pool.close()
-#     pool.join()
-
-def main():
-    user_number_list = ['10_user','20_user','30_user','40_user']
-    velocity = ['3KM','30KM','90KM']
-    # for index in range(12):
-    index = 4
-    user_index = user_number_list[index // 3]
-    velocity_index = velocity[index % 3]
-    # 修改用户的数量和用户移动速度
-    user_number = int(user_index.split('_')[0])
-    velocity_number = int(velocity_index.split('K')[0])
-    common_args = get_common_args(user_number)
-    # common_args.user_numbers = user_number
-    common_args.user_velocity = velocity_number
-    common_args.testing_path = pathlib.Path(common_args.training_data_path)/(str(common_args.user_numbers) + '_user')/(str(common_args.user_velocity)+'KM')/'testing_data_10_10.npy'
-    common_args.greedy_folder = pathlib.Path(common_args.greedy_folder)/(str(common_args.user_numbers) + '_user')/(str(common_args.user_velocity)+'KM')
-    # 如果文件不存在就创建
-    common_args.greedy_folder.mkdir(parents=True, exist_ok=True)
-    simulation(common_args)
 
 if __name__=='__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_multi_cell_pointer_network.yaml', help='yaml format config')
+    args = parser.parse_args()
+    # ------------- 构建绝对地址 --------------
+    # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
+    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+    # abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    concatenate_path = abs_path + args.config_path
+    config_dict = load_yaml(concatenate_path)
+    test_greedy = Greedy(config_dict['env']) 
+    for i in range(50):
+        test_greedy.simulation(i)
+
 

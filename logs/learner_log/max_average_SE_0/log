@@ -1,0 +1,7 @@
+2022-03-23 01:51:05,962,962,INFO,LearnerServer_log_0::============== 开始构造learner server，这个server的全局id是:0, 具体到某一个机器上的id是: 0 ===========
+2022-03-23 01:51:05,962,962,INFO,LearnerServer_log_0::================ 开始初始化模型 ===========
+2022-03-23 01:51:05,962,962,INFO,LearnerServer_log_0::============== global rank 0开始创建模型 ==========
+2022-03-23 01:51:10,047,47,INFO,LearnerServer_log_0::----------- 完成模型的创建 ---------------
+2022-03-23 01:51:10,048,48,INFO,LearnerServer_log_0::--------------- 讲初始化模型发送给configserver --------------
+2022-03-23 01:51:10,053,53,INFO,LearnerServer_log_0::-------------------- 发送模型到configserver，发送的信息为: {'policy_name': 'max_average_SE', 'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1647971470.048898'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1647971470.048898'}}}，当前的模型更新次数为: 1
+2022-03-23 01:51:10,054,54,INFO,LearnerServer_log_0::------------------ learner: 0 开始运行 ----------------

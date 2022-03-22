@@ -3,7 +3,7 @@ env:
   user_nums: 20
   sector_nums: &sense_channel_nums 3
   cell_nums: 1
-  agent_nums: &agent_nums 3
+  agent_nums: *sense_channel_nums 3
   bs_antenna_nums: &bs_antenna_nums 16
   total_antenna_nums: &seq_len 20
   # 这个变量表示的是截取多少长度的TTI作为一个训练样本
@@ -19,8 +19,6 @@ env:
   min_stream_nums: &min_decoder_time 3
   # 这个是值表示的是一个信道文件总共有多少个TTI
   training_data_total_TTI_length: 10000
-  # 这个值是表示在测试阶段的时候,一个TTI信道有多少个TTI
-  eval_data_total_TTI_length: 10 
   # 这个值表示的滑窗的长度Ts
   delay_time_window: 200
   min_user_average_se: 0.08
@@ -78,7 +76,7 @@ policy_config:
     max_grad_norm: 10
     dual_clip: 3
     entropy_coef: 0.01
-    agent_nums: *agent_nums
+    agent_nums: *sense_channel_nums
     multi_objective_start: &multi_objective_start False
     popart_start: &popart_start False
     centralize_critic: &centralize_critic True
@@ -120,7 +118,7 @@ policy_config:
         hidden_dim: 32
         action_dim: *seq_len
         max_decoder_time: *bs_antenna_nums
-        agent_nums: *agent_nums
+        agent_nums: *sense_channel_nums
         model_type: 'policy'
         parameter_sharing: *parameter_sharing
         min_stream_nums: *min_decoder_time
@@ -138,12 +136,12 @@ policy_config:
         # ----- 这个变量一旦打开，表示同时优化边缘用户和系统性能 ------------
         multi_objective_start: *multi_objective_start
         popart_start: *popart_start
-        agent_nums: *agent_nums
+        agent_nums: *sense_channel_nums
         model_type: 'critic'
   # --------- replay buffer相关 -----------
   buffer:
     batch_size: *batch_size
-    agent_nums: *agent_nums
+    agent_nums: *sense_channel_nums
     max_decoder_time: *bs_antenna_nums
     seq_len: *seq_len
     max_capacity: *capacity
