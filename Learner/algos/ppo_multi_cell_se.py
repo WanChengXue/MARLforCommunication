@@ -159,7 +159,7 @@ class MAPPOTrainer:
         # ------------------ 这个地方开始用来更新策略网络的参数, 使用PPO算法, 把多个智能体的观测叠加到batch维度上 ----------------------------
         advantage_std = torch.std(advantages, 0)
         advantage_mean = torch.mean(advantages, 0)
-        advantage = (advantages - advantage_mean) / advantage_std
+        # advantage = (advantages - advantage_mean) / advantage_std
         if self.parameter_sharing:
             policy_loss_list = []
             # entropy_loss_list = []
@@ -169,13 +169,13 @@ class MAPPOTrainer:
                 agent_key = 'agent_' + str(index)
                 agent_action_log_probs = self.policy_net[policy_key](current_state['agent_obs'][agent_key], actions[agent_key], False)
                 importance_ratio = torch.exp(agent_action_log_probs - old_action_log_probs[agent_key])
-                surr1 = importance_ratio * advantage
+                surr1 = importance_ratio * advantages
                 # ================== 这个地方采用PPO算法，进行clip操作 ======================
-                surr2 = torch.clamp(importance_ratio, 1.0-self.clip_epsilon, 1.0+self.clip_epsilon) * advantage
+                surr2 = torch.clamp(importance_ratio, 1.0-self.clip_epsilon, 1.0+self.clip_epsilon) * advantages
                 surr = torch.min(surr1, surr2)        
                 if self.dual_clip is not None:
                     c = self.dual_clip
-                    surr3 = torch.min(c*advantage, torch.zeros_like(advantage))
+                    surr3 = torch.min(c*advantages, torch.zeros_like(advantages))
                     surr = torch.max(surr, surr3)
                 # ================== 这个advantage是一个矩阵，需要进行额外处理一下 ==============
                 policy_loss_list.append(-surr)

@@ -153,7 +153,8 @@ class Environment(gym.Env):
             # ----------- 将传入的动作矩阵变成0-1矩阵 -----------
             scheduling_mask = self.convert_action_list_to_scheduling_mask(numpy_type_action_list[i,:,:])
             active_instant_se = self.reward_calculator.calculate_instant_reward(self.simulation_channel[:,:,:,:,i], scheduling_mask.squeeze())
-            SE_list.append(sum(sum(active_instant_se))/(self.user_nums*self.sector_nums))
+            # SE_list.append(sum(sum(active_instant_se))/(self.user_nums*self.sector_nums))
+            SE_list.append(sum(sum(active_instant_se)))
         return SE_list
 
 # -------------- 测试一下环境 --------------
