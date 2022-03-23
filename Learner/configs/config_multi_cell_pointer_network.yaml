@@ -48,7 +48,7 @@ sampler_model_update_interval: 20
 config_server_http_port: 9002
 # ========== learner related ==============
 # ----- 这个变量是learner端使用，表示发布新模型的时间间隔 -----
-model_update_intervel: 0
+model_update_intervel: 3
 # --------- 这个变量是dataserver是从buffer里面采一个batch的数据放入到plasma client里面的时间间隔 -----------------
 data_server_sampling_interval: 0 
 # policy_config related

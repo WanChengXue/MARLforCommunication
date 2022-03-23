@@ -1,2 +1,0 @@
-2022-03-23 01:51:06,040,40,INFO,LogServer_log::----------------- 创建好了tensorboard日志文件，命令是nohup python -m tensorboard.main --logdir=/home/miao/Desktop/ICC/code_part/logs/Tensorboard_log --host=10.19.93.9 > /dev/null 2>&1 & -----------------
-2022-03-23 01:51:06,041,41,INFO,LogServer_log::================== 完成log server的构建，配置好了tensorboard的路径为 ./logs/Tensorboard_log

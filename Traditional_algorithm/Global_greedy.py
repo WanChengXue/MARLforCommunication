@@ -91,8 +91,8 @@ class Greedy:
         # TTI_length = 10
         scheduling_sequence = []
         SE = []
-        scheduling_sequence_saved_path = self.abs_result_save_prefix + '/' + 'scheduling_sequence.npy'
-        SE_result_saved_path = self.abs_result_save_prefix + '/' + 'se_sum_result.npy'
+        scheduling_sequence_saved_path = self.abs_result_save_prefix + '/' +str(file_index)+ '_scheduling_sequence.npy'
+        SE_result_saved_path = self.abs_result_save_prefix + '/' +str(file_index)+ '_se_sum_result.npy'
         for TTI in tqdm(range(TTI_length)):
             self.channel_matrix = self.simulation_channel[:,:,:,:,TTI]
             greedy_scheduling_sequence, max_se = self.recyle_add_user()

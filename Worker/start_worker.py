@@ -31,7 +31,7 @@ if __name__=='__main__':
     config_dict = parse_config(args.config_path)
     parallel_env_number = min(os.cpu_count()-10, config_dict['env']['parallel_env'])
     # print('---------- 并行化的worker数目为 {} -----------'.format(parallel_env_number))
-    parallel_env_number = 2
+    parallel_env_number = 4
     for i in range(parallel_env_number):
         # logger_path = pathlib.Path("./config_folder") / ("process_"+ str(i))
         # logger_name = "Process_"+ str(i)

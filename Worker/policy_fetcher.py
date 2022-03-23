@@ -5,7 +5,7 @@ import time
 import pathlib
 import requests
 # 由于这个类只有在training的时候才会实现,因此不需要考虑
-
+import time
 class fetcher:
     def __init__(self, context, config_dict, statistic, process_uid, logger):
         self.context = context
@@ -76,9 +76,17 @@ class fetcher:
             for model_name in model_info['url'][model_type].keys():
                 model_url = model_info['url'][model_type][model_name]
                 saved_path = self.model_path[model_type][model_name]
-                res = requests.get(model_url)
-                with open(saved_path, 'wb') as f:
-                    f.write(res.content)
+                # ------------ 为了避免请求http server过于频繁 ----------
+                while True:
+                    try:
+                        res = requests.get(model_url)
+                        with open(saved_path, 'wb') as f:
+                            f.write(res.content)
+                        break
+                    except:
+                        self.logger.info("---------- Connection refused by the server.. --------")
+                        time.sleep(2)
+                        self.logger.info("------- Was a nice sleep, now let me continue... -----")
 
     def reset(self):
         model_info = self.step()
