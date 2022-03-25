@@ -29,7 +29,7 @@ class rollout_sampler:
         self.traj_len = self.policy_config["traj_len"]
         self.env_name = self.config_dict['env']['id']
         self.env = importlib.import_module(self.env_name).Environment(self.config_dict['env'])
-        
+        self.agent_nums = self.config_dict['env']['agent_nums']
         # 收集数据放入到字典中
         self.data_dict = dict()
         # 声明一个智能体
@@ -130,19 +130,27 @@ class rollout_sampler:
         self.agent.reset()
         state = self.env.reset()
         # --------- 首先同步最新 config server上面的模型 ------
-        joint_log_prob, actions, net_work_output = self.agent.compute(state)
+        if self.agent_nums == 1:
+            joint_log_prob, actions, net_work_output = self.agent.compute_single_agent(state)
+        else:
+            joint_log_prob, actions, net_work_output = self.agent.compute_multi_agent(state)
         instant_SE_sum_list = self.env.step(actions)
         # ------------ instant_SE_sum_list的维度为bs×1 ------------
         data_dict = [{'state': copy.deepcopy(state), 'instant_reward':np.array(instant_SE_sum_list)}]
-        # ------------- old_action_log_probs是一个字典，每一个key的维度都bs×1 ---------
-        data_dict[-1]['old_action_log_probs'] = dict()
-        # ------------ actions也是一个字典，每一个key的维度都是bs×user_nums ------------
-        data_dict[-1]['actions'] = dict()
-        for agent_index in range(self.agent.agent_nums):
-            agent_key = "agent_" + str(agent_index)
-            data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
-            data_dict[-1]['actions'][agent_key] = actions[agent_index]
-        # ------------- net work output 的维度为bs×1 -----------
+        if self.agent_nums == 1:
+            # ---------- 如果说只有一一个用户，不需要套字典了 --------------
+            data_dict[-1]['old_action_log_probs'] = joint_log_prob
+            data_dict[-1]['actions'] = actions
+        else:
+            # ------------- old_action_log_probs是一个字典，每一个key的维度都bs×1 ---------
+            data_dict[-1]['old_action_log_probs'] = dict()
+            # ------------ actions也是一个字典，每一个key的维度都是bs×user_nums ------------
+            data_dict[-1]['actions'] = dict()
+            for agent_index in range(self.agent.agent_nums):
+                agent_key = "agent_" + str(agent_index)
+                data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
+                data_dict[-1]['actions'][agent_key] = actions[agent_index]
+            # ------------- net work output 的维度为bs×1 -----------
         data_dict[-1]['old_network_value'] = net_work_output
         self.agent.send_data(data_dict)
         return instant_SE_sum_list
@@ -150,7 +158,7 @@ class rollout_sampler:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
@@ -161,9 +169,11 @@ if __name__ == '__main__':
     context = zmq.Context()
     from Worker.statistics import StatisticsUtils
     from Utils import setup_logger
+    import uuid
+    process_uid = str(uuid.uuid4())
     config_dict = parse_config(concatenate_path)
-    logger_path = pathlib.Path(config_dict['log_dir']+ '/sampler/testrollout')
-    logger = setup_logger('rollout_agent', logger_path)
+    logger_path = pathlib.Path(config_dict['log_dir']+ '/sampler/test_rollout_' + process_uid[:6])
+    logger = setup_logger('Rollout_agent_'+process_uid[:6], logger_path)
     statistic = StatisticsUtils()
-    roll_out_test = rollout_sampler(concatenate_path, parse_config(concatenate_path), statistic, context, logger)
-    roll_out_test.run_one_episode()
+    roll_out_test = rollout_sampler(parse_config(concatenate_path), statistic, context, logger, process_uid[0:6])
+    roll_out_test.run_one_episode_single_step()

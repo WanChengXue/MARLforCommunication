@@ -172,7 +172,9 @@ class TrainingSet:
             sample_dict['actions'][agent_key] = self.data_buffer['actions'][agent_key][random_batch, :, :]
         return sample_dict
 
-class TraningSet_one_step:
+
+# ====================== Multi_cell_one_step replay buffer ================
+class TraningSet_one_step_multi_cell:
     def __init__(self, replay_buffer_config):
         self.replay_buffer_config = replay_buffer_config
         # ---------- 这个参数表示的就是batch size -------------
@@ -331,6 +333,91 @@ class TraningSet_one_step:
             # ------------ 初始化剩下的变量--------------、
             sample_dict['old_action_log_probs'][agent_key] = self.data_buffer['old_action_log_probs'][agent_key][random_batch,:]
             sample_dict['actions'][agent_key] = self.data_buffer['actions'][agent_key][random_batch,:]
+        return sample_dict
+
+
+# ======================= Single_cell_one_step replay buffer ==================
+class TraningSet_one_step_single_cell:
+    def __init__(self, replay_buffer_config):
+        self.replay_buffer_config = replay_buffer_config
+        # ---------- 这个参数表示的就是batch size -------------
+        self.batch_size = self.replay_buffer_config['batch_size']
+        # ---------- 这个参数表示传入的信道矩阵有多少个用户参与 ----------
+        self.seq_len = self.replay_buffer_config['seq_len']
+        # ---------- 这个参数表示这个replay buffer最大有多少条数据 ---------
+        self.max_capacity = self.replay_buffer_config['max_capacity']
+        # ---------- 这个参数表示最多进行多少次解码操作---------------------
+        self.max_decoder_time = self.replay_buffer_config['max_decoder_time']
+        self.transmit_antenna_dim = self.replay_buffer_config['bs_antenna_nums']
+        self.init_replay_buffer()
+        
+    def init_replay_buffer(self):
+        # ------------- 这个函数是用来初始化一个replaybuffer ----------
+        '''
+            data_dict = {
+                'state':{
+                    'real_part':
+                    'img_part':
+                },
+                'actions':
+                'old_network_value':
+                'instant_reward'
+            }
+        '''
+        self.data_buffer = dict()
+        # --------------- 给buffer提前开好空间用来存放 -------------
+        self.data_buffer['instant_reward'] = np.zeros((self.max_capacity, 1))
+        self.data_buffer['old_network_value'] = np.zeros((self.max_capacity, 1))
+        # ---------------- 定义一些字典用来存档action，action_log_probs, state --------
+        self.data_buffer['actions'] = np.zeros((self.max_capacity, self.max_decoder_time), dtype=int)
+        self.data_buffer['old_action_log_probs'] = np.zeros((self.max_capacity, 1))
+        self.data_buffer['state'] = dict()
+        self.data_buffer['state']['real_part'] = np.zeros((self.max_capacity, self.seq_len, self.transmit_antenna_dim))
+        self.data_buffer['state']['img_part'] = np.zeros((self.max_capacity, self.seq_len, self.transmit_antenna_dim))
+        # ------------- 定义一个变量，用来记录当前填了多少条数据进来 ------------------------
+        self.cursor = 0
+
+    def clear(self):
+        self.init_replay_buffer()
+    
+    @property
+    def buffer_size(self):
+        return self.cursor
+    
+    @property
+    def full_buffer(self):
+        if self.cursor >= self.max_capacity:
+            return True
+        else:
+            return False
+
+    def append_instance(self, instance, logger):
+        # ------------- 这个地方是添加数据进去，这个instance是一个列表 -------------- 
+        for sample_index in range(len(instance)):
+            for bs_index in range(instance[sample_index]['instant_reward'].shape[0]):
+                local_index = self.cursor % self.max_capacity
+                self.data_buffer['instant_reward'][local_index,:] = instance[sample_index]['instant_reward'][bs_index,:]
+                self.data_buffer['old_network_value'][local_index,:] = instance[sample_index]['old_network_value'][bs_index,:]
+                self.data_buffer['actions'][local_index, :] = instance[sample_index]['actions'][bs_index,:]
+                self.data_buffer['old_action_log_probs'][local_index, :] = instance[sample_index]['old_action_log_probs'][bs_index, :]
+                self.data_buffer['state']['real_part'][local_index, :, :] = instance[sample_index]['state']['real_part'][bs_index,:,:]
+                self.data_buffer['state']['img_part'][local_index, :, :] = instance[sample_index]['state']['img_part'][bs_index,:,:]
+                self.cursor += 1
+        instant_number = len(instance) * instance[sample_index]['instant_reward'].shape[0]
+        logger.info("------------- 此次添加的数据个数为 {} ----------------".format(instant_number))
+
+    def slice(self):
+        # ----------------- 这个函数随机从replaybuffer中选择出来一个batch ---------------
+        current_data_point = min(self.max_capacity, self.cursor)
+        random_batch = sample(range(0,current_data_point), self.batch_size)
+        sample_dict = dict()
+        sample_dict['instant_reward'] = self.data_buffer['instant_reward'][random_batch,:]
+        sample_dict['old_network_value'] = self.data_buffer['old_network_value'][random_batch,:]
+        sample_dict['actions'] = self.data_buffer['actions'][random_batch, :]
+        sample_dict['old_action_log_probs'] = self.data_buffer['old_action_log_probs'][random_batch, :]
+        sample_dict['state'] = dict()
+        sample_dict['state']['real_part'] = self.data_buffer['state']['real_part'][random_batch, :, :]
+        sample_dict['state']['img_part'] = self.data_buffer['state']['img_part'][random_batch,:, :]
         return sample_dict
 
 

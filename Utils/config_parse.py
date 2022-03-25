@@ -43,12 +43,6 @@ def parse_config(config_file_path):
     create_folder(abs_model_pool_path)
     create_folder(policy_config['saved_model_path'])
     policy_config['model_url'] = http_server_ip
-    # --------------- 检测模型的保存路径是不是存在的 -----------------
-    for model_type in policy_config['agent'].values():
-        # ---------- 构建模型路径的绝对位置 ------------
-        for agent_name in model_type.keys():
-            abs_model_path = os.path.join(abs_model_pool_path, model_type[agent_name]['model_path'])
-            model_type[agent_name]['model_path'] = abs_model_path
     config_dict['policy_config'] = policy_config
     # ------------- 修改一下tensorboard的保存路劲 ----------
     policy_config['tensorboard_folder'] = os.path.join(config_dict['log_dir'], policy_config['tensorboard_folder'])

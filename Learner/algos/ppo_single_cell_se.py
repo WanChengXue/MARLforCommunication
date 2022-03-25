@@ -24,7 +24,6 @@ class MAPPOTrainer:
     def __init__(self, net, optimizer, scheduler ,policy_config, local_rank):
         self.policy_config = policy_config
         self.rank = local_rank
-        self.agent_nums = self.policy_config['agent_nums']
         self.clip_epsilon = self.policy_config["clip_epsilon"]
         self.entropy_coef = self.policy_config['entropy_coef']
         # ----- 这个地方进行value loss的clip操作 ------
@@ -35,31 +34,23 @@ class MAPPOTrainer:
         self.dual_clip = self.policy_config.get("dual_clip", None)
         self.using_critic = self.policy_config.get("using_critic", True)
         # -------- 下面两个值分别表示要不要开启popart算法，以及是不是用多个目标 -----
-        self.popart_start = self.policy_config["popart_start"]
-        self.multi_objective_start = self.policy_config["multi_objective_start"]        
-        self.parameter_sharing = self.policy_config.get('parameter_sharing', True)
-        # ---------- 判断有没有critic网络，以及是不是使用的分离的critic网络 ---------
-        self.centralize_critic = self.policy_config.get('centralize_critic', True)
-        self.seperate_critic = self.policy_config.get('seperate_critic', False)
+        self.popart_start = self.policy_config.get("popart_start", False)
+        self.multi_objective_start = self.policy_config.get("multi_objective_start", False)     
+        # ------------ 这个表示是不是critic和policy在一起 -------------
+        self.seperate_critic = self.policy_config.get('seperate_critic', True)
         self.policy_net = net['policy']
         self.policy_optimizer = optimizer['policy']
         self.policy_scheduler = scheduler['policy']
-        self.policy_name = list(self.policy_net.keys())
+        self.policy_name = list(self.policy_net.keys())[0]
         # ------- 如果使用了critic，无论采用中心化critic还是s
         if self.using_critic:
-            if self.centralize_critic or self.seperate_critic:
-                # -------- 如果critic和policy网络在一起，则不需要单独的critic，则设置centralize_critic为False，seperate_critic为False --
+            if self.seperate_critic:
+                # -------- 如果critic和policy网络在一起，则不需要单独的critic，seperate_critic为False -----
                 self.critic_net = net['critic']
                 self.critic_optimizer = optimizer['critic']
                 self.critic_scheduler = scheduler['critic']
                 self.critic_loss = self.huber_loss
-                self.critic_name = list(self.critic_net.keys())
-            else:
-                # -------- 这个出现的原因，就是centralize_critic和seperate_critic都设置为False，但是using_critic为True ---
-                pass
-        else:
-            # ------ 这个就只是使用了policy网络 ---------
-            pass
+                self.critic_name = list(self.critic_net.keys())[0]
 
     def huber_loss(self, a, b, delta=1.0):
         gap = a - b
@@ -75,24 +66,18 @@ class MAPPOTrainer:
 
     '''
     training_batch = {
-        'current_state':{
-            'agent_obs':{
-                'agent_1':
-                    {
-
-                    },
-            },
-            'global_state':{
-                'default':
-                    {
-
-                    },
-                # ---- 如果是
-            }
-        }
+        'state': {
+            'real_part': R^{bs*user_nums*bs_antennas}
+            'img_part': R^{bs*user_nums*bs_antennas}
+        },
+        'actions': R^{bs*user_nums},
+        'old_action_log_probs': R^{bs*1},
+        'old_network_value': R^{bs*1},
+        'instant_reward': R^{bs*1}
     }
     
     '''
+
     def step(self, training_batch):
         current_state = training_batch['state']
         # ================= 使用了GAE估计出来了advantage value  ============
@@ -101,14 +86,17 @@ class MAPPOTrainer:
         old_action_log_probs = training_batch['old_action_log_probs']
         # -------------- 通过神经网络计算一下在当前网络下的状态值 --------------
         if self.multi_objective_start:
-            predict_state_value_PF, predict_state_value_Edge = self.critic_net(current_state['global_channel_matrix'])
+            predict_state_value_PF, predict_state_value_Edge = self.critic_net(current_state)
             predict_state_value = torch.cat([predict_state_value_PF, predict_state_value_Edge], 1)
-            advantages = training_batch['advantages'].squeeze(-1)
+            advantages = training_batch['instant_reward'] - training_batch['old_network_value']
             # ----------------- 这个值是使用采样critic网络前向计算出出来的结果，主要用来做value clip ----------------
             old_network_value = training_batch['old_network_value'].squeeze(-1)
             target_state_value = training_batch['target_state_value'].squeeze(-1)
         else:
-            predict_state_value = self.critic_net[self.critic_name[0]](current_state['global_channel_matrix'])
+            if self.using_critic:
+                predict_state_value = self.critic_net[self.critic_name](current_state)
+            else:
+                action_log_probs, predict_state_value = self.policy_net[self.policy_name](current_state)
             advantages = training_batch['instant_reward'] - training_batch['old_network_value']
             old_network_value = training_batch['old_network_value']
             target_state_value = training_batch['instant_reward'] 
@@ -150,51 +138,42 @@ class MAPPOTrainer:
             total_state_loss = state_value_loss_Edge_head + state_value_loss_PF_head
         else:
             total_state_loss = mean_loss
-        self.critic_optimizer[self.critic_name[0]].zero_grad()
-        total_state_loss.backward()
-        if self.grad_clip is not None:
-            nn.utils.clip_grad_norm_(self.critic_net[self.critic_name[0]].parameters(), self.grad_clip)
-        self.critic_optimizer[self.critic_name[0]].step()
-        self.critic_scheduler[self.critic_name[0]].step()
-        # ------------------ 这个地方开始用来更新策略网络的参数, 使用PPO算法, 把多个智能体的观测叠加到batch维度上 ----------------------------
-        advantage_std = torch.std(advantages, 0)
-        advantage_mean = torch.mean(advantages, 0)
-        advantage = (advantages - advantage_mean) / advantage_std
-        if self.parameter_sharing:
-            policy_loss_list = []
+        if self.seperate_critic:
+            self.critic_optimizer[self.critic_name].zero_grad()
+            total_state_loss.backward()
+            if self.grad_clip is not None:
+                nn.utils.clip_grad_norm_(self.critic_net[self.critic_name].parameters(), self.grad_clip)
+            self.critic_optimizer[self.critic_name].step()
+            self.critic_scheduler[self.critic_name].step()
+            advantage_std = torch.std(advantages, 0)
+            advantage_mean = torch.mean(advantages, 0)
+            advantage = (advantages - advantage_mean) / advantage_std
             # entropy_loss_list = []
-            policy_key = self.policy_name[0]
-            self.policy_optimizer[policy_key].zero_grad()
-            for index in range(self.agent_nums):
-                agent_key = 'agent_' + str(index)
-                agent_action_log_probs = self.policy_net[policy_key](current_state['agent_obs'][agent_key], actions[agent_key], False)
-                importance_ratio = torch.exp(agent_action_log_probs - old_action_log_probs[agent_key])
-                surr1 = importance_ratio * advantage
-                # ================== 这个地方采用PPO算法，进行clip操作 ======================
-                surr2 = torch.clamp(importance_ratio, 1.0-self.clip_epsilon, 1.0+self.clip_epsilon) * advantage
-                surr = torch.min(surr1, surr2)        
-                if self.dual_clip is not None:
-                    c = self.dual_clip
-                    surr3 = torch.min(c*advantage, torch.zeros_like(advantage))
-                    surr = torch.max(surr, surr3)
-                # ================== 这个advantage是一个矩阵，需要进行额外处理一下 ==============
-                policy_loss_list.append(-surr)
-                # ================== entropy loss =====================
-                # entropy_loss_list.append(-agent_conditional_entropy)
-            # ------------------- 这个地方直接用sum也是可以的 -------------------
-            policy_loss_concatenate_tensor = torch.cat(policy_loss_list, 1)
-            # entropy_loss_concatenate_tensor = torch.cat(entropy_loss_list, 1)
-            policy_loss = torch.mean(torch.sum(policy_loss_concatenate_tensor, 1))
-            # entropy_loss = torch.mean(torch.sum(entropy_loss_concatenate_tensor, 1))
+            self.policy_optimizer[self.policy_name].zero_grad()
+            action_log_probs = self.policy_net[self.policy_name](current_state, actions, False)
+            importance_ratio = torch.exp(action_log_probs - old_action_log_probs)
+            surr1 = importance_ratio * advantage
+            # ================== 这个地方采用PPO算法，进行clip操作 ======================
+            surr2 = torch.clamp(importance_ratio, 1.0-self.clip_epsilon, 1.0+self.clip_epsilon) * advantage
+            surr = torch.min(surr1, surr2)        
+            if self.dual_clip is not None:
+                c = self.dual_clip
+                surr3 = torch.min(c*advantage, torch.zeros_like(advantage))
+                surr = torch.max(surr, surr3)
+            policy_loss = torch.mean(-surr)
+            # ================== 需要添加entropy的限制 =================
             total_policy_loss = policy_loss
-            # total_policy_loss = policy_loss + self.entropy_coef *  entropy_loss
             total_policy_loss.backward()    
             if self.grad_clip is not None:
                 max_grad_norm = 10
-                nn.utils.clip_grad_norm_(self.policy_net[policy_key].parameters(), max_grad_norm)
-            self.policy_optimizer[policy_key].step()
-            self.policy_scheduler[policy_key].step()
+                nn.utils.clip_grad_norm_(self.policy_net[self.policy_name].parameters(), max_grad_norm)
+            self.policy_optimizer[self.policy_name].step()
+            self.policy_scheduler[self.policy_name].step()
             
+        else:
+            # ------------ TODO 这个地方是critic和actor连在一起的时候使用，loss backward的时候需要保存计算图 --------------
+            pass 
+        # ------------------ 这个地方开始用来更新策略网络的参数, 使用PPO算法, 把多个智能体的观测叠加到batch维度上 ----------------------------
         return {
             'value_loss': total_state_loss.item(),
             # 'conditional_entropy': entropy_loss.item(),

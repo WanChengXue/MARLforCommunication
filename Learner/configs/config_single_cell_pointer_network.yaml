@@ -1,9 +1,9 @@
 env:
-  id: "Env.Multi_cell_env"
+  id: "Env.Single_cell_env"
   user_nums: 20
   sector_nums: &sense_channel_nums 3
   cell_nums: 1
-  agent_nums: &agent_nums 3
+  agent_nums: &agent_nums 1
   bs_antenna_nums: &bs_antenna_nums 16
   total_antenna_nums: &seq_len 20
   # 这个变量表示的是截取多少长度的TTI作为一个训练样本
@@ -26,8 +26,8 @@ env:
   max_user_pf_value: 0.25
   parallel_env: 1000
   one_step_env: True
-  replay_buffer_name: 'TraningSet_one_step_multi_cell'
-policy_name: max_average_SE
+  replay_buffer_name: 'TraningSet_one_step_single_cell'
+policy_name: single_cell_max_se
 # 要不要保存上一次训练得到的历史队列
 use_history: fasle
 # learning rate 为0的时间,用于优化器的初始化
@@ -66,7 +66,7 @@ policy_config:
   eval_mode: False
   # ---------- 策略相关 ------
   policy_type: 'latest'
-  algorithm: 'ppo_multi_cell_se'
+  algorithm: 'ppo_single_cell_se'
   # Pytorch DDP相关
   ddp_port: 50001
   batch_size: &batch_size 1024
@@ -81,11 +81,9 @@ policy_config:
     agent_nums: *agent_nums
     multi_objective_start: &multi_objective_start False
     popart_start: &popart_start False
-    centralize_critic: &centralize_critic True
-    seperate_critic: &seperate_critic False
+    seperate_critic: &seperate_critic True
   # 环境相关
   traj_len: 32
-  n_sample: 1
   capacity: &capacity 50000
   # -------- 每训练1000次就保存一下模型 ----------
   model_save_interval: 1000
@@ -102,20 +100,15 @@ policy_config:
   # plasma相关
   plasma_server_location: Plasma_server/plasma
   # ------ centralize_critic表示采用中心化的critic，seperate_critic表示每一个智能体都有一个critic
-  centralize_critic: *centralize_critic
   seperate_critic: *seperate_critic
-  # -------- 这个表示actor和critic通过网络的前向计算会同时得到 --------------
-  actor_critic_concatenate: False
   agent:
     # ------- critic的逻辑，如果采用中心化的critic，则另外两个值都是False，如果采用分离critic，则seperate_critic为True，最后一个值可True可False -------
     policy:
       # -------- 策略网络的相关配置 -----------
-      default:
+      default_single_cell:
         learning_rate: 1e-4
-        model_name: 'multi_cell_model'
-        model_path: "agent_default_policy_net.pkl"
+        model_name: 'Single_cell_model_se'
         # ---- model related ----------
-        conv_channel: *sense_channel_nums # 状态的输入维度是3个channel
         # ------------ 这个32必须是和天线维度一样，天线16根，变成实数就是32
         state_feature_dim: *bs_antenna_nums
         # ---------- hidden_dim是通过数据的预处理之后得到的特征图的维度 ----------
@@ -126,31 +119,23 @@ policy_config:
         weight_dim: 32
         seq_len: *seq_len
         action_dim: *seq_len
-        agent_nums: *agent_nums
         model_type: 'policy'
         parameter_sharing: *parameter_sharing
         min_decoder_time: *min_decoder_time
       # -------- 状态维度和动作维度由环境直接给出 -----------
     critic:
       # -------- critic网络的相关配置 ---------
-      default:      
-        learning_rate: 1e-3
-        model_name: 'multi_cell_model'
-        model_path: "agent_default_critic_net.pkl"
+      default_single_cell:      
+        learning_rate: 1e-4
+        model_name: 'Single_cell_model_se'
         # ------ model_related -----------
-        conv_channel: *sense_channel_nums
-        seq_len: *seq_len
         state_feature_dim: *bs_antenna_nums
         hidden_dim: 128
         # ----- 这个变量一旦打开，表示同时优化边缘用户和系统性能 ------------
-        multi_objective_start: *multi_objective_start
-        popart_start: *popart_start
-        agent_nums: *agent_nums
         model_type: 'critic'
   # --------- replay buffer相关 -----------
   buffer:
     batch_size: *batch_size
-    agent_nums: *agent_nums
     max_decoder_time: *bs_antenna_nums
     seq_len: *seq_len
     max_capacity: *capacity

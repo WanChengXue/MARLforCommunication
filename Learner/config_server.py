@@ -65,6 +65,7 @@ class config_server(basic_server):
             policy_name = request_information['policy_name']
             if request_information['type'] == 'latest':
                 if self.latest_model_information:
+                    self.logger.info("---------- worker端口收到的信息为:{} ---------------".format(request_information))
                     assert policy_name == self.latest_model_information['policy_name']
                     model_information = self.latest_model_information 
                     self.logger.info('---------------- 收到了来自worker端的请求，收到的数据为:{} -----------------'.format(request_information))

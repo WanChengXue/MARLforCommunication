@@ -47,22 +47,8 @@ class learner_server(basic_server):
         logger_path = pathlib.Path(self.config_dict['log_dir'] + '/learner_log/{}_{}'.format(self.policy_name,self.local_rank)) 
         self.logger = setup_logger('LearnerServer_log_{}'.format(self.local_rank), logger_path)
         self.logger.info("============== 开始构造learner server，这个server的全局id是:{}, 具体到某一个机器上的id是: {} ===========".format(self.global_rank, self.local_rank))
-        # ----------------- 开始初始化模型 ---------------------
-        if self.global_rank ==0 and self.eval_mode:
-            # ---------- 如果说这个learner是第一个进程，并且采用的是评估模式 -----------
-            # self.logger.info("============== 评估模式直接加载模型，模型的路径为:{} ============".format(self.model_path))
-            # deserialize_model(self.model, self.model_path)
-            # ----------- TODO 这个地方的逻辑是，当发现是采用测试模式的时候，并且这是第0张卡，就开启一个work端就好了，其余的代码都不需要执行
-            pass
-        elif self.global_rank != 0 and self.eval_mode:
-            self.logger.info("---------- 在测试模式下面，讲第0张卡对应的进程打开，其余learner server全部关闭 ----------")
-            exit()
-        else:
-            self.logger.info('================ 开始初始化模型 ===========')
         # ------------ 默认是多机多卡，然后这个local rank表示的是某台机器上卡的相对索引 ----------
         self.machine_index = self.global_rank // self.policy_config['device_number_per_machine']
-        self.parameter_sharing = self.policy_config['parameter_sharing']
-        self.homogeneous_agent = self.policy_config['homogeneous_agent']
         self.logger.info("============== global rank {}开始创建模型 ==========".format(self.global_rank))
         # --------------------- 开始创建网络,定义两个optimizer，一个优化actor，一个优化critic ------------------
         self.construct_model()
@@ -219,7 +205,7 @@ if __name__ == '__main__':
     parser.add_argument('--rank', default= 0, type=int, help="rank of current process")
     parser.add_argument('--world_size', default=1, type=int, help='total gpu card')
     parser.add_argument('--init_method', default='tcp://120.0.0.1:23456')
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_multi_cell_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path

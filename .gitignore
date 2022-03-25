@@ -2,3 +2,5 @@
 /Plasma_server
 /Worker/Download_model
 /__pycache__
+/logs
+/Utils/__pycache__
