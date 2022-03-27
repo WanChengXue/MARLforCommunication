@@ -1,0 +1,129 @@
+import numpy as np
+from tqdm import tqdm
+import sys
+import os
+current_path = os.path.abspath(__file__)
+root_path = '/'.join(current_path.split('/')[:-2])
+sys.path.append(root_path)
+
+from Utils import create_folder
+from Utils.config_parse import load_yaml
+from Env.Instant_Reward import Single_cell_instant_reward
+import copy
+from multiprocessing import Process
+import shutil
+import pathlib
+import random
+
+class Greedy:
+    def __init__(self, env_dict):
+        self.env_dict = env_dict
+        # ================ 定义工程参数 =================
+        self.user_nums = self.env_dict['user_nums']
+        self.sector_nums = self.env_dict['sector_nums']
+        self.cell_nums = self.env_dict['cell_nums']
+        self.agent_nums = self.env_dict['agent_nums']
+        self.bs_antenna_nums = self.env_dict['bs_antenna_nums']
+        self.total_antenna_nums = self.env_dict['total_antenna_nums']
+        self.transmit_power = self.env_dict['transmit_power']
+        self.noise_power = self.env_dict['noise_power']
+        self.velocity = self.env_dict['velocity']
+        # ---------- 文件的路径采用绝对位置 -------------
+        self.save_data_folder = self.generate_abs_path(self.env_dict['save_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
+        self.construct_save_path() 
+        self.single_cell_reward_calculator = Single_cell_instant_reward(self.transmit_power, self.noise_power, self.user_nums, self.bs_antenna_nums)
+
+    def load_eval_file(self, eval_file_number):
+        # ----------- 载入测试文件 ------------
+        loaded_file_name = self.save_data_folder + '/eval_channel_file_' + str(eval_file_number) + '.npy'
+        self.simulation_channel = (np.load(loaded_file_name)).squeeze()
+
+    def generate_abs_path(self, related_path):
+        file_path = os.path.abspath(__file__)
+        root_path = '/'.join(file_path.split('/')[:-3])
+        return os.path.join(root_path, related_path)
+
+    def construct_save_path(self):
+        # ----------- 构建结果保存路径 -------------
+        related_path = 'data_part/Greedy_result/single_cell_scenario_greedy/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM'
+        self.abs_result_save_prefix = self.generate_abs_path(related_path)
+        create_folder(self.abs_result_save_prefix)
+
+    def greedy_add_users(self, sector_index, last_action):
+        # 这个函数是遍历一次，找一个用户出来
+        max_se = 0
+        optimal_user = None
+        for user_index in range(self.user_nums):
+            current_action = copy.deepcopy(last_action)
+            if last_action[user_index] == 0:
+                # 如果当前用户没有被选到，则动作进行跳转
+                # 调用函数计算给定的信道矩阵，以及在当前的调度序列下面的SE
+                current_action[user_index] = 1
+                SE_array = self.single_cell_reward_calculator.calculate_instant_reward(self.channel_matrix[sector_index,:,sector_index,:], current_action)
+                sum_SE = np.sum(SE_array).item() /(self.user_nums)
+                if max_se < sum_SE:
+                    max_se = sum_SE
+                    optimal_user = user_index
+        return max_se, optimal_user
+                
+    def recyle_add_user(self):
+        current_scheduling_sequence = np.zeros((self.sector_nums, self.user_nums), dtype=int)
+        max_se_list = np.zeros(self.sector_nums)
+        for sector_index in range(self.sector_nums):
+            current_max_se = 0
+            while True:
+                # 判断循环结束的标志是下一次遍历无法添加新用户的时候，则跳出
+                SE_after_new_user_append, new_user_id = self.greedy_add_users(sector_index, current_scheduling_sequence[sector_index,:])
+                if SE_after_new_user_append >= current_max_se:
+                    current_scheduling_sequence[sector_index, new_user_id] = 1
+                    current_max_se = SE_after_new_user_append
+                else:
+                    # 如果当前这一轮没有办法添加新的用户进去，就直接break循环
+                    max_se_list[sector_index] = current_max_se
+                    break
+        # --------- 所有sector都进行了greedy挑选用户，计算一下他们拼接在一起后得到的reward ------------------
+        return current_scheduling_sequence, max_se_list
+
+
+    def simulation(self, file_index):
+        self.load_eval_file(file_index)
+        TTI_length = self.simulation_channel.shape[-1]
+        # TTI_length = 10
+        scheduling_sequence = dict()
+        SE = dict()
+        scheduling_sequence_saved_path = dict()
+        SE_result_saved_path = dict()
+        for sector_index in range(self.sector_nums):
+            scheduling_sequence['sector_{}'.format(sector_index)] = []
+            SE['sector_{}'.format(sector_index)] = []
+            scheduling_sequence_saved_path['sector_{}'.format(sector_index)] = self.abs_result_save_prefix + '/' +str(file_index)+ '_sector_{}_scheduling_sequence.npy'.format(sector_index)
+            SE_result_saved_path['sector_{}'.format(sector_index)] = self.abs_result_save_prefix + '/' +str(file_index)+ '_sector_{}_se_sum_result.npy'.format(sector_index)
+
+        for TTI in tqdm(range(TTI_length)):
+            self.channel_matrix = self.simulation_channel[:,:,:,:,TTI]
+            greedy_scheduling_sequence, max_se = self.recyle_add_user()
+            for sector_index in range(self.sector_nums):
+                scheduling_sequence['sector_{}'.format(sector_index)].append(greedy_scheduling_sequence[sector_index,:])
+                SE['sector_{}'.format(sector_index)].append(max_se[sector_index])
+        # ------------------ 将来步
+        for sector_index in range(self.sector_nums):
+            np.save(scheduling_sequence_saved_path['sector_{}'.format(sector_index)], np.stack(scheduling_sequence['sector_{}'.format(sector_index)], 0))
+            np.save(SE_result_saved_path['sector_{}'.format(sector_index)], np.array(SE['sector_{}'.format(sector_index)]))
+
+
+if __name__=='__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_multi_cell_pointer_network.yaml', help='yaml format config')
+    args = parser.parse_args()
+    # ------------- 构建绝对地址 --------------
+    # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
+    abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+    # abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
+    concatenate_path = abs_path + args.config_path
+    config_dict = load_yaml(concatenate_path)
+    test_greedy = Greedy(config_dict['env']) 
+    for i in range(50):
+        test_greedy.simulation(i)
+
+

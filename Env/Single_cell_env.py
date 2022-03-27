@@ -117,7 +117,7 @@ class Environment(gym.Env):
                 scheduling_mask = self.convert_action_list_to_scheduling_mask(action_list[real_index,:])
                 active_instant_se = self.reward_calculator.calculate_instant_reward(self.simulation_channel[sector_index,:,sector_index,: ,i], scheduling_mask)
                 # SE_list.append(sum(sum(active_instant_se))/(self.user_nums*self.sector_nums))
-                SE_list.append(sum(active_instant_se))
+                SE_list.append(sum(active_instant_se)/self.user_nums)
         return SE_list
 
 # -------------- 测试一下环境 --------------

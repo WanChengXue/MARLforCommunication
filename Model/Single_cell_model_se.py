@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 from torch.nn import Parameter
+from torch.distributions import categorical
 import sys
 import os
 current_path = os.path.abspath(__file__)
@@ -65,13 +66,14 @@ class pointer_network(nn.Module):
                 indices = action[:,i].unsqueeze(-1)
                 index_probs = masked_output.gather(1, indices)
             else:
-                indices = torch.argmax(masked_output, -1).unsqueeze(-1)
+                dist = categorical.Categorical(masked_output)
+                indices = dist.sample().unsqueeze(-1)
                 # ---------- 每个小区至少要调度min_decoder_time个用户出来 -----------
-                if i<self.min_decoder_time:
-                    terminate_batch = indices == 0
-                    # --------- 将第二大的概率向量拿出来 ----------
-                    _, alter_matrix = torch.topk(masked_output, 2)
-                    indices[terminate_batch] = alter_matrix[:,1].unsqueeze(-1)[terminate_batch]
+                # if i<self.min_decoder_time:
+                #     terminate_batch = indices == 0
+                #     # --------- 将第二大的概率向量拿出来 ----------
+                #     _, alter_matrix = torch.topk(masked_output, 2)
+                #     indices[terminate_batch] = alter_matrix[:,1].unsqueeze(-1)[terminate_batch]
                 index_probs = masked_output.gather(1, indices) # batch_size * 1
                 # --------- 如果说当前上一个时刻的indices是0，则表示已经结束调度了，这个时刻的indices就变成0 ---------
                 indices[mask[:,0] == 0] = 0

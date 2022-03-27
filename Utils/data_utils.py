@@ -441,7 +441,8 @@ def convert_data_format_to_torch_training(training_batch, device_index, long_ten
             else:
                 torch_format_dict[key] = convert_data_format_to_torch_training(value, device_index)
         else:
-            if long_tensor:
+            if long_tensor or key == 'actions':
+                # ------------ 如果单智能体学习的时候，actions下级不会有字典 ------------
                 torch_format_dict[key] = torch.LongTensor(value).to(device_index)
             else:
                 torch_format_dict[key] = torch.FloatTensor(value).to(device_index)

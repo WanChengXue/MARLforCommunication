@@ -69,7 +69,7 @@ policy_config:
   algorithm: 'ppo_single_cell_se'
   # Pytorch DDP相关
   ddp_port: 50001
-  batch_size: &batch_size 1024
+  batch_size: &batch_size 2048
   gamma: 0.997
   tau: 0.95
   # -------------- 模型训练相关 --------------
