@@ -12,7 +12,7 @@ greedy_root_path = '/'.join(function_path.split('/')[:-3]) +'/data_part/Greedy_r
 rl_root_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Evaluate/single_cell_max_se/'
 save_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Figure/single_cell_max_se/'
 create_folder(save_path)
-for i in tqdm(range(9)):
+for i in tqdm(range(50)):
     for sector_index in range(3):
         greedy_data = np.load(greedy_root_path+'{}sector_{}_se_sum_result.npy'.format(i, sector_index))
         rl_data = np.load(rl_root_path+'{}_sector_{}_se_sum_result.npy'.format(i, sector_index))
