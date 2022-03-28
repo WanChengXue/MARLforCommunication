@@ -96,7 +96,7 @@ policy_config:
   parameter_sharing: &parameter_sharing True
   homogeneous_agent: True
   # ------ 这个地方采用的cosineannealingwarmrestarts()学习率调整 ------------
-  T_zero: 5
+  T_zero: 20
   # plasma相关
   plasma_server_location: Plasma_server/plasma
   # ------ centralize_critic表示采用中心化的critic，seperate_critic表示每一个智能体都有一个critic

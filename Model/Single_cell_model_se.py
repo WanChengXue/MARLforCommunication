@@ -66,6 +66,7 @@ class pointer_network(nn.Module):
             if action is not None:
                 indices = action[:,i].unsqueeze(-1)
                 index_probs = masked_output.gather(1, indices)
+                conditional_entropy_list.append(dist.entropy().unsqueeze(-1)*index_probs)
             else:
                 dist = categorical.Categorical(masked_output)
                 indices = dist.sample().unsqueeze(-1)
@@ -83,7 +84,6 @@ class pointer_network(nn.Module):
                 index_probs = masked_output.gather(1, indices) # batch_size * 1
                 # --------- 如果说当前上一个时刻的indices是0，则表示已经结束调度了，这个时刻的indices就变成0 ---------
                 indices[mask[:,0] == 0] = 0
-                conditional_entropy_list.append(dist.entropy().unsqueeze(-1)*index_probs)
             _terminate_vector = _terminate_vector * mask[:,0].unsqueeze(-1)
             # ----------- indices： batch_size 向量， max_probs也是一个batch_size向量 -----------
             # -------- 得到一个batch_size * seq_len的矩阵，在当前batch上面，被选中的用户的位置是1，否则是0 ------------------
