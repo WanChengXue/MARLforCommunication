@@ -25,7 +25,7 @@ def main(args):
     args.config_path = '/' + args.config_path
     if args.machine_index == 0:
         # ----- 打开plasma server -----------
-        plasma_command = "nohup plasma_store -s {} -m 500000000 &".format(config_dict['policy_config']['plasma_server_location'])
+        plasma_command = "nohup plasma_store -s {} -m 5000000000 &".format(config_dict['policy_config']['plasma_server_location'])
         os.system(plasma_command)
         # ----- 打开log server ----------
         log_command = "nohup python -m Learner.log_server --config {} > {} 2>&1 &".format(args.config_path, log_dir+'/log_output')

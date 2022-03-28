@@ -26,7 +26,7 @@ class sampler_worker:
         self.uuid = str(uuid.uuid4())
         self.policy_config = self.config_dict['policy_config']
         self.policy_name = self.config_dict['policy_name']
-        self.eval_mode = self.config_dict['eval_mode']
+        self.eval_mode = self.config_dict.get('eval_mode', False)
         self.agent_nums = self.config_dict['env']['agent_nums']
         self.total_antenna_nums = self.config_dict['env']['total_antenna_nums']
         self.sampler_numbers = args.sampler_numbers

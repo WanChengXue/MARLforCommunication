@@ -150,7 +150,7 @@ class MAPPOTrainer:
             advantage = (advantages - advantage_mean) / advantage_std
             # entropy_loss_list = []
             self.policy_optimizer[self.policy_name].zero_grad()
-            action_log_probs = self.policy_net[self.policy_name](current_state, actions, False)
+            action_log_probs, conditional_entropy = self.policy_net[self.policy_name](current_state, actions, False)
             importance_ratio = torch.exp(action_log_probs - old_action_log_probs)
             surr1 = importance_ratio * advantage
             # ================== 这个地方采用PPO算法，进行clip操作 ======================
@@ -161,8 +161,9 @@ class MAPPOTrainer:
                 surr3 = torch.min(c*advantage, torch.zeros_like(advantage))
                 surr = torch.max(surr, surr3)
             policy_loss = torch.mean(-surr)
+            entropy_loss = torch.mean(conditional_entropy)
             # ================== 需要添加entropy的限制 =================
-            total_policy_loss = policy_loss
+            total_policy_loss = policy_loss - self.entropy_coef * entropy_loss
             total_policy_loss.backward()    
             if self.grad_clip is not None:
                 max_grad_norm = 10
@@ -180,7 +181,8 @@ class MAPPOTrainer:
             'advantage_std': advantage_std.cpu().numpy().tolist(),
             'advantage_mean': advantage_mean.cpu().numpy().tolist(),
             'policy_loss': policy_loss.item(),
-            'total_policy_loss': total_policy_loss.item()
+            'total_policy_loss': total_policy_loss.item(),
+            'entropy_loss': entropy_loss.item()
             }
 
 

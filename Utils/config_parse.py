@@ -1,3 +1,4 @@
+from distutils.command.config import config
 import yaml
 import os
 from yaml import Loader
@@ -15,8 +16,20 @@ def parse_config(config_file_path):
     # ------ 这个就是到了Pretrained_model这一层路径下面 ----- ~/Desktop/pretrained_model
     root_path = '/'.join(function_path.split('/')[:-2])
     config_dict = load_yaml(config_file_path)
-    if "eval_mode" not in config_dict:
-        config_dict["eval_mode"] = False
+    if config_dict['policy_config'].get('eval_mode', False):
+        model_pool_path = os.path.join(root_path, 'Exp/Model/model_pool/' + config_dict['policy_name'])
+        for model_type in config_dict['policy_config']['agent'].keys():
+            # ------------ 构建模型路径的绝对位置 ----------
+            for agent_name in config_dict['policy_config']['agent'][model_type].keys():
+                # --------- 读取Exp/Model/model_pool下面的模型，找到最后config_dict['policy_name']下面的模型，挑选最新的 ---------
+                # -------- 首先是分类，根据model_type_agent_name关键字进行挑选 ---------
+                model_pool_file = sorted([file_name for file_name in os.listdir(model_pool_path) if model_type+'_'+agent_name in file_name])
+                config_dict['policy_config']['agent'][model_type][agent_name]['model_path'] = os.path.join(model_pool_path, model_pool_file[-1])
+        # ------------   在eval模式下面，需要创建一个文件夹，然后将采样结果放到里面去 -----------
+        result_save_path = os.path.join(root_path, 'Exp/Result/Evaluate/{}'.format(config_dict['policy_name']))
+        create_folder(result_save_path)
+        config_dict['policy_config']['result_save_path'] = result_save_path
+        return config_dict
 
     if "main_server_ip" in config_dict:
         config_dict["log_server_address"] = config_dict["main_server_ip"]

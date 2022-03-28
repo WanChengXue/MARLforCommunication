@@ -60,14 +60,15 @@ class AgentManager:
         self.data_sender = context.socket(zmq.PUSH)
         self.parameter_sharing = self.policy_config['parameter_sharing']
         self.homogeneous_agent = self.policy_config['homogeneous_agent']
-        self.eval_mode = self.policy_config['eval_mode']
+        self.eval_mode = self.policy_config.get('eval_mode', False)
         self.model_info = None
         self.logger = logger
         # ------------ 连接数据发送服务 --------------------------------
-        self.choose_target_port()
-        # ------------ 创建一个获取最新策略的fetcher --------------------
-        self.policy_fetcher = fetcher(context, self.config_dict, statistic, process_uid, logger)
-        # ------------ 构建智能体 --------------------------------------
+        if not self.eval_mode:
+            self.choose_target_port()
+            # ------------ 创建一个获取最新策略的fetcher --------------------
+            self.policy_fetcher = fetcher(context, self.config_dict, statistic, process_uid, logger)
+            # ------------ 构建智能体 --------------------------------------
         self.construct_agent()
         self.logger.info("------------ 完成AgentManager的构建 -----------")
         
@@ -97,19 +98,45 @@ class AgentManager:
         self.logger.info("==================== 此智能体要发送数据到: {}, 连接的端口为: {} =================".format(target_ip, target_port))
         self.data_sender.connect("tcp://{}:{}".format(target_ip, target_port))
         
+    def construct_eval_data_save_path(self,file_index):
+        # ------- 构建instant reward和scheduling result两种数据的路径 -------
+        if self.agent_nums == 1:
+            instant_saved_path = dict()
+            scheduling_result_path = dict()
+            for sector_index in range(self.config_dict['env']['sector_nums']):
+                instant_saved_path['sector_{}'.format(sector_index)] = os.path.join(self.policy_config['result_save_path'], '{}_sector_{}_se_sum_result.npy'.format(file_index, sector_index))
+                scheduling_result_path['sector_{}'.format(sector_index)] = os.path.join(self.policy_config['result_save_path'], '{}_sector_{}_scheduling_sequence.npy'.format(file_index, sector_index))
+        else:
+            instant_saved_path =  os.path.join(self.policy_config['result_save_path'], '{}_se_sum_result.npy'.format(file_index))
+        return instant_saved_path, scheduling_result_path
 
     def send_data(self, data):
         # -------- 将采样数据发送出去 -------------
-        compressed_data = frame.compress(pickle.dumps(data))
         if self.eval_mode:
-            with open("sampler_data", 'wb') as f:
-                f.write(compressed_data)
+            # ------ 将采样数据保存到本地 ----- 
+            file_index = int(data['file_index'])
+            instant_saved_path, scheduling_result_path = self.construct_eval_data_save_path(file_index)
+            if self.agent_nums == 1:
+                for sector_index in range(self.config_dict['env']['sector_nums']):
+                    # --------- 拆分奖励向量和动作向量 ----------
+                    sector_instant_reward = data['instant_reward'][sector_index*self.config_dict['env']['eval_TTI']:(1+sector_index)*self.config_dict['env']['eval_TTI'],:]
+                    sector_action = data['actions'][sector_index*self.config_dict['env']['eval_TTI']:(1+sector_index)*self.config_dict['env']['eval_TTI'],:]
+                    np.save(scheduling_result_path['sector_{}'.format(sector_index)], sector_action)
+                    np.save(instant_saved_path['sector_{}'.format(sector_index)], sector_instant_reward)
+            else:
+                np.save(instant_saved_path, data['instant_reward'])
+                for agent_index in range(self.agent_nums):
+                    np.save(scheduling_result_path['sector_{}'.format(agent_index)], data['actions']['agent_{}'.format(sector_index)])
         else:
+            compressed_data = frame.compress(pickle.dumps(data))
             self.data_sender.send(compressed_data)
 
     def compute_single_agent(self, obs):
         torch_format_data = convert_data_format_to_torch_interference(obs)
-        action_log_prob, action = self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data)
+        action_log_prob, action= self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data)
+        if self.eval_mode:
+            return action.numpy()
+    
         state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
         return action_log_prob.numpy(), action.numpy(), state_value.numpy()
 
@@ -138,30 +165,35 @@ class AgentManager:
             state_value = state_value.numpy()
         return joint_log_prob_list, actions, state_value
 
+    def read_model_information_from_yaml_file(self):
+        model_path = dict()
+        for model_type in self.policy_config['agent'].keys():
+            model_path[model_type] = dict()
+            for agent_name in self.policy_config['agent'][model_type].keys():
+                model_path[model_type][agent_name] = self.policy_config['agent'][model_type][agent_name]['model_path']
+        return model_path
+
     def synchronize_model(self):
         # ---------- 在训练模式下，先将模型的最新信息获取下来 -----------
-        model_info = self.policy_fetcher.reset()
-        if model_info is not None:
-            self.logger.info("----------- 模型重置，使用model_fetcher到的模型数据:{} -----------".format(model_info))
-            # ---------- 当获取到了最新的模型后，进行模型之间的同步 ------------
-            for model_type in self.policy_fetcher.model_path.keys():
-                for model_name in self.policy_fetcher.model_path[model_type]:
-                    self.agent[model_type][model_name].synchronize_model(self.policy_fetcher.model_path[model_type][model_name])
+        if self.eval_mode:
+            model_path = self.read_model_information_from_yaml_file()
+            for model_type in model_path.keys():
+                for model_name in model_path[model_type].keys():
+                    self.agent[model_type][model_name].synchronize_model(model_path[model_type][model_name])
+        else:
+            model_info = self.policy_fetcher.reset()
+            if model_info is not None:
+                self.logger.info("----------- 模型重置，使用model_fetcher到的模型数据:{} -----------".format(model_info))
+                # ---------- 当获取到了最新的模型后，进行模型之间的同步 ------------
+                for model_type in self.policy_fetcher.model_path.keys():
+                    for model_name in self.policy_fetcher.model_path[model_type]:
+                        self.agent[model_type][model_name].synchronize_model(self.policy_fetcher.model_path[model_type][model_name])
         # else:
         #     self.logger.info("------------- agent调用reset函数之后没有获取到新模型,检测fetcher函数 ------------")
 
     def reset(self):
         # ---------- 模型重置 ------------------
-        if self.eval_mode:
-            # 如果是测试模式，就加载模型
-            # ---------- 如果是测试模型，就从本地读取模型即可 ---------
-            assert self.model_info is None, '------ 测试模式下不接收learner的数据 ----------'
-            model_path = self.policy_fetcher['agent']['policy'].keys()
-            for model_name in model_path.keys():
-                self.agent['policy'][model_name].synchronize_mode(model_path[model_name])
-            # ---------- 测试模式不需要critic网络的参与 ------------------
-        else:
-            self.synchronize_model()
+        self.synchronize_model()
 
     def step(self):
         # -------------- 这个函数是在采样函数的时候使用，每一次rollout的时候都会step，把最新的模型拿过来 ---------

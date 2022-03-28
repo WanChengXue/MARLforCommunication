@@ -65,18 +65,21 @@ class Environment(gym.Env):
         self.simulation_channel = (channel_data[:,:,:,:,:,:,:,random_tti]).squeeze()
 
 
-    def load_eval_data(self):
+    def load_eval_data(self, file_index):
         # 载入eval数据集
-        eval_file_number = self.env_dict.get('eval_file_number', random.randint(0, self.sub_carrier_nums-1))
+        if file_index is None:
+            eval_file_number = self.env_dict.get('eval_file_number', random.randint(0, self.sub_carrier_nums-1))
+        else:
+            eval_file_number = file_index
         loaded_file_name = self.save_data_folder + '/eval_channel_file_' + str(eval_file_number) + '.npy'
         # ============== TODO 这个地方不是很完善，对于测试文件来说，需要测试所有的文件 ====================
         self.simulation_channel = (np.load(loaded_file_name)).squeeze()
 
 
-    def reset(self):
+    def reset(self, file_index=None):
         if self.eval_mode:
             # 如果是评估模式,就加载评估数据
-            self.load_eval_data()
+            self.load_eval_data(file_index)
         else:
             self.load_training_data()
         # ------------- 构建输入的状态集 ------------
@@ -109,11 +112,12 @@ class Environment(gym.Env):
         return bool_mask
         
     def step(self, action_list):
+        TTI_length = self.simulation_channel.shape[-1]
         SE_list = []
         for sector_index in range(self.sector_nums):
-            for i in range(self.sliding_windows_length):
+            for i in range(TTI_length):
                 # ----------- 对齐操作，前面sliding_windows_length的向量表示第一个小区的动作 -----------
-                real_index = sector_index * self.sliding_windows_length + i
+                real_index = sector_index * TTI_length + i
                 scheduling_mask = self.convert_action_list_to_scheduling_mask(action_list[real_index,:])
                 active_instant_se = self.reward_calculator.calculate_instant_reward(self.simulation_channel[sector_index,:,sector_index,: ,i], scheduling_mask)
                 # SE_list.append(sum(sum(active_instant_se))/(self.user_nums*self.sector_nums))

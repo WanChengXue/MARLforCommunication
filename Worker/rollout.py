@@ -2,8 +2,7 @@ import os
 import sys
 import pathlib
 import zmq
-
-
+from tqdm import tqdm
 current_path = os.path.abspath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])
 sys.path.append(root_path)
@@ -22,17 +21,20 @@ class rollout_sampler:
         self.popart_start = self.policy_config['training_parameters'].get("popart_start", False)
         self.statistic = statistic
         self.logger = logger
-        # 定义强化学习需要的一些参数
-        self.gamma = self.policy_config["gamma"]
-        self.tau = self.policy_config["tau"]
-        # -------------- 定义环境相关的参数 --------------
-        self.traj_len = self.policy_config["traj_len"]
+        self.eval_mode = self.policy_config.get('eval_mode', False)
+        if not self.eval_mode:
+            # 定义强化学习需要的一些参数
+            self.gamma = self.policy_config["gamma"]
+            self.tau = self.policy_config["tau"]
+            # -------------- 定义环境相关的参数 --------------
+            self.traj_len = self.policy_config["traj_len"]
         self.env_name = self.config_dict['env']['id']
         self.env = importlib.import_module(self.env_name).Environment(self.config_dict['env'])
         self.agent_nums = self.config_dict['env']['agent_nums']
         # 收集数据放入到字典中
         self.data_dict = dict()
         # 声明一个智能体
+        
         self.agent = AgentManager(self.config_dict, context, self.statistic, self.logger, process_uid)
 
     def pack_data(self, bootstrap_value, traj_data):
@@ -123,42 +125,60 @@ class rollout_sampler:
         '''
         这个函数表示这个worker随机生成一个环境，然后使用当前策略进行交互收集数据, 整个环境进行one step 决策就停止了 
         '''
-        '''
-        这个函数表示这个worker随机生成一个环境，然后使用当前策略进行交互收集数据, obs的数据格式见
-        '''
         self.logger.info("======================== 重置环境 =======================")
-        self.agent.reset()
-        state = self.env.reset()
-        # --------- 首先同步最新 config server上面的模型 ------
-        if self.agent_nums == 1:
-            joint_log_prob, actions, net_work_output = self.agent.compute_single_agent(state)
+        if self.eval_mode:
+            self.logger.info("================= 使用eval智能体进行验证 =============")
+            eval_file_number = self.config_dict['env']['eval_file_number']
+            for file_index in tqdm(range(eval_file_number)):
+                state = self.env.reset(file_index=file_index)
+                if self.agent_nums == 1:
+                    actions = self.agent.compute_single_agent(state)
+                else:
+                    actions = self.agent.compute_multi_agent(state)
+                instant_SE_sum_list = self.env.step(actions)
+                data_dict = {'instant_reward': np.array(instant_SE_sum_list)}
+                if self.agent_nums == 1:
+                    data_dict['actions'] = actions
+                else:
+                    for agent_index in range(self.agent.agent_nums):
+                        agent_key = "agent_" + str(agent_index)
+                        data_dict['actions'][agent_key] = actions[agent_index]
+                data_dict['file_index'] = str(file_index)
+                self.agent.send_data(data_dict)
+
         else:
-            joint_log_prob, actions, net_work_output = self.agent.compute_multi_agent(state)
-        instant_SE_sum_list = self.env.step(actions)
-        # ------------ instant_SE_sum_list的维度为bs×1 ------------
-        data_dict = [{'state': copy.deepcopy(state), 'instant_reward':np.array(instant_SE_sum_list)}]
-        if self.agent_nums == 1:
-            # ---------- 如果说只有一一个用户，不需要套字典了 --------------
-            data_dict[-1]['old_action_log_probs'] = joint_log_prob
-            data_dict[-1]['actions'] = actions
-        else:
-            # ------------- old_action_log_probs是一个字典，每一个key的维度都bs×1 ---------
-            data_dict[-1]['old_action_log_probs'] = dict()
-            # ------------ actions也是一个字典，每一个key的维度都是bs×user_nums ------------
-            data_dict[-1]['actions'] = dict()
-            for agent_index in range(self.agent.agent_nums):
-                agent_key = "agent_" + str(agent_index)
-                data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
-                data_dict[-1]['actions'][agent_key] = actions[agent_index]
-            # ------------- net work output 的维度为bs×1 -----------
-        data_dict[-1]['old_network_value'] = net_work_output
-        self.agent.send_data(data_dict)
-        return instant_SE_sum_list
+            self.agent.reset()
+            state = self.env.reset()
+            # --------- 首先同步最新 config server上面的模型 ------
+            if self.agent_nums == 1:
+                joint_log_prob, actions, net_work_output = self.agent.compute_single_agent(state)
+            else:
+                joint_log_prob, actions, net_work_output = self.agent.compute_multi_agent(state)
+            instant_SE_sum_list = self.env.step(actions)
+            # ------------ instant_SE_sum_list的维度为bs×1 ------------
+            data_dict = [{'state': copy.deepcopy(state), 'instant_reward':np.array(instant_SE_sum_list)}]
+            if self.agent_nums == 1:
+                # ---------- 如果说只有一一个用户，不需要套字典了 --------------
+                data_dict[-1]['old_action_log_probs'] = joint_log_prob
+                data_dict[-1]['actions'] = actions
+            else:
+                # ------------- old_action_log_probs是一个字典，每一个key的维度都bs×1 ---------
+                data_dict[-1]['old_action_log_probs'] = dict()
+                # ------------ actions也是一个字典，每一个key的维度都是bs×user_nums ------------
+                data_dict[-1]['actions'] = dict()
+                for agent_index in range(self.agent.agent_nums):
+                    agent_key = "agent_" + str(agent_index)
+                    data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
+                    data_dict[-1]['actions'][agent_key] = actions[agent_index]
+                # ------------- net work output 的维度为bs×1 -----------
+            data_dict[-1]['old_network_value'] = net_work_output
+            self.agent.send_data(data_dict)
+            return instant_SE_sum_list
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_eval_single_cell_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改

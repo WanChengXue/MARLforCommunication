@@ -28,9 +28,9 @@ class pointer_network(nn.Module):
         self.affine_decoder_hidden_layer = nn.Linear(2*self.hidden_size, self.hidden_size)
         self.mask = Parameter(torch.ones(1, self.seq_length), requires_grad=False)
         self.inf = Parameter(torch.FloatTensor([float('-inf')]).unsqueeze(1).expand(1, self.seq_length).clone(), requires_grad=False)
-        self.decoder_input = Parameter(torch.FloatTensor(1, self.input_dim), requires_grad=False)
+        self.decoder_input = Parameter(torch.FloatTensor(1, self.input_dim))
         # ----------- 这个向量表示feature map中需要添加一个额外的向量——---------
-        self.terminate_encoder_vector = Parameter(torch.zeros(1,1,self.input_dim), requires_grad=False)
+        self.terminate_encoder_vector = Parameter(torch.zeros(1,1,self.input_dim))
         self.index_matrix = Parameter(torch.LongTensor([[i for i in range(self.seq_length)]]), requires_grad=False)
         self.terminate_vector = Parameter(torch.ones(1,1), requires_grad=False)
         self.eps = 1e-9
@@ -49,6 +49,7 @@ class pointer_network(nn.Module):
         decoder_hidden = hc.clone().squeeze(0) # batch_szie * hidden_dim
         probs = []
         scheduling_user = []
+        conditional_entropy_list = []
         for i in range(self.max_decoder_time):
             hidden = self.decoder(decoder_input, decoder_hidden)
             # ----------- 这个地方使用指针网络的计算公式 tanh(W1E + W2d) -----------
@@ -74,9 +75,15 @@ class pointer_network(nn.Module):
                 #     # --------- 将第二大的概率向量拿出来 ----------
                 #     _, alter_matrix = torch.topk(masked_output, 2)
                 #     indices[terminate_batch] = alter_matrix[:,1].unsqueeze(-1)[terminate_batch]
+                if i < self.min_decoder_time:
+                    while not torch.all(indices):
+                        terminate_batch = indices == 0
+                        new_sample = dist.sample().unsqueeze(-1)
+                        indices[terminate_batch] = new_sample[terminate_batch]
                 index_probs = masked_output.gather(1, indices) # batch_size * 1
                 # --------- 如果说当前上一个时刻的indices是0，则表示已经结束调度了，这个时刻的indices就变成0 ---------
                 indices[mask[:,0] == 0] = 0
+                conditional_entropy_list.append(dist.entropy().unsqueeze(-1)*index_probs)
             _terminate_vector = _terminate_vector * mask[:,0].unsqueeze(-1)
             # ----------- indices： batch_size 向量， max_probs也是一个batch_size向量 -----------
             # -------- 得到一个batch_size * seq_len的矩阵，在当前batch上面，被选中的用户的位置是1，否则是0 ------------------
@@ -95,7 +102,7 @@ class pointer_network(nn.Module):
             decoder_hidden = unmask_decoder_hidden * _terminate_vector.repeat(1, self.hidden_size)
             probs.append(_terminate_vector * torch.log(index_probs+self.eps))
             scheduling_user.append(indices)
-        return torch.sum(torch.cat(probs,-1), -1).unsqueeze(-1), torch.cat(scheduling_user,-1)
+        return torch.sum(torch.cat(probs,-1), -1).unsqueeze(-1), torch.cat(scheduling_user,-1), sum(conditional_entropy_list)
 
 
 class model(nn.Module):
@@ -128,7 +135,7 @@ class model(nn.Module):
         if inference_mode:
             return res[0], res[1]
         else:
-            return res[0]
+            return res[0], res[2]
 
 class critic(nn.Module):
     # 这个是一个critic类,传入全局的状态,返回对应的v值.因为R是一个向量,传入一个状态batch,前向得到一个v向量C: bs * 9 * 20 * 16 -> R^1
@@ -207,6 +214,7 @@ def init_critic_net(policy_config):
 # test_matrix['img_part'] = torch.rand(2,20,16).to(0)
 # test_actor = model(test_config).to(0)
 # output_prob, output_scheduling_list = test_actor(test_matrix)
+# print(output_scheduling_list)
 # test_action = torch.LongTensor([[16,  9, 12, 10,  8, 17,  7, 18, 15, 13, 19,  5, 11,  0,  0,  0],
 #         [13,  1, 14,  5, 12,  7, 19, 20,  6, 11,  4,  9,  8,  3, 16, 15]]).to(0)
 # test_actor = model(test_config).to(0)
