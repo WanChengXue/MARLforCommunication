@@ -84,15 +84,15 @@ class AgentManager:
         self.agent_name_list = list(self.agent['policy'].keys())         
 
     def choose_target_port(self, port_num=None):
+        # 定义这个worker的数据发送到哪一个data server,首先计算一下每台机器会有多少个数据服务
+        data_server_per_machine = self.policy_config['device_number_per_machine'] * self.policy_config['server_number_per_device']
+        # 由于可能用了多台机器进行训练，因此要看一下是不是多机多卡场景
+        total_data_server = len(self.policy_config['machine_list']) * data_server_per_machine
+        # 随机选择一个数据服务进行连接
+        choose_data_server_index = random.randint(0, total_data_server-1)
+        # 计算机器的索引，确定连接的ip，端口
+        machine_index = choose_data_server_index // data_server_per_machine
         if port_num is None:
-            # 定义这个worker的数据发送到哪一个data server,首先计算一下每台机器会有多少个数据服务
-            data_server_per_machine = self.policy_config['device_number_per_machine'] * self.policy_config['server_number_per_device']
-            # 由于可能用了多台机器进行训练，因此要看一下是不是多机多卡场景
-            total_data_server = len(self.policy_config['machine_list']) * data_server_per_machine
-            # 随机选择一个数据服务进行连接
-            choose_data_server_index = random.randint(0, total_data_server-1)
-            # 计算机器的索引，确定连接的ip，端口
-            machine_index = choose_data_server_index // data_server_per_machine
             port_num = choose_data_server_index % data_server_per_machine
         target_ip = self.policy_config['machine_list'][machine_index]
         target_port = self.policy_config['start_data_server_port'] + port_num
