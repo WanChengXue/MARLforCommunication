@@ -14,7 +14,7 @@ import copy
 import numpy as np
 
 class rollout_sampler:
-    def __init__(self, config_dict, statistic, context, logger, process_uid):
+    def __init__(self, config_dict, statistic, context, logger, process_uid, port_num=None):
         self.config_dict = config_dict
         self.policy_name = self.config_dict['policy_name']
         self.policy_config = self.config_dict['policy_config']
@@ -35,7 +35,7 @@ class rollout_sampler:
         self.data_dict = dict()
         # 声明一个智能体
         
-        self.agent = AgentManager(self.config_dict, context, self.statistic, self.logger, process_uid)
+        self.agent = AgentManager(self.config_dict, context, self.statistic, self.logger, process_uid, port_num)
 
     def pack_data(self, bootstrap_value, traj_data):
         '''

@@ -77,7 +77,7 @@ class config_server(basic_server):
             if model_information is not None:
                 raw_data[-1] = pickle.dumps(model_information)
                 self.model_request.send_multipart(raw_data)
-                self.logger.info('------------- 已经给worker发送了信息 {}--------------'.format(model_information))
+                # self.logger.info('------------- 已经给worker发送了信息 {}--------------'.format(model_information))
 
     def process_new_model(self, raw_data_list):
         # ---------- 这个函数是用来处理来自于learner的最新模型 ——----------

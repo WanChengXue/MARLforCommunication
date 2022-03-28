@@ -11,12 +11,13 @@ from Worker.sampler import sampler_worker
 
 
 
-def single_process_generate_sample(config_path):
+def single_process_generate_sample(config_path, port_num=None):
     parser = argparse.ArgumentParser() 
     parser.add_argument('--config_path', type=str, default='', help='yaml format config')
     parser.add_argument('--sampler_numbers', type=int, default=1, help='the trajectory numbers')
     args = parser.parse_args()
     args.config_path = config_path
+    args.port_num = port_num
     worker = sampler_worker(args)
     worker.run_loop()
 
@@ -31,12 +32,13 @@ if __name__=='__main__':
     config_dict = parse_config(args.config_path)
     parallel_env_number = min(os.cpu_count()-10, config_dict['env']['parallel_env'])
     # print('---------- 并行化的worker数目为 {} -----------'.format(parallel_env_number))
-    parallel_env_number = 4
+    parallel_env_number = 1
     for i in range(parallel_env_number):
         # logger_path = pathlib.Path("./config_folder") / ("process_"+ str(i))
         # logger_name = "Process_"+ str(i)
         # logger = setup_logger(logger_name, logger_path)
         # p = Process(target=single_process_generate_sample,args=(logger,))
         # p.start()
-        p = Process(target=single_process_generate_sample, args=(args.config_path,))
+        port_num = i % config_dict['policy_config']['server_number_per_device']
+        p = Process(target=single_process_generate_sample, args=(args.config_path,port_num,))
         p.start()

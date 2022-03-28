@@ -42,6 +42,11 @@ class MAPPOTrainer:
         self.policy_optimizer = optimizer['policy']
         self.policy_scheduler = scheduler['policy']
         self.policy_name = list(self.policy_net.keys())[0]
+        ##########  增量式修改优势值的均值和方差  #########
+        self.advantage_mean = 0
+        self.advantage_std = 1
+        self.M = 0
+        ##############################################
         # ------- 如果使用了critic，无论采用中心化critic还是s
         if self.using_critic:
             if self.seperate_critic:
@@ -147,7 +152,15 @@ class MAPPOTrainer:
             self.critic_scheduler[self.critic_name].step()
             advantage_std = torch.std(advantages, 0)
             advantage_mean = torch.mean(advantages, 0)
-            advantage = (advantages - advantage_mean) / advantage_std
+            N = advantages.shape[0]
+            # -----------  增量式的修改均值和方差 ------------
+            new_advantage_mean = self.advantage_mean + N/(N+self.M) *(advantage_mean - self.advantage_mean)
+            new_advantage_var = self.M*(self.advantage_std**2 +(self.advantage_mean-new_advantage_mean)**2) + N * (advantage_std**2+(new_advantage_mean -advantage_mean)**2)
+            self.advantage_mean = new_advantage_mean
+            self.advantage_std = torch.sqrt(new_advantage_var/(self.M+N))
+            self.M += N
+            # ---------------------------------------------
+            advantage = (advantages - self.advantage_mean) / self.advantage_std
             # entropy_loss_list = []
             self.policy_optimizer[self.policy_name].zero_grad()
             action_log_probs, conditional_entropy = self.policy_net[self.policy_name](current_state, actions, False)

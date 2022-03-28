@@ -41,7 +41,7 @@ class sampler_worker:
             self.config_dict['config_server_address'] = self.config_dict['main_server_ip']
             self.log_sender = self.context.socket(zmq.PUSH)
             self.log_sender.connect("tcp://{}:{}".format(self.config_dict['log_server_address'], self.config_dict['log_server_port']))
-        self.rollout = rollout_sampler(self.config_dict, self.statistic, self.context, self.logger, self.uuid[:6])
+        self.rollout = rollout_sampler(self.config_dict, self.statistic, self.context, self.logger, self.uuid[:6], port_num=args.port_num)
         self.logger.info("------------------ 完成采样端的构建，此worker的id为{} -----------------".format(self.uuid[:6]))
 
     def run(self):
