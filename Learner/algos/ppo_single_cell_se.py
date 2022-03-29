@@ -160,7 +160,7 @@ class MAPPOTrainer:
             self.advantage_std = torch.sqrt(new_advantage_var/(self.M+N))
             self.M += N
             # ---------------------------------------------
-            advantage = (advantages - self.advantage_mean) / self.advantage_std
+            advantage = advantages / self.advantage_std
             # entropy_loss_list = []
             self.policy_optimizer[self.policy_name].zero_grad()
             action_log_probs, conditional_entropy = self.policy_net[self.policy_name](current_state, actions, False)
@@ -191,8 +191,8 @@ class MAPPOTrainer:
         return {
             'value_loss': total_state_loss.item(),
             # 'conditional_entropy': entropy_loss.item(),
-            'advantage_std': advantage_std.cpu().numpy().tolist(),
-            'advantage_mean': advantage_mean.cpu().numpy().tolist(),
+            'advantage_std': self.advantage_std.cpu().numpy().tolist(),
+            'advantage_mean': self.advantage_mean.cpu().numpy().tolist(),
             'policy_loss': policy_loss.item(),
             'total_policy_loss': total_policy_loss.item(),
             'entropy_loss': entropy_loss.item()

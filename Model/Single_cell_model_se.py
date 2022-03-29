@@ -73,11 +73,11 @@ class pointer_network(nn.Module):
             else:
                 indices = torch.argmax(masked_output, -1).unsqueeze(-1)
                 # ---------- 每个小区至少要调度min_decoder_time个用户出来 -----------
-                # if i<self.min_decoder_time:
-                #     terminate_batch = indices == 0
-                #     # --------- 将第二大的概率向量拿出来 ----------
-                #     _, alter_matrix = torch.topk(masked_output, 2)
-                #     indices[terminate_batch] = alter_matrix[:,1].unsqueeze(-1)[terminate_batch]
+                if i<self.min_decoder_time:
+                    terminate_batch = indices == 0
+                    # --------- 将第二大的概率向量拿出来 ----------
+                    _, alter_matrix = torch.topk(masked_output, 2)
+                    indices[terminate_batch] = alter_matrix[:,1].unsqueeze(-1)[terminate_batch]
                 # if i < self.min_decoder_time:
                     # while not torch.all(indices):
                     #     terminate_batch = indices == 0
