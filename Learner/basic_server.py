@@ -30,7 +30,10 @@ class basic_server:
         # ------------ 这个传入进来的数据是一个字典，需要以递归的形式全部展开加头加尾进行发送 --------------
         if isinstance(log_info, dict):
             for key, value in log_info.items():
-                self.recursive_send(value, "{}/{}".format(prefix_string,key),suffix_string)
+                if prefix_string is not None:
+                    self.recursive_send(value, "{}/{}".format(prefix_string,key),suffix_string)
+                else:
+                    self.recursive_send(value, key, suffix_string)
         elif isinstance(log_info, (tuple,list)):
             for index, value in enumerate(log_info):
                 self.recursive_send(value, "{}_{}".format(prefix_string, index), suffix_string)

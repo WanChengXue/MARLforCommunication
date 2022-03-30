@@ -76,7 +76,7 @@ policy_config:
   training_parameters:
     clip_epsilon: 0.2
     max_grad_norm: 10
-    dual_clip: 3
+    # dual_clip: 3
     entropy_coef: 0.01
     agent_nums: *agent_nums
     multi_objective_start: &multi_objective_start False

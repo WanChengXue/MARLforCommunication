@@ -59,10 +59,12 @@ class pointer_network(nn.Module):
             tanh_output = torch.tanh(affine_encoder_matrix + affine_decoder_matrix) # batch_size * seq_len * weight_dim
             # ----------- 和权重向量相乘 ----------
             weight_output = self.V(tanh_output).squeeze(-1) # batch_size * seq_len 
-            weight_output_prime = gumbel_softmax_sample(weight_output)
+            # weight_output_prime = gumbel_softmax_sample(weight_output)
+            # weight_output_prime[bool_mask] = _inf[bool_mask]
+            # prob_matrix = torch.softmax(weight_output_prime/self.temperature, -1) # batch_size * seq_len
             bool_mask = torch.eq(mask, 0)
-            weight_output_prime[bool_mask] = _inf[bool_mask]
-            prob_matrix = torch.softmax(weight_output/self.temperature, -1) # batch_size * seq_len
+            weight_output[bool_mask] = _inf[bool_mask]
+            prob_matrix = torch.softmax(weight_output, -1)
             masked_output = prob_matrix * mask
             # ---------- 选择最大概率的值 --------------
             if action is not None:

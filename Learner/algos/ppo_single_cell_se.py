@@ -84,6 +84,7 @@ class MAPPOTrainer:
     '''
 
     def step(self, training_batch):
+        info_dict = dict()
         current_state = training_batch['state']
         # ================= 使用了GAE估计出来了advantage value  ============
         
@@ -136,6 +137,7 @@ class MAPPOTrainer:
                 value_loss_matrix = self.critic_loss(target_state_value, predict_state_value)
 
         mean_loss = torch.mean(value_loss_matrix, 0)
+        mse_loss = torch.mean(0.5*(predict_state_value-target_state_value)**2)
         # ================== 将这两个head的loss进行backward之后,更新这个网络的参数即可 ===================
         if self.multi_objective_start:
             state_value_loss_PF_head = mean_loss[0]
@@ -147,7 +149,11 @@ class MAPPOTrainer:
             self.critic_optimizer[self.critic_name].zero_grad()
             total_state_loss.backward()
             if self.grad_clip is not None:
-                nn.utils.clip_grad_norm_(self.critic_net[self.critic_name].parameters(), self.grad_clip)
+                info_dict['Critic_model_{}/grad'.format(self.critic_name)] = nn.utils.clip_grad_norm_(self.critic_net[self.critic_name].parameters(), self.grad_clip)
+            for name, value in self.critic_name[self.critic_name].named_parameters():
+                info_dict['Critic_model_{}/Layer_max_grad_{}'.format(self.critic_name, name)] = torch.max(value.grad).item()
+            info_dict['Critic_model/Value_loss'] = total_state_loss.item()
+            info_dict['Critic_model/Mse_loss'] = mse_loss.item()
             self.critic_optimizer[self.critic_name].step()
             self.critic_scheduler[self.critic_name].step()
             advantage_std = torch.std(advantages, 0)
@@ -166,9 +172,12 @@ class MAPPOTrainer:
             action_log_probs, conditional_entropy = self.policy_net[self.policy_name](current_state, actions, False)
             importance_ratio = torch.exp(action_log_probs - old_action_log_probs)
             surr1 = importance_ratio * advantage
+            info_dict['Policy_model_{}/Surr1'.format(self.policy_name)] = surr1.mean().item()
             # ================== 这个地方采用PPO算法，进行clip操作 ======================
             surr2 = torch.clamp(importance_ratio, 1.0-self.clip_epsilon, 1.0+self.clip_epsilon) * advantage
-            surr = torch.min(surr1, surr2)        
+            info_dict['Policy_model_{}/Surr2'.format(self.policy_name)] = surr2.mean().item()
+            surr = torch.min(surr1, surr2)   
+            info_dict['Policy_model_{}/Surr_min_1_and_2'.format(self.policy_name)] = surr.mean().item()     
             if self.dual_clip is not None:
                 c = self.dual_clip
                 surr3 = torch.min(c*advantage, torch.zeros_like(advantage))
@@ -177,10 +186,19 @@ class MAPPOTrainer:
             entropy_loss = torch.mean(conditional_entropy)
             # ================== 需要添加entropy的限制 =================
             total_policy_loss = policy_loss - self.entropy_coef * entropy_loss
-            total_policy_loss.backward()    
+            total_policy_loss.backward()
+            info_dict['Policy_model_{}/Policy_loss'.format(self.policy_name)] = policy_loss.item()
+            info_dict['Policy_model_{}/Entropy_loss'.format(self.policy_name)] = entropy_loss.item()
+            info_dict['Policy_model_{}/Total_policy_loss'.format(self.policy_name)] = total_policy_loss.item()    
+            info_dict['Policy_model_{}/Advantage_mean'.format(self.policy_name)] = self.advantage_mean.item()
+            info_dict['Policy_model_{}/Advantage_std'.format(self.policy_name)] = self.advantage_std.item()
             if self.grad_clip is not None:
                 max_grad_norm = 10
-                nn.utils.clip_grad_norm_(self.policy_net[self.policy_name].parameters(), max_grad_norm)
+                policy_net_grad = nn.utils.clip_grad_norm_(self.policy_net[self.policy_name].parameters(), max_grad_norm)
+                info_dict['Policy_model_{}/grad'.format(self.policy_name)] = policy_net_grad.item()
+            for name,value in self.policy_net[self.policy_name].named_parameters():
+                info_dict['Policy_model_{}/Layer_{}_max_grad'.format(self.policy_name, name)] = value.item()
+            
             self.policy_optimizer[self.policy_name].step()
             self.policy_scheduler[self.policy_name].step()
             
@@ -188,15 +206,7 @@ class MAPPOTrainer:
             # ------------ TODO 这个地方是critic和actor连在一起的时候使用，loss backward的时候需要保存计算图 --------------
             pass 
         # ------------------ 这个地方开始用来更新策略网络的参数, 使用PPO算法, 把多个智能体的观测叠加到batch维度上 ----------------------------
-        return {
-            'value_loss': total_state_loss.item(),
-            # 'conditional_entropy': entropy_loss.item(),
-            'advantage_std': self.advantage_std.cpu().numpy().tolist(),
-            'advantage_mean': self.advantage_mean.cpu().numpy().tolist(),
-            'policy_loss': policy_loss.item(),
-            'total_policy_loss': total_policy_loss.item(),
-            'entropy_loss': entropy_loss.item()
-            }
+        return info_dict
 
 
 

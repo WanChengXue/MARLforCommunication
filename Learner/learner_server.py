@@ -138,7 +138,7 @@ class learner_server(basic_server):
             torch_training_batch = convert_data_format_to_torch_training(training_batch,self.local_rank)
             info = self.algo.step(torch_training_batch)
             self.logger.info("----------- 完成一次参数更新，更新的信息为 {} -------------".format(info))
-            self.recursive_send(info, 'model', self.policy_name)
+            self.recursive_send(info, None, self.policy_name)
         else:
             self.logger.info("----------- 模型处于预热阶段，不更新参数 ----------")
             
