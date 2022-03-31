@@ -126,8 +126,8 @@ class Environment(gym.Env):
             agent_obs['channel_matrix']['main_matrix']['img_part'] = self.simulation_channel[agent_index,:,agent_index,self.bs_antenna_nums:,:].transpose(2,0,1)
             for interference_cell_index in self.cyclic_index_matrix[agent_index,:][1:]:
                 interference_cell_channel = dict()
-                interference_cell_channel['real_part'] = self.simulation_channel[interference_cell_index,:,agent_index,0:self.bs_antenna_nums,:].transpose(2,0,1)
-                interference_cell_channel['img_part'] = self.simulation_channel[interference_cell_index,:,agent_index,self.bs_antenna_nums:,:].transpose(2,0,1)
+                interference_cell_channel['real_part'] = self.simulation_channel[agent_index,:,interference_cell_index,0:self.bs_antenna_nums,:].transpose(2,0,1)
+                interference_cell_channel['img_part'] = self.simulation_channel[agent_index,:,interference_cell_index,self.bs_antenna_nums:,:].transpose(2,0,1)
                 agent_obs['channel_matrix']['interference_matrix']['interference_cell_{}'.format(interference_cell_index)] = interference_cell_channel
             state['agent_obs'][agent_key] = agent_obs
         return state

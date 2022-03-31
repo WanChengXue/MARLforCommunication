@@ -74,7 +74,7 @@ class pointer_network(nn.Module):
                 conditional_entropy_list.append(dist.entropy().unsqueeze(-1)*index_probs)
             else:
                 # indices = torch.argmax(masked_output, -1).unsqueeze(-1)
-                indces = dist.sample().unsqueeze(-1)
+                indices = dist.sample().unsqueeze(-1)
                 # ---------- 每个小区至少要调度min_decoder_time个用户出来 -----------
                 # if i<self.min_decoder_time:
                 #     terminate_batch = indices == 0
@@ -130,11 +130,11 @@ class model(nn.Module):
         real_part = src['real_part'] # bs *20 *16  -
         img_part = src['img_part']   # bs * 20 * 16
         # -------------- main head branch affine layer ------------
-        main_head_real_part_affine = torch.tanh(self.main_head_real_part_affine_layer(1e7*real_part))
-        main_head_img_part_affine = torch.tanh(self.main_head_img_partt_affine_layer(1e7**img_part))
+        main_head_real_part_affine = torch.relu(self.main_head_real_part_affine_layer(1e7*real_part))
+        main_head_img_part_affine = torch.relu(self.main_head_img_partt_affine_layer(1e7**img_part))
         # ----------- main head 和 sum_interference 进行拼接 bs * 20 * (hidden*4) ——----------------------
         backbone = torch.cat([main_head_real_part_affine, main_head_img_part_affine], -1)
-        feature_map = torch.tanh(self.backbone_linear_layer(backbone))
+        feature_map = torch.relu(self.backbone_linear_layer(backbone))
         # ------------- 把这个特征图送入到指针网络中 ---------------
         res = self.PN_network(feature_map, action=action_list)
         if inference_mode:
