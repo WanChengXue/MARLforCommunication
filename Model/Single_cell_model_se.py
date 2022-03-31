@@ -73,7 +73,8 @@ class pointer_network(nn.Module):
                 index_probs = masked_output.gather(1, indices)
                 conditional_entropy_list.append(dist.entropy().unsqueeze(-1)*index_probs)
             else:
-                indices = torch.argmax(masked_output, -1).unsqueeze(-1)
+                # indices = torch.argmax(masked_output, -1).unsqueeze(-1)
+                indces = dist.sample().unsqueeze(-1)
                 # ---------- 每个小区至少要调度min_decoder_time个用户出来 -----------
                 # if i<self.min_decoder_time:
                 #     terminate_batch = indices == 0

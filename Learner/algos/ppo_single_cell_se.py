@@ -166,7 +166,8 @@ class MAPPOTrainer:
             self.advantage_std = torch.sqrt(new_advantage_var/(self.M+N))
             self.M += N
             # ---------------------------------------------
-            advantage = advantages / self.advantage_std
+            # advantage = advantages / self.advantage_std
+            advantage = (advantages - advantage_mean) / advantage_std
             # entropy_loss_list = []
             self.policy_optimizer[self.policy_name].zero_grad()
             action_log_probs, conditional_entropy = self.policy_net[self.policy_name](current_state, actions, False)
@@ -185,7 +186,8 @@ class MAPPOTrainer:
             policy_loss = torch.mean(-surr)
             entropy_loss = torch.mean(conditional_entropy)
             # ================== 需要添加entropy的限制 =================
-            total_policy_loss = policy_loss - self.entropy_coef * entropy_loss
+            # total_policy_loss = policy_loss - self.entropy_coef * entropy_loss
+            total_policy_loss = policy_loss
             total_policy_loss.backward()
             info_dict['Policy_loss/Policy_loss'] = policy_loss.item()
             info_dict['Policy_loss/Entropy_loss'] = entropy_loss.item()
