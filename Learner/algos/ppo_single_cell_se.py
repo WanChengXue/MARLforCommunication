@@ -149,11 +149,11 @@ class MAPPOTrainer:
             self.critic_optimizer[self.critic_name].zero_grad()
             total_state_loss.backward()
             if self.grad_clip is not None:
-                info_dict['Critic_model_{}/grad'.format(self.critic_name)] = nn.utils.clip_grad_norm_(self.critic_net[self.critic_name].parameters(), self.grad_clip)
-            for name, value in self.critic_name[self.critic_name].named_parameters():
-                info_dict['Critic_model_{}/Layer_max_grad_{}'.format(self.critic_name, name)] = torch.max(value.grad).item()
-            info_dict['Critic_model/Value_loss'] = total_state_loss.item()
-            info_dict['Critic_model/Mse_loss'] = mse_loss.item()
+                info_dict['Critic_loss/grad'] = nn.utils.clip_grad_norm_(self.critic_net[self.critic_name].parameters(), self.grad_clip)
+            for name, value in self.critic_net[self.critic_name].named_parameters():
+                info_dict['Critic_model_grad/Layer_max_grad_{}'.format(name)] = torch.max(value.grad).item()
+            info_dict['Critic_loss/Value_loss'] = total_state_loss.item()
+            info_dict['Critic_loss/Mse_loss'] = mse_loss.item()
             self.critic_optimizer[self.critic_name].step()
             self.critic_scheduler[self.critic_name].step()
             advantage_std = torch.std(advantages, 0)
@@ -172,12 +172,12 @@ class MAPPOTrainer:
             action_log_probs, conditional_entropy = self.policy_net[self.policy_name](current_state, actions, False)
             importance_ratio = torch.exp(action_log_probs - old_action_log_probs)
             surr1 = importance_ratio * advantage
-            info_dict['Policy_model_{}/Surr1'.format(self.policy_name)] = surr1.mean().item()
+            info_dict['Policy_loss/Surr1'] = surr1.mean().item()
             # ================== 这个地方采用PPO算法，进行clip操作 ======================
             surr2 = torch.clamp(importance_ratio, 1.0-self.clip_epsilon, 1.0+self.clip_epsilon) * advantage
-            info_dict['Policy_model_{}/Surr2'.format(self.policy_name)] = surr2.mean().item()
+            info_dict['Policy_loss/Surr2'] = surr2.mean().item()
             surr = torch.min(surr1, surr2)   
-            info_dict['Policy_model_{}/Surr_min_1_and_2'.format(self.policy_name)] = surr.mean().item()     
+            info_dict['Policy_loss/Surr_min_1_and_2'] = surr.mean().item()     
             if self.dual_clip is not None:
                 c = self.dual_clip
                 surr3 = torch.min(c*advantage, torch.zeros_like(advantage))
@@ -187,17 +187,17 @@ class MAPPOTrainer:
             # ================== 需要添加entropy的限制 =================
             total_policy_loss = policy_loss - self.entropy_coef * entropy_loss
             total_policy_loss.backward()
-            info_dict['Policy_model_{}/Policy_loss'.format(self.policy_name)] = policy_loss.item()
-            info_dict['Policy_model_{}/Entropy_loss'.format(self.policy_name)] = entropy_loss.item()
-            info_dict['Policy_model_{}/Total_policy_loss'.format(self.policy_name)] = total_policy_loss.item()    
-            info_dict['Policy_model_{}/Advantage_mean'.format(self.policy_name)] = self.advantage_mean.item()
-            info_dict['Policy_model_{}/Advantage_std'.format(self.policy_name)] = self.advantage_std.item()
+            info_dict['Policy_loss/Policy_loss'] = policy_loss.item()
+            info_dict['Policy_loss/Entropy_loss'] = entropy_loss.item()
+            info_dict['Policy_loss/Total_policy_loss'] = total_policy_loss.item()    
+            info_dict['Policy_loss/Advantage_mean'] = self.advantage_mean.item()
+            info_dict['Policy_loss/Advantage_std'] = self.advantage_std.item()
             if self.grad_clip is not None:
                 max_grad_norm = 10
                 policy_net_grad = nn.utils.clip_grad_norm_(self.policy_net[self.policy_name].parameters(), max_grad_norm)
-                info_dict['Policy_model_{}/grad'.format(self.policy_name)] = policy_net_grad.item()
+                info_dict['Policy_loss/grad']= policy_net_grad.item()
             for name,value in self.policy_net[self.policy_name].named_parameters():
-                info_dict['Policy_model_{}/Layer_{}_max_grad'.format(self.policy_name, name)] = value.item()
+                info_dict['Policy_model_grad/Layer_{}_max_grad'.format(name)] = torch.max(value).item()
             
             self.policy_optimizer[self.policy_name].step()
             self.policy_scheduler[self.policy_name].step()

@@ -112,7 +112,7 @@ class learner_server(basic_server):
             for sub_model in self.model[model_type]:
                 self.model[model_type][sub_model].to(self.local_rank).train()
                 self.model[model_type][sub_model] = DDP(self.model[model_type][sub_model], device_ids=[self.local_rank])
-        torch.manual_seed(194864146)
+        torch.manual_seed(194862226)
         self.logger.info('----------- 完成模型的创建 ---------------')
         # ----------- 调用更新算法 ---------------
         algo_cls = get_algorithm_cls(self.policy_config['algorithm'])
