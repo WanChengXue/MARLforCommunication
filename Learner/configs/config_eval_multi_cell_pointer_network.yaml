@@ -1,0 +1,94 @@
+env:
+  id: "Env.Multi_cell_env"
+  user_nums: 20
+  sector_nums: &sense_channel_nums 3
+  cell_nums: 1
+  agent_nums: &agent_nums 3
+  bs_antenna_nums: &bs_antenna_nums 16
+  total_antenna_nums: &seq_len 20
+  # 这个变量表示的是截取多少长度的TTI作为一个训练样本
+  sliding_windows_length: 400
+  transmit_power: 0.25
+  noise_power: 3.1623e-20
+  source_data_folder: 'data_part/Source_data'
+  save_data_folder: 'data_part/preprocess_data'
+  velocity: 30
+  sub_carrier_nums: 50
+  # 最大流的数目小于等于发射天线的数目
+  max_stream_nums: *bs_antenna_nums 
+  min_stream_nums: &min_decoder_time 3
+  # 这个是值表示的是一个信道文件总共有多少个TTI
+  training_data_total_TTI_length: 10000
+  # 这个值表示的滑窗的长度Ts
+  delay_time_window: 200
+  min_user_average_se: 0.08
+  # ----------- 在探索阶段，有些用户的分母会很小，当所有的用户都探索了一次之后，才不会有单个用户PF最大为0.25的限制 -----------
+  max_user_pf_value: 0.25
+  parallel_env: 1000
+  one_step_env: True
+  replay_buffer_name: 'TraningSet_one_step_multi_cell'
+  eval_TTI: 1000
+  eval_file_number: 50
+  eval_mode: &eval_mode True
+
+policy_name: max_average_SE
+# 定义日志文件的文件夹
+log_dir: "./logs"
+# policy_config related
+policy_config:
+  eval_mode: *eval_mode
+  # 这个config下对应的模型名称
+  # ------ 设置模型的保存路径 ——----------
+  # ======= 两个路径一个是最新的模型构成的模型池，另外一个是每训练若干次保存下来的模型 =====
+  model_pool_path: "Exp/Model/model_pool/"
+  saved_model_path: "Exp/Model/saved_model/"
+  # ----- 只有一个智能体，显然是参数共享和同质化都是True ---------
+  parameter_sharing: &parameter_sharing True
+  homogeneous_agent: True
+  # ------ centralize_critic表示采用中心化的critic，seperate_critic表示每一个智能体都有一个critic
+  training_parameters:
+    clip_epsilon: 0.2
+    max_grad_norm: 10
+    dual_clip: 3
+    entropy_coef: 0.01
+    agent_nums: *agent_nums
+    multi_objective_start: &multi_objective_start False
+    popart_start: &popart_start False
+    centralize_critic: &centralize_critic True
+    seperate_critic: &seperate_critic False
+  centralize_critic: *centralize_critic
+  seperate_critic: *seperate_critic
+  # -------- 这个表示actor和critic通过网络的前向计算会同时得到 --------------
+  actor_critic_concatenate: False
+  
+  agent:
+    # ------- critic的逻辑，如果采用中心化的critic，则另外两个值都是False，如果采用分离critic，则seperate_critic为True，最后一个值可True可False -------
+    policy:
+      # -------- 策略网络的相关配置 -----------
+      default:
+        learning_rate: 1e-4
+        model_name: 'multi_cell_model'
+        # ---- model related ----------
+        conv_channel: *sense_channel_nums # 状态的输入维度是3个channel
+        # ------------ 这个32必须是和天线维度一样，天线16根，变成实数就是32
+        state_feature_dim: *bs_antenna_nums
+        # ---------- hidden_dim是通过数据的预处理之后得到的特征图的维度 ----------
+        hidden_dim: &feature_map_dim 64
+        max_decoder_time: *bs_antenna_nums
+        GRU_hidden_size: 128
+        input_dim: *feature_map_dim
+        weight_dim: 32
+        seq_len: *seq_len
+        action_dim: *seq_len
+        agent_nums: *agent_nums
+        model_type: 'policy'
+        parameter_sharing: *parameter_sharing
+        min_decoder_time: *min_decoder_time
+
+        
+        
+
+  
+  
+
+

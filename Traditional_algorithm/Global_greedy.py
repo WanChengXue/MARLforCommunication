@@ -10,7 +10,7 @@ from Utils import create_folder
 from Utils.config_parse import load_yaml
 from Env.Instant_Reward import Multi_cell_instant_reward
 import copy
-from multiprocessing import Process
+import multiprocessing
 import shutil
 import pathlib
 import random
@@ -30,19 +30,29 @@ class Greedy:
         self.velocity = self.env_dict['velocity']
         # ---------- 文件的路径采用绝对位置 -------------
         self.save_data_folder = self.generate_abs_path(self.env_dict['save_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
-        self.construct_save_path()
         self.cyclic_index_matrix = np.array([[(i+j)%self.agent_nums for i in range(self.agent_nums)] for j in range(self.agent_nums)])
         self.reward_calculator = Multi_cell_instant_reward(self.transmit_power, self.noise_power, self.cyclic_index_matrix, self.sector_nums, self.user_nums, self.bs_antenna_nums)
 
     def load_eval_file(self, eval_file_number):
+        self.construct_save_path()
         # ----------- 载入测试文件 ------------
         loaded_file_name = self.save_data_folder + '/eval_channel_file_' + str(eval_file_number) + '.npy'
+        self.simulation_channel = (np.load(loaded_file_name)).squeeze()
+
+    def load_training_file(self, trainiing_file_number):
+        self.construct_training_data_save_path()
+        loaded_file_name = self.save_data_folder + '/training_channel_file_' + str(trainiing_file_number) + '.npy'
         self.simulation_channel = (np.load(loaded_file_name)).squeeze()
 
     def generate_abs_path(self, related_path):
         file_path = os.path.abspath(__file__)
         root_path = '/'.join(file_path.split('/')[:-3])
         return os.path.join(root_path, related_path)
+
+    def construct_training_data_save_path(self):
+        related_path = 'data_part/demonstration_data/multi_cell_scenario/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM'
+        self.abs_result_save_prefix = self.generate_abs_path(related_path)
+        create_folder(self.abs_result_save_prefix)
 
     def construct_save_path(self):
         # ----------- 构建结果保存路径 -------------
@@ -85,6 +95,24 @@ class Greedy:
         return current_scheduling_sequence, current_max_se
 
 
+    def simulation_training_file(self, file_index):
+        self.load_training_file(file_index)
+        TTI_length = self.simulation_channel.shape[-1]
+        scheduling_sequence = []
+        SE = []
+        scheduling_sequence = []
+        SE = []
+        scheduling_sequence_saved_path = self.abs_result_save_prefix + '/' +str(file_index)+ '_scheduling_sequence.npy'
+        SE_result_saved_path = self.abs_result_save_prefix + '/' +str(file_index)+ '_se_sum_result.npy'
+        for TTI in tqdm(range(TTI_length)):
+            self.channel_matrix = self.simulation_channel[:,:,:,:,TTI]
+            greedy_scheduling_sequence, max_se = self.recyle_add_user()
+            scheduling_sequence.append(greedy_scheduling_sequence)
+            SE.append(max_se)
+        # ------------------ 将来步
+        np.save(scheduling_sequence_saved_path, np.stack(scheduling_sequence, 0))
+        np.save(SE_result_saved_path, np.array(SE))
+
     def simulation(self, file_index):
         self.load_eval_file(file_index)
         TTI_length = self.simulation_channel.shape[-1]
@@ -103,6 +131,10 @@ class Greedy:
         np.save(SE_result_saved_path, np.array(SE))
 
 
+def start_process_training_data(file_index, config_dict):
+    test_greedy = Greedy(config_dict['env'])
+    test_greedy.simulation_training_file(file_index)
+
 if __name__=='__main__':
     import argparse
     parser = argparse.ArgumentParser()
@@ -114,8 +146,14 @@ if __name__=='__main__':
     # abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
     concatenate_path = abs_path + args.config_path
     config_dict = load_yaml(concatenate_path)
-    test_greedy = Greedy(config_dict['env']) 
+    # test_greedy = Greedy(config_dict['env']) 
+    # for i in range(50):
+    #     test_greedy.simulation(i)
+    # ----------- 开进程池 --------
+    # start_process_training_data(0, config_dict)
+    pool = multiprocessing.Pool(processes = 12)
     for i in range(50):
-        test_greedy.simulation(i)
-
+        pool.apply_async(start_process_training_data, (i, config_dict, ))   #维持执行的进程总数为processes，当一个进程执行完毕后会添加新的进程进去
+    pool.close()
+    pool.join()   #调用join之前，先调用close函数，否则会出错。执行完close后不会有新的进程加入到pool,join函数等待所有子进程结束
 

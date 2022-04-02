@@ -108,6 +108,9 @@ class AgentManager:
                 instant_saved_path['sector_{}'.format(sector_index)] = os.path.join(self.policy_config['result_save_path'], '{}_sector_{}_se_sum_result.npy'.format(file_index, sector_index))
                 scheduling_result_path['sector_{}'.format(sector_index)] = os.path.join(self.policy_config['result_save_path'], '{}_sector_{}_scheduling_sequence.npy'.format(file_index, sector_index))
         else:
+            scheduling_result_path = dict()
+            for sector_index in range(self.config_dict['env']['sector_nums']):
+                scheduling_result_path['sector_{}'.format(sector_index)] = os.path.join(self.policy_config['result_save_path'], '{}_sector_{}_scheduling_sequence.npy'.format(file_index, sector_index))
             instant_saved_path =  os.path.join(self.policy_config['result_save_path'], '{}_se_sum_result.npy'.format(file_index))
         return instant_saved_path, scheduling_result_path
 
@@ -126,8 +129,8 @@ class AgentManager:
                     np.save(instant_saved_path['sector_{}'.format(sector_index)], sector_instant_reward)
             else:
                 np.save(instant_saved_path, data['instant_reward'])
-                for agent_index in range(self.agent_nums):
-                    np.save(scheduling_result_path['sector_{}'.format(agent_index)], data['actions']['agent_{}'.format(sector_index)])
+                for sector_index in range(self.config_dict['env']['sector_nums']):
+                    np.save(scheduling_result_path['sector_{}'.format(sector_index)], data['actions']['agent_{}'.format(sector_index)])
         else:
             compressed_data = frame.compress(pickle.dumps(data))
             self.data_sender.send(compressed_data)
@@ -157,6 +160,8 @@ class AgentManager:
             # ----------- 这个地方需要将数据变成numpy类型 ------------
             joint_log_prob_list.append(agent_log_prob.numpy())
             actions.append(agent_action.numpy())
+        if self.eval_mode:
+            return actions
         # -------- 这个地方计算一下当前的状态值 ---------------
         with torch.no_grad():
             state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data['global_channel_matrix'])

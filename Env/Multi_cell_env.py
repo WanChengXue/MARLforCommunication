@@ -44,7 +44,7 @@ class Environment(gym.Env):
         # ------------ 生成一个cyclic index matrix -------------
         self.cyclic_index_matrix = np.array([[(i+j)%self.agent_nums for i in range(self.agent_nums)] for j in range(self.agent_nums)])
         self.reward_calculator = Multi_cell_instant_reward(self.transmit_power, self.noise_power, self.cyclic_index_matrix, self.sector_nums, self.user_nums, self.bs_antenna_nums)
-
+        self.eval_mode = self.env_dict.get('eval_mode', False)
 
     def generate_abs_path(self, related_path):
         file_path = os.path.abspath(__file__)
@@ -68,18 +68,21 @@ class Environment(gym.Env):
         self.simulation_channel = (channel_data[:,:,:,:,:,:,:,random_tti]).squeeze()
 
 
-    def load_eval_data(self):
+    def load_eval_data(self, file_index):
         # 载入eval数据集
-        eval_file_number = self.env_dict.get('eval_file_number', random.randint(0, self.sub_carrier_nums-1))
+        if file_index is None:
+            eval_file_number = self.env_dict.get('eval_file_number', random.randint(0, self.sub_carrier_nums-1))
+        else:
+            eval_file_number = file_index
         loaded_file_name = self.save_data_folder + '/eval_channel_file_' + str(eval_file_number) + '.npy'
         # ============== TODO 这个地方不是很完善，对于测试文件来说，需要测试所有的文件 ====================
         self.simulation_channel = (np.load(loaded_file_name)).squeeze()
 
 
-    def reset(self):
+    def reset(self, file_index=None):
         if self.eval_mode:
             # 如果是评估模式,就加载评估数据
-            self.load_eval_data()
+            self.load_eval_data(file_index)
         else:
             self.load_training_data()
         # ------------- 构建输入的状态集 ------------
@@ -112,8 +115,12 @@ class Environment(gym.Env):
         # ========== 定义全局状态，以及每一个智能体的状态 =============
         # ----------- 定义全局状态 ---------------
         state['global_channel_matrix'] = dict()
-        state['global_channel_matrix']['real_part'] = self.simulation_channel[:,:,:,0:self.bs_antenna_nums,:].transpose(4,0,2,1,3).reshape(self.sliding_windows_length, self.sector_nums**2, self.user_nums, self.bs_antenna_nums)
-        state['global_channel_matrix']['img_part'] = self.simulation_channel[:,:,:,self.bs_antenna_nums:,:].transpose(4,0,2,1,3).reshape(self.sliding_windows_length, self.sector_nums**2, self.user_nums, self.bs_antenna_nums)
+        if self.eval_mode:
+            state['global_channel_matrix']['real_part'] = self.simulation_channel[:,:,:,0:self.bs_antenna_nums,:].transpose(4,0,2,1,3).reshape(self.env_dict['eval_TTI'], self.sector_nums**2, self.user_nums, self.bs_antenna_nums)
+            state['global_channel_matrix']['img_part'] = self.simulation_channel[:,:,:,self.bs_antenna_nums:,:].transpose(4,0,2,1,3).reshape(self.env_dict['eval_TTI'], self.sector_nums**2, self.user_nums, self.bs_antenna_nums)
+        else:
+            state['global_channel_matrix']['real_part'] = self.simulation_channel[:,:,:,0:self.bs_antenna_nums,:].transpose(4,0,2,1,3).reshape(self.sliding_windows_length, self.sector_nums**2, self.user_nums, self.bs_antenna_nums)
+            state['global_channel_matrix']['img_part'] = self.simulation_channel[:,:,:,self.bs_antenna_nums:,:].transpose(4,0,2,1,3).reshape(self.sliding_windows_length, self.sector_nums**2, self.user_nums, self.bs_antenna_nums)
         # ------------ 构建agent obs ----------
         state['agent_obs'] = dict()
         for agent_index in range(self.agent_nums):
@@ -147,14 +154,15 @@ class Environment(gym.Env):
     def step(self, action_list):
         # ---------------------------- 这个函数传入一个调度列表，维度是3个bs*20的列表 ------------------------------
         # -------- 首先把这个动作列表变成numpy类型，bs×3*20的矩阵 ---------
+        TTI_length = self.simulation_channel.shape[-1]
         numpy_type_action_list = np.stack(action_list, 1)
         SE_list = []
-        for i in range(self.sliding_windows_length):
+        for i in range(TTI_length):
             # ----------- 将传入的动作矩阵变成0-1矩阵 -----------
             scheduling_mask = self.convert_action_list_to_scheduling_mask(numpy_type_action_list[i,:,:])
             active_instant_se = self.reward_calculator.calculate_instant_reward(self.simulation_channel[:,:,:,:,i], scheduling_mask.squeeze())
-            # SE_list.append(sum(sum(active_instant_se))/(self.user_nums*self.sector_nums))
-            SE_list.append(sum(sum(active_instant_se)))
+            SE_list.append(sum(sum(active_instant_se))/(self.user_nums*self.sector_nums))
+            # SE_list.append(sum(sum(active_instant_se)))
         return SE_list
 
 # -------------- 测试一下环境 --------------

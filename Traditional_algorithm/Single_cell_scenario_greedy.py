@@ -10,7 +10,7 @@ from Utils import create_folder
 from Utils.config_parse import load_yaml
 from Env.Instant_Reward import Single_cell_instant_reward
 import copy
-from multiprocessing import Process
+import multiprocessing
 import shutil
 import pathlib
 import random
@@ -30,12 +30,17 @@ class Greedy:
         self.velocity = self.env_dict['velocity']
         # ---------- 文件的路径采用绝对位置 -------------
         self.save_data_folder = self.generate_abs_path(self.env_dict['save_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
-        self.construct_save_path() 
         self.single_cell_reward_calculator = Single_cell_instant_reward(self.transmit_power, self.noise_power, self.user_nums, self.bs_antenna_nums)
 
     def load_eval_file(self, eval_file_number):
+        self.construct_save_path() 
         # ----------- 载入测试文件 ------------
         loaded_file_name = self.save_data_folder + '/eval_channel_file_' + str(eval_file_number) + '.npy'
+        self.simulation_channel = (np.load(loaded_file_name)).squeeze()
+
+    def load_training_file(self, trainiing_file_number):
+        self.construct_training_data_save_path()
+        loaded_file_name = self.save_data_folder + '/training_channel_file_' + str(trainiing_file_number) + '.npy'
         self.simulation_channel = (np.load(loaded_file_name)).squeeze()
 
     def generate_abs_path(self, related_path):
@@ -46,6 +51,11 @@ class Greedy:
     def construct_save_path(self):
         # ----------- 构建结果保存路径 -------------
         related_path = 'data_part/Greedy_result/single_cell_scenario_greedy/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM'
+        self.abs_result_save_prefix = self.generate_abs_path(related_path)
+        create_folder(self.abs_result_save_prefix)
+
+    def construct_training_data_save_path(self):
+        related_path = 'data_part/demonstration_data/single_cell_scenario/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM'
         self.abs_result_save_prefix = self.generate_abs_path(related_path)
         create_folder(self.abs_result_save_prefix)
 
@@ -111,6 +121,36 @@ class Greedy:
             np.save(SE_result_saved_path['sector_{}'.format(sector_index)], np.array(SE['sector_{}'.format(sector_index)]))
 
 
+    def simulation_training_file(self, file_index):
+        self.load_training_file(file_index)
+        TTI_length = self.simulation_channel.shape[-1]
+        # TTI_length = 10
+        scheduling_sequence = dict()
+        SE = dict()
+        scheduling_sequence_saved_path = dict()
+        SE_result_saved_path = dict()
+        for sector_index in range(self.sector_nums):
+            scheduling_sequence['sector_{}'.format(sector_index)] = []
+            SE['sector_{}'.format(sector_index)] = []
+            scheduling_sequence_saved_path['sector_{}'.format(sector_index)] = self.abs_result_save_prefix + '/' +str(file_index)+ '_sector_{}_scheduling_sequence.npy'.format(sector_index)
+            SE_result_saved_path['sector_{}'.format(sector_index)] = self.abs_result_save_prefix + '/' +str(file_index)+ '_sector_{}_se_sum_result.npy'.format(sector_index)
+
+        for TTI in tqdm(range(TTI_length)):
+            self.channel_matrix = self.simulation_channel[:,:,:,:,TTI]
+            greedy_scheduling_sequence, max_se = self.recyle_add_user()
+            for sector_index in range(self.sector_nums):
+                scheduling_sequence['sector_{}'.format(sector_index)].append(greedy_scheduling_sequence[sector_index,:])
+                SE['sector_{}'.format(sector_index)].append(max_se[sector_index])
+        # ------------------ 将来步
+        for sector_index in range(self.sector_nums):
+            np.save(scheduling_sequence_saved_path['sector_{}'.format(sector_index)], np.stack(scheduling_sequence['sector_{}'.format(sector_index)], 0))
+            np.save(SE_result_saved_path['sector_{}'.format(sector_index)], np.array(SE['sector_{}'.format(sector_index)]))
+
+def start_process_training_data(file_index, config_dict):
+    test_greedy = Greedy(config_dict['env'])
+    test_greedy.simulation_training_file(file_index)
+
+
 if __name__=='__main__':
     import argparse
     parser = argparse.ArgumentParser()
@@ -122,8 +162,12 @@ if __name__=='__main__':
     # abs_path = '/'.join(os.path.abspath(__file__).split('\\')[:-2])
     concatenate_path = abs_path + args.config_path
     config_dict = load_yaml(concatenate_path)
-    test_greedy = Greedy(config_dict['env']) 
+    # test_greedy = Greedy(config_dict['env']) 
+    # for i in range(50):
+    #     test_greedy.simulation(i)
+
+    pool = multiprocessing.Pool(processes = 12)
     for i in range(50):
-        test_greedy.simulation(i)
-
-
+        pool.apply_async(start_process_training_data, (i, config_dict, ))   #维持执行的进程总数为processes，当一个进程执行完毕后会添加新的进程进去
+    pool.close()
+    pool.join() 
