@@ -74,7 +74,7 @@ policy_config:
   gamma: 0.997
   tau: 0.95
   # ------- 和demonstration data相关 ------
-  demonstration_threshold: 0.0
+  demonstration_threshold: 0.3
   # -------------- 模型训练相关 --------------
   training_parameters:
     clip_epsilon: 0.2
