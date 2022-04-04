@@ -171,6 +171,8 @@ class learner_server(basic_server):
                 self.wait_data_times = []
             if self.total_training_steps % self.policy_config['model_save_interval'] == 0:
                 self._save_model()
+            if self.total_training_steps % self.policy_config['evaluate_model_interval'] == 0:
+                self._evaluate_model()
 
     def _save_model(self):
         timestamp = str(time.time())
@@ -178,6 +180,22 @@ class learner_server(basic_server):
             for agent_name in self.policy_config['agent'][model_type].keys():
                 model_save_path = self.policy_config['saved_model_path'] + '/' + model_type + '_' + agent_name + '_'+ timestamp
                 torch.save(self.model[model_type][agent_name].state_dict(), model_save_path)
+
+    def _evaluate_model(self):
+        # -------------- 这个函数是将模型在某一个数据集合上进行前向运算，得到评估值，然后写入到tensorboard上面 --------
+        # ========= 首先载入env =========
+        env_name = self.config_dict['env']['id']
+        env_config = deepcopy(self.config_dict['env'])
+        env_config['eval_mode'] = True
+        env = importlib.import_module(env_name).Environment(env_config)
+        state = env.reset(file_index = 0)
+        torch_state = convert_data_format_to_torch_training(state,self.local_rank)
+        with torch.no_grad():
+            _, torch_action  = self.model['policy']['default_single_cell'](torch_state)
+        instant_reward = env.step(torch_action.cpu().numpy())
+        self.send_log({'result/evaluate_channel_value/{}'.format(self.policy_name): sum(instant_reward)/len(instant_reward)})
+        
+        
 
     def run(self):
         self.logger.info("------------------ learner: {} 开始运行 ----------------".format(self.global_rank))

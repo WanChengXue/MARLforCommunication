@@ -27,15 +27,20 @@ class Agent:
         # ---------- 这个函数是用来同步本地模型的 ----------
         deserialize_model(self.net_work, model_path)
 
-    def compute(self, agent_obs):
+    def compute(self, agent_obs, action_list=None):
         # 这个是调用策略网络来进行计算的，网络使用的是Transformer结构，Encoder得到多个有意义的隐藏向量矩阵后，传入到Decoder，使用pointer network来进行解码操作
         with torch.no_grad():
             # 通过transformer进行了特征提取了之后，有两个head出来，一个是transformer decoder部分，得到调度列表，另外一个head出来的是v(s)的值，在推断阶段这个值不要
             # 因为还是遵循的CTDE的训练方式，每次决策之后，需要将所有智能体的backbone汇聚在一起进行V值的计算，由于action的长度有长有短，因此需要进行mask操作，统一到
             # 固定长度。如果是单个点进行决策，返回的log_probs表示的是联合概率的对数，action表示的是调度序列，mask表示的是固定长度的0-1向量
             # 按理来说，在eval mode的时候，每次决策都需要选择概率最大的动作的
-            log_joint_prob, scheduling_action = self.net_work(agent_obs)
-            return log_joint_prob, scheduling_action
+            if action_list is not None:
+                log_joint_prob = self.net_work(agent_obs, action_list)
+                return log_joint_prob
+            else:
+                log_joint_prob, scheduling_action = self.net_work(agent_obs, action_list)
+                return log_joint_prob, scheduling_action
+            
 
     def compute_state_value(self, agent_obs):
         with torch.no_grad():
@@ -135,14 +140,21 @@ class AgentManager:
             compressed_data = frame.compress(pickle.dumps(data))
             self.data_sender.send(compressed_data)
 
-    def compute_single_agent(self, obs):
+    def compute_single_agent(self, obs, demonstration_ations=None):
         torch_format_data = convert_data_format_to_torch_interference(obs)
-        action_log_prob, action= self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data)
+        if demonstration_ations is None:
+            action_log_prob, action= self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data)
+        else:
+            torch_format_action = torch.LongTensor(demonstration_ations)
+            action_log_prob = self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data, torch_format_action)
         if self.eval_mode:
             return action.numpy()
-    
         state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
-        return action_log_prob.numpy(), action.numpy(), state_value.numpy()
+
+        if demonstration_ations is None:
+            return action_log_prob.numpy(), action.numpy(), state_value.numpy()
+        else:
+            return action_log_prob.numpy(), state_value.numpy()
 
     def compute_multi_agent(self, obs):
         # -------- 这个函数是用使用神经网络计算动作，以及动作对应的概率 ---------

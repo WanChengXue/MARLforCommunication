@@ -31,6 +31,7 @@ class Greedy:
         # ---------- 文件的路径采用绝对位置 -------------
         self.save_data_folder = self.generate_abs_path(self.env_dict['save_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
         self.single_cell_reward_calculator = Single_cell_instant_reward(self.transmit_power, self.noise_power, self.user_nums, self.bs_antenna_nums)
+        self.max_decoder_time = self.env_dict['max_stream_nums']
 
     def load_eval_file(self, eval_file_number):
         self.construct_save_path() 
@@ -77,22 +78,31 @@ class Greedy:
         return max_se, optimal_user
                 
     def recyle_add_user(self):
+        action_sector_dict = dict()
+        for sector_index in range(self.sector_nums):
+            action_sector_dict['sector_{}'.format(sector_index)] = []
+
         current_scheduling_sequence = np.zeros((self.sector_nums, self.user_nums), dtype=int)
         max_se_list = np.zeros(self.sector_nums)
         for sector_index in range(self.sector_nums):
             current_max_se = 0
+            step = 0
             while True:
                 # 判断循环结束的标志是下一次遍历无法添加新用户的时候，则跳出
                 SE_after_new_user_append, new_user_id = self.greedy_add_users(sector_index, current_scheduling_sequence[sector_index,:])
-                if SE_after_new_user_append >= current_max_se:
+                if SE_after_new_user_append >= current_max_se and step<=self.max_decoder_time:
+                    action_sector_dict['sector_{}'.format(sector_index)].append(new_user_id+1)
                     current_scheduling_sequence[sector_index, new_user_id] = 1
                     current_max_se = SE_after_new_user_append
+                    step += 1
                 else:
                     # 如果当前这一轮没有办法添加新的用户进去，就直接break循环
                     max_se_list[sector_index] = current_max_se
+                    # ------------ 将action_sector_dict用0填充 -------
+                    if step < self.max_decoder_time:
+                        action_sector_dict['sector_{}'.format(sector_index)] = action_sector_dict['sector_{}'.format(sector_index)] + [0 for i in range(self.max_decoder_time-step)]
                     break
-        # --------- 所有sector都进行了greedy挑选用户，计算一下他们拼接在一起后得到的reward ------------------
-        return current_scheduling_sequence, max_se_list
+        return action_sector_dict, max_se_list
 
 
     def simulation(self, file_index):
@@ -113,7 +123,7 @@ class Greedy:
             self.channel_matrix = self.simulation_channel[:,:,:,:,TTI]
             greedy_scheduling_sequence, max_se = self.recyle_add_user()
             for sector_index in range(self.sector_nums):
-                scheduling_sequence['sector_{}'.format(sector_index)].append(greedy_scheduling_sequence[sector_index,:])
+                scheduling_sequence['sector_{}'.format(sector_index)].append(greedy_scheduling_sequence['sector_{}'.format(sector_index)])
                 SE['sector_{}'.format(sector_index)].append(max_se[sector_index])
         # ------------------ 将来步
         for sector_index in range(self.sector_nums):
@@ -134,16 +144,15 @@ class Greedy:
             SE['sector_{}'.format(sector_index)] = []
             scheduling_sequence_saved_path['sector_{}'.format(sector_index)] = self.abs_result_save_prefix + '/' +str(file_index)+ '_sector_{}_scheduling_sequence.npy'.format(sector_index)
             SE_result_saved_path['sector_{}'.format(sector_index)] = self.abs_result_save_prefix + '/' +str(file_index)+ '_sector_{}_se_sum_result.npy'.format(sector_index)
-
         for TTI in tqdm(range(TTI_length)):
             self.channel_matrix = self.simulation_channel[:,:,:,:,TTI]
             greedy_scheduling_sequence, max_se = self.recyle_add_user()
             for sector_index in range(self.sector_nums):
-                scheduling_sequence['sector_{}'.format(sector_index)].append(greedy_scheduling_sequence[sector_index,:])
+                scheduling_sequence['sector_{}'.format(sector_index)].append(greedy_scheduling_sequence['sector_{}'.format(sector_index)])
                 SE['sector_{}'.format(sector_index)].append(max_se[sector_index])
         # ------------------ 将来步
         for sector_index in range(self.sector_nums):
-            np.save(scheduling_sequence_saved_path['sector_{}'.format(sector_index)], np.stack(scheduling_sequence['sector_{}'.format(sector_index)], 0))
+            np.save(scheduling_sequence_saved_path['sector_{}'.format(sector_index)], np.array(scheduling_sequence['sector_{}'.format(sector_index)]))
             np.save(SE_result_saved_path['sector_{}'.format(sector_index)], np.array(SE['sector_{}'.format(sector_index)]))
 
 def start_process_training_data(file_index, config_dict):
@@ -165,7 +174,7 @@ if __name__=='__main__':
     # test_greedy = Greedy(config_dict['env']) 
     # for i in range(50):
     #     test_greedy.simulation(i)
-
+    # start_process_training_data(0, config_dict)
     pool = multiprocessing.Pool(processes = 12)
     for i in range(50):
         pool.apply_async(start_process_training_data, (i, config_dict, ))   #维持执行的进程总数为processes，当一个进程执行完毕后会添加新的进程进去

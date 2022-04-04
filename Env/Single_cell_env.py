@@ -27,6 +27,7 @@ class Environment(gym.Env):
         self.velocity = self.env_dict['velocity']
         # ---------- 文件的路径采用绝对位置 -------------
         self.save_data_folder = self.generate_abs_path(self.env_dict['save_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
+        self.demonstration_data_folder = self.generate_abs_path(self.env_dict['demonstration_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
         self.sub_carrier_nums = self.env_dict['sub_carrier_nums']
         self.delay_time_window = self.env_dict['delay_time_window']
         self.training_data_total_TTI_length = self.env_dict['training_data_total_TTI_length']
@@ -51,8 +52,8 @@ class Environment(gym.Env):
 
     def load_training_data(self):
         # 载入训练数据,根据随机数种子来看，首先是对随机数取余数，看看读取哪个载波
-        load_subcarrier_index = self.random_seed % self.sub_carrier_nums
-        loaded_file_name = self.save_data_folder + '/training_channel_file_' +str(load_subcarrier_index) + '.npy'
+        self.training_file_index = self.random_seed % self.sub_carrier_nums
+        loaded_file_name = self.save_data_folder + '/training_channel_file_' +str(self.training_file_index) + '.npy'
         channel_data = np.load(loaded_file_name)
         # 需要随机生成一个随机数，作为开始采样的位置
         # max_start_TTI = self.training_data_total_TTI_length - self.sliding_windows_length
@@ -60,9 +61,9 @@ class Environment(gym.Env):
         # # ---------- 这个地方将start_TTI clamp在0- max_start_TTI - 1之间
         # end_TTI = start_TTI + self.sliding_windows_length
         # 随机生成一个矩阵进行采样
-        random_tti = random.sample(range(0,self.training_data_total_TTI_length), self.sliding_windows_length)
+        self.random_tti = random.sample(range(0,self.training_data_total_TTI_length), self.sliding_windows_length)
         # ------- 通过squeeze函数之后，得到的仿真信道维度为，3 * 20 * 3 *16 * TTI,表示目的扇区 * 用户数目 * 源扇区 * 基站天线数目
-        self.simulation_channel = (channel_data[:,:,:,:,:,:,:,random_tti]).squeeze()
+        self.simulation_channel = (channel_data[:,:,:,:,:,:,:,self.random_tti]).squeeze()
 
 
     def load_eval_data(self, file_index):
@@ -110,7 +111,22 @@ class Environment(gym.Env):
             else:
                 bool_mask[scheduling_user-1] = 1
         return bool_mask
-        
+
+    def read_action_from_demonstration(self):
+        # ---------- 这个函数表示直接从demonstration中将动作读取出来 ---------
+        actions_list =[]
+        reward_list = []
+        for sector_index in range(self.sector_nums):
+            action_file_name = self.demonstration_data_folder + '/' + str(self.training_file_index) + '_sector_' + str(sector_index) + '_scheduling_sequence.npy'
+            instant_reward_file_name = self.demonstration_data_folder + '/' + str(self.training_file_index) + '_sector_' + str(sector_index) + '_se_sum_result.npy'
+            # --------- 载入数据 --------
+            sector_demonstration_actions = np.load(action_file_name)[self.random_tti, :]
+            sector_demonstration_rewards = np.load(instant_reward_file_name)[self.random_tti]
+            actions_list.append(sector_demonstration_actions)
+            reward_list.append(sector_demonstration_rewards[:, np.newaxis])
+        return np.concatenate(actions_list, 0), np.concatenate(reward_list, 0)
+
+
     def step(self, action_list):
         TTI_length = self.simulation_channel.shape[-1]
         SE_list = []

@@ -12,6 +12,7 @@ env:
   noise_power: 3.1623e-20
   source_data_folder: 'data_part/Source_data'
   save_data_folder: 'data_part/preprocess_data'
+  demonstration_data_folder: 'data_part/demonstration_data/single_cell_scenario'
   velocity: 30
   sub_carrier_nums: 50
   # 最大流的数目小于等于发射天线的数目
@@ -72,6 +73,8 @@ policy_config:
   batch_size: &batch_size 2048
   gamma: 0.997
   tau: 0.95
+  # ------- 和demonstration data相关 ------
+  demonstration_threshold: 0.0
   # -------------- 模型训练相关 --------------
   training_parameters:
     clip_epsilon: 0.2
@@ -87,6 +90,8 @@ policy_config:
   capacity: &capacity 50000
   # -------- 每训练1000次就保存一下模型 ----------
   model_save_interval: 1000
+  # ------- 每训练10次就评估一下模型 --------
+  evaluate_model_interval: 10
   # ------ 设置模型的保存路径 ——----------
   # ======= 两个路径一个是最新的模型构成的模型池，另外一个是每训练若干次保存下来的模型 =====
   model_pool_path: "Exp/Model/model_pool/"

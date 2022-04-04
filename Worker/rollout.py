@@ -2,6 +2,7 @@ import os
 import sys
 import pathlib
 import zmq
+import random
 from tqdm import tqdm
 current_path = os.path.abspath(__file__)
 root_path = '/'.join(current_path.split('/')[:-2])
@@ -19,6 +20,7 @@ class rollout_sampler:
         self.policy_name = self.config_dict['policy_name']
         self.policy_config = self.config_dict['policy_config']
         self.popart_start = self.policy_config['training_parameters'].get("popart_start", False)
+        self.demonstration_threshold = self.policy_config.get('demonstration_threshold', 0)
         self.statistic = statistic
         self.logger = logger
         self.eval_mode = self.policy_config.get('eval_mode', False)
@@ -150,14 +152,25 @@ class rollout_sampler:
         else:
             self.agent.reset()
             state = self.env.reset()
-            # --------- 首先同步最新 config server上面的模型 ------
-            if self.agent_nums == 1:
-                joint_log_prob, actions, net_work_output = self.agent.compute_single_agent(state)
+            # ------- 定义变量，要不要从demonstration中拿数据来训练 ------
+            if random.random() <= self.demonstration_threshold:
+                actions, instant_SE_sum_list = self.env.read_action_from_demonstration()
+                if self.agent_nums == 1:
+                    joint_log_prob, net_work_output = self.agent.compute_single_agent(state, actions)
+                else:
+                    joint_log_prob, net_work_output = self.agent.compute_multi_agent(state, actions)
+                data_dict = [{'state': copy.deepcopy(state), 'instant_reward': instant_SE_sum_list}]
+                
             else:
-                joint_log_prob, actions, net_work_output = self.agent.compute_multi_agent(state)
-            instant_SE_sum_list = self.env.step(actions)
-            # ------------ instant_SE_sum_list的维度为bs×1 ------------
-            data_dict = [{'state': copy.deepcopy(state), 'instant_reward':np.array(instant_SE_sum_list)}]
+                # --------- 首先同步最新 config server上面的模型 ------
+                if self.agent_nums == 1:
+                    joint_log_prob, actions, net_work_output = self.agent.compute_single_agent(state)
+                else:
+                    joint_log_prob, actions, net_work_output = self.agent.compute_multi_agent(state)
+                instant_SE_sum_list = self.env.step(actions)
+                # ------------ instant_SE_sum_list的维度为bs×1 ------------
+                data_dict = [{'state': copy.deepcopy(state), 'instant_reward':np.array(instant_SE_sum_list)}]
+
             if self.agent_nums == 1:
                 # ---------- 如果说只有一一个用户，不需要套字典了 --------------
                 data_dict[-1]['old_action_log_probs'] = joint_log_prob
@@ -175,11 +188,12 @@ class rollout_sampler:
             data_dict[-1]['old_network_value'] = net_work_output
             self.agent.send_data(data_dict)
             return instant_SE_sum_list
+            
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_eval_multi_cell_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改

@@ -36,7 +36,7 @@ class pointer_network(nn.Module):
         self.eps = 1e-9
         self.temperature = self.config.get('temperature', 1.0)
 
-    def forward(self,feature_map, action=None):
+    def forward(self,feature_map, action=None, inference_mode=True):
         #----------- Encoding -------------
         batch_size = feature_map.size(0)
         decoder_input = self.decoder_input.repeat(batch_size, 1)
@@ -71,7 +71,8 @@ class pointer_network(nn.Module):
             if action is not None:
                 indices = action[:,i].unsqueeze(-1)
                 index_probs = masked_output.gather(1, indices)
-                conditional_entropy_list.append(dist.entropy().unsqueeze(-1)*index_probs)
+                if not inference_mode:
+                    conditional_entropy_list.append(dist.entropy().unsqueeze(-1)*index_probs)
             else:
                 # indices = torch.argmax(masked_output, -1).unsqueeze(-1)
                 indices = dist.sample().unsqueeze(-1)
@@ -136,9 +137,13 @@ class model(nn.Module):
         backbone = torch.cat([main_head_real_part_affine, main_head_img_part_affine], -1)
         feature_map = torch.relu(self.backbone_linear_layer(backbone))
         # ------------- 把这个特征图送入到指针网络中 ---------------
-        res = self.PN_network(feature_map, action=action_list)
+        res = self.PN_network(feature_map, action=action_list, inference_mode=inference_mode)
         if inference_mode:
-            return res[0], res[1]
+            # ------ 在推断阶段传入了动作，表示动作直接从demonstration中获取，只返回概率 -----
+            if action_list is None:
+                return res[0], res[1]
+            else:
+                return res[0]
         else:
             return res[0], res[2]
 

@@ -28,6 +28,8 @@ class Greedy:
         self.transmit_power = self.env_dict['transmit_power']
         self.noise_power = self.env_dict['noise_power']
         self.velocity = self.env_dict['velocity']
+        self.max_decoder_time = self.env_dict['max_stream_nums']
+        self.min_decoder_time = self.env_dict['min_stream_nums']
         # ---------- 文件的路径采用绝对位置 -------------
         self.save_data_folder = self.generate_abs_path(self.env_dict['save_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
         self.cyclic_index_matrix = np.array([[(i+j)%self.agent_nums for i in range(self.agent_nums)] for j in range(self.agent_nums)])
@@ -60,39 +62,84 @@ class Greedy:
         self.abs_result_save_prefix = self.generate_abs_path(related_path)
         create_folder(self.abs_result_save_prefix)
 
-    def greedy_add_users(self, last_action):
+    def greedy_add_users(self, last_action, step_dict):
         # 这个函数是遍历一次，找一个用户出来
         max_se = 0
         optimal_sector = None
         optimal_user = None
         for sector_index in range(self.sector_nums):
-            for user_index in range(self.user_nums):
-                current_action = copy.deepcopy(last_action)
-                if last_action[sector_index, user_index] == 0:
-                    # 如果当前用户没有被选到，则动作进行跳转
-                    # 调用函数计算给定的信道矩阵，以及在当前的调度序列下面的SE
-                    current_action[sector_index, user_index] = 1
-                    SE_array = self.reward_calculator.calculate_instant_reward(self.channel_matrix, current_action)
-                    sum_SE = np.sum(np.sum(SE_array)).item() /(self.sector_nums * self.user_nums)
-                    if max_se < sum_SE:
-                        max_se = sum_SE
-                        optimal_sector = sector_index
-                        optimal_user = user_index
+            # ---------- 如果说这个小区已经调度了最大用户数目的用户，就直接跳过这个循环 ---------
+            if step_dict['sector_{}'.format(sector_index)] >= self.max_decoder_time or not self.reasonable_sector_scheduling(step_dict, sector_index):
+                continue
+            else:
+                for user_index in range(self.user_nums):
+                    current_action = copy.deepcopy(last_action)
+                    if last_action[sector_index, user_index] == 0:
+                        # 如果当前用户没有被选到，则动作进行跳转
+                        # 调用函数计算给定的信道矩阵，以及在当前的调度序列下面的SE
+                        current_action[sector_index, user_index] = 1
+                        SE_array = self.reward_calculator.calculate_instant_reward(self.channel_matrix, current_action)
+                        sum_SE = np.sum(np.sum(SE_array)).item() /(self.sector_nums * self.user_nums)
+                        if max_se < sum_SE:
+                            max_se = sum_SE
+                            optimal_sector = sector_index
+                            optimal_user = user_index
         return max_se, optimal_sector, optimal_user
+
+    def reasonable_sector_scheduling(self, scheduling_dict, sector_index):
+        # ----------- 传入一个调度字典，如果某个sector已经调度了min stream number个用户后，其余sector一个没有调度，则当前sector不调度了-----
+        resonable_sector_scheduling = True
+        if scheduling_dict['sector_'+str(sector_index)] >=self.min_decoder_time:
+            for sector_key in scheduling_dict.keys():
+                if sector_key == 'sector_' + str(sector_index):
+                    continue
+                else:
+                    if scheduling_dict[sector_key] <= self.min_decoder_time:
+                        resonable_sector_scheduling = False
+                        break
+        return resonable_sector_scheduling
+            
                 
+    def all_sector_resonable_scheduling(self, scheduling_dict):
+        # --------- 传入一个调度字典，如果所有的sector的step都小于self.max_decode_time则返回True -------
+        resonable_scheduling = True
+        for sector_key in scheduling_dict.keys():
+            if scheduling_dict[sector_key] <= self.max_decoder_time:
+                pass
+            else:
+                resonable_scheduling = False
+                break
+        return resonable_scheduling
+
     def recyle_add_user(self):
+        action_sector_dict = dict()
+        step_dict = dict()
+        for sector_index in range(self.sector_nums):
+            action_sector_dict['sector_{}'.format(sector_index)] = []
+            step_dict['sector_{}'.format(sector_index)] = 0
+
         current_scheduling_sequence = np.zeros((self.sector_nums, self.user_nums), dtype=int)
         current_max_se = 0
         while True:
-            # 判断循环结束的标志是下一次遍历无法添加新用户的时候，则跳出
-            SE_after_new_user_append, new_user_sector_id, new_user_id = self.greedy_add_users(current_scheduling_sequence)
-            if SE_after_new_user_append >= current_max_se:
+            # 如果说所有的sector都调度了max decoder user个用户，调用greedy_add_users返回0，因此直接break了
+            SE_after_new_user_append, new_user_sector_id, new_user_id = self.greedy_add_users(current_scheduling_sequence, step_dict)
+            if SE_after_new_user_append >= current_max_se and self.all_sector_resonable_scheduling(step_dict):
+                # -------- 满足的条件，新加入用户之后，系统性能必须上升，然后所有的sector的当前调度用户数目必须小于最大调度数目 ---------
                 current_scheduling_sequence[new_user_sector_id, new_user_id] = 1
+                action_sector_dict['sector_{}'.format(new_user_sector_id)].append(new_user_id+1)
+                step_dict['sector_{}'.format(new_user_sector_id)] += 1
                 current_max_se = SE_after_new_user_append
+
             else:
                 # 如果当前这一轮没有办法添加新的用户进去，就直接break循环
+                # ----------- 这个地方添加一些0进去，满足长度都为max_decoder_time ------
                 break
-        return current_scheduling_sequence, current_max_se
+        # --------- 调度完成，将action_sector_dict中一些key添加0 ------
+        action_sector_list = []
+        for sector_index in range(self.sector_nums):
+            if step_dict['sector_{}'.format(sector_index)] < self.max_decoder_time:
+                action_sector_list.append(action_sector_dict['sector_{}'.format(sector_index)] + [0 for i in range(self.max_decoder_time-step_dict['sector_{}'.format(sector_index)])])
+        return np.array(action_sector_list), current_max_se
 
 
     def simulation_training_file(self, file_index):
@@ -150,10 +197,10 @@ if __name__=='__main__':
     # for i in range(50):
     #     test_greedy.simulation(i)
     # ----------- 开进程池 --------
-    # start_process_training_data(0, config_dict)
-    pool = multiprocessing.Pool(processes = 12)
-    for i in range(50):
-        pool.apply_async(start_process_training_data, (i, config_dict, ))   #维持执行的进程总数为processes，当一个进程执行完毕后会添加新的进程进去
-    pool.close()
-    pool.join()   #调用join之前，先调用close函数，否则会出错。执行完close后不会有新的进程加入到pool,join函数等待所有子进程结束
+    start_process_training_data(0, config_dict)
+    # pool = multiprocessing.Pool(processes = 12)
+    # for i in range(50):
+    #     pool.apply_async(start_process_training_data, (i, config_dict, ))   #维持执行的进程总数为processes，当一个进程执行完毕后会添加新的进程进去
+    # pool.close()
+    # pool.join()   #调用join之前，先调用close函数，否则会出错。执行完close后不会有新的进程加入到pool,join函数等待所有子进程结束
 
