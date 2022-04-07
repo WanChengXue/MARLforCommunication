@@ -42,3 +42,6 @@ if __name__=='__main__':
         port_num = i % config_dict['policy_config']['server_number_per_device']
         p = Process(target=single_process_generate_sample, args=(args.config_path,port_num,))
         p.start()
+
+# ssh -p 22112 serena@10.19.92.79
+# air_lab.123

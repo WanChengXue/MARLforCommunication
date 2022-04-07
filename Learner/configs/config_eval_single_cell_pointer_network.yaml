@@ -16,7 +16,7 @@ env:
   sub_carrier_nums: 50
   # 最大流的数目小于等于发射天线的数目
   max_stream_nums: *bs_antenna_nums 
-  min_stream_nums: &min_decoder_time 6
+  min_stream_nums: &min_decoder_time 3
   # 这个是值表示的是一个信道文件总共有多少个TTI
   training_data_total_TTI_length: 10000
   # 这个值表示的滑窗的长度Ts

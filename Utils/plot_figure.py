@@ -66,4 +66,5 @@ def multi_cell_figure():
     plt.savefig(save_path + 'performance_comprison.png')
     plt.close()
 
-multi_cell_figure()
+# multi_cell_figure()
+single_cell_figure()

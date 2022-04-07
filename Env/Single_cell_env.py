@@ -26,14 +26,16 @@ class Environment(gym.Env):
         self.noise_power = self.env_dict['noise_power']
         self.velocity = self.env_dict['velocity']
         # ---------- 文件的路径采用绝对位置 -------------
+        self.eval_mode = self.env_dict.get('eval_mode',False)
         self.save_data_folder = self.generate_abs_path(self.env_dict['save_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
-        self.demonstration_data_folder = self.generate_abs_path(self.env_dict['demonstration_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
+        if not self.eval_mode:
+            self.demonstration_data_folder = self.generate_abs_path(self.env_dict['demonstration_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
         self.sub_carrier_nums = self.env_dict['sub_carrier_nums']
         self.delay_time_window = self.env_dict['delay_time_window']
         self.training_data_total_TTI_length = self.env_dict['training_data_total_TTI_length']
         self.min_user_average_se  = self.env_dict['min_user_average_se']
         self.max_user_pf_value = self.env_dict['max_user_pf_value']
-        self.eval_mode = self.env_dict.get('eval_mode',False)
+        
         # ======================================================================
         if random_seed is None:
             self.random_seed = random.randint(0, 1000000)

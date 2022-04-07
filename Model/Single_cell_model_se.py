@@ -35,6 +35,7 @@ class pointer_network(nn.Module):
         self.terminate_vector = Parameter(torch.ones(1,1), requires_grad=False)
         self.eps = 1e-9
         self.temperature = self.config.get('temperature', 1.0)
+        self.use_gumbel_softmax = self.config.get('user_gumbel_softmax', False)
 
     def forward(self,feature_map, action=None, inference_mode=True):
         #----------- Encoding -------------
@@ -59,12 +60,14 @@ class pointer_network(nn.Module):
             tanh_output = torch.tanh(affine_encoder_matrix + affine_decoder_matrix) # batch_size * seq_len * weight_dim
             # ----------- 和权重向量相乘 ----------
             weight_output = self.V(tanh_output).squeeze(-1) # batch_size * seq_len 
-            # weight_output_prime = gumbel_softmax_sample(weight_output)
-            # weight_output_prime[bool_mask] = _inf[bool_mask]
-            # prob_matrix = torch.softmax(weight_output_prime/self.temperature, -1) # batch_size * seq_len
             bool_mask = torch.eq(mask, 0) # bs * sq_len
-            weight_output[bool_mask] = _inf[bool_mask]
-            prob_matrix = torch.softmax(weight_output, -1)
+            if self.use_gumbel_softmax:
+                weight_output_prime = gumbel_softmax_sample(weight_output)
+                weight_output_prime[bool_mask] = _inf[bool_mask]
+                prob_matrix = torch.softmax(weight_output_prime/self.temperature, -1) # batch_size * seq_len
+            else:
+                weight_output[bool_mask] = _inf[bool_mask]
+                prob_matrix = torch.softmax(weight_output, -1)
             masked_output = prob_matrix * mask
             dist = categorical.Categorical(masked_output)
             # ---------- 选择最大概率的值 --------------
@@ -74,19 +77,19 @@ class pointer_network(nn.Module):
                 if not inference_mode:
                     conditional_entropy_list.append(dist.entropy().unsqueeze(-1)*index_probs)
             else:
-                # indices = torch.argmax(masked_output, -1).unsqueeze(-1)
-                indices = dist.sample().unsqueeze(-1)
+                indices = torch.argmax(masked_output, -1).unsqueeze(-1)
+                # indices = dist.sample().unsqueeze(-1)
                 # ---------- 每个小区至少要调度min_decoder_time个用户出来 -----------
-                # if i<self.min_decoder_time:
-                #     terminate_batch = indices == 0
-                #     # --------- 将第二大的概率向量拿出来 ----------
-                #     _, alter_matrix = torch.topk(masked_output, 2)
-                #     indices[terminate_batch] = alter_matrix[:,1].unsqueeze(-1)[terminate_batch]
-                if i < self.min_decoder_time:
-                    while not torch.all(indices):
-                        terminate_batch = indices == 0
-                        new_sample = dist.sample().unsqueeze(-1)
-                        indices[terminate_batch] = new_sample[terminate_batch]
+                if i<self.min_decoder_time:
+                    terminate_batch = indices == 0
+                    # --------- 将第二大的概率向量拿出来 ----------
+                    _, alter_matrix = torch.topk(masked_output, 2)
+                    indices[terminate_batch] = alter_matrix[:,1].unsqueeze(-1)[terminate_batch]
+                # if i < self.min_decoder_time:
+                #     while not torch.all(indices):
+                #         terminate_batch = indices == 0
+                #         new_sample = dist.sample().unsqueeze(-1)
+                #         indices[terminate_batch] = new_sample[terminate_batch]
                 index_probs = masked_output.gather(1, indices) # batch_size * 1
                 # --------- 如果说当前上一个时刻的indices是0，则表示已经结束调度了，这个时刻的indices就变成0 ---------
                 indices[mask[:,0] == 0] = 0
