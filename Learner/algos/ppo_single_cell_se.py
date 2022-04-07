@@ -167,6 +167,7 @@ class MAPPOTrainer:
             self.M += N
             # ---------------------------------------------
             # advantage = advantages / self.advantage_std
+            advantage_mean = 0
             advantage = (advantages - advantage_mean) / advantage_std
             # entropy_loss_list = []
             self.policy_optimizer[self.policy_name].zero_grad()
