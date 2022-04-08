@@ -127,6 +127,7 @@ policy_config:
         model_type: 'policy'
         parameter_sharing: *parameter_sharing
         min_decoder_time: *min_decoder_time
+        user_gumbel_softmax: True
       # -------- 状态维度和动作维度由环境直接给出 -----------
     critic:
       # -------- critic网络的相关配置 ---------
