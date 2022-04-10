@@ -140,7 +140,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--rank', default=0, type=int, help='rank of current process')
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_PF_pointer_network.yaml', help='yaml format config')
     parser.add_argument('--data_server_local_rank', default=0, type=int, help='data_server_local_rank')
     parser.add_argument('--world_size', default=1, type=int, help='world_size')
     args = parser.parse_args()

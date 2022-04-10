@@ -105,12 +105,12 @@ class MAPPOTrainer:
             predict_state_value = torch.cat([predict_state_value_PF, predict_state_value_Edge], 1)
             advantages = training_batch['advantages'].squeeze(-1)
             # ----------------- 这个值是使用采样critic网络前向计算出出来的结果，主要用来做value clip ----------------
-            old_network_value = training_batch['old_network_value'].squeeze(-1)
+            old_network_value = training_batch['current_state_value'].squeeze(-1)
             target_state_value = training_batch['target_state_value'].squeeze(-1)
         else:
             predict_state_value = self.critic_net[self.critic_name[0]](current_state['global_state'])
             advantages = training_batch['advantages'][:,0,:]
-            old_network_value = training_batch['old_network_value'][:,0,:]
+            old_network_value = training_batch['current_state_value'][:,0,:]
             target_state_value = training_batch['target_state_value'][:,0,:]
         # 这个地方使用value clip操作
         if self.clip_value:

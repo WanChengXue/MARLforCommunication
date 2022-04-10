@@ -26,7 +26,7 @@ env:
   max_user_pf_value: 0.25
   parallel_env: 1000
   one_step_env: True
-  replay_buffer_name: 'TraningSet_one_step_single_cell'
+  replay_buffer_name: 'TrainingSet_one_step_single_cell'
   eval_TTI: 1000
   eval_file_number: 50
   eval_mode: &eval_mode True

@@ -85,7 +85,7 @@ class PPOTrainer:
 
     def step(self, training_batch):
         info_dict = dict()
-        current_state = training_batch['state']
+        current_state = training_batch['current_state']
         # ================= 使用了GAE估计出来了advantage value  ============
         
         actions = training_batch['actions']
@@ -94,7 +94,7 @@ class PPOTrainer:
         if self.multi_objective_start:
             predict_state_value_PF, predict_state_value_Edge = self.critic_net(current_state)
             predict_state_value = torch.cat([predict_state_value_PF, predict_state_value_Edge], 1)
-            advantages = training_batch['instant_reward'] - training_batch['current_state_value']
+            advantages = training_batch['advantages']
             # ----------------- 这个值是使用采样critic网络前向计算出出来的结果，主要用来做value clip ----------------
             old_network_value = training_batch['current_state_value'].squeeze(-1)
             target_state_value = training_batch['target_state_value'].squeeze(-1)
@@ -103,9 +103,9 @@ class PPOTrainer:
                 predict_state_value = self.critic_net[self.critic_name](current_state)
             else:
                 action_log_probs, predict_state_value = self.policy_net[self.policy_name](current_state)
-            advantages = training_batch['instant_reward'] - training_batch['current_state_value']
+            advantages = training_batch['advantages']
             old_network_value = training_batch['current_state_value']
-            target_state_value = training_batch['instant_reward'] 
+            target_state_value = training_batch['target_state_value'] 
         # 这个地方使用value clip操作
         if self.clip_value:
             value_clamp_range = 0.2

@@ -1,4 +1,3 @@
-from operator import index
 import time
 import os
 import sys
@@ -52,21 +51,22 @@ class sampler_worker:
             self.statistic.append('result/instant_capacity_average/{}'.format(self.policy_name), np.mean(batch_instant_sum_SE))
 
         else:
-            mean_instant_SE_sum, mean_edge_average_SE, mean_PF_sum, scheduling_count = self.rollout.run_one_episode()
+            mean_instant_SE_sum, mean_PF_sum, user_average_se_matrix = self.rollout.run_one_episode()
             if self.eval_mode:
                 return
             # ------------- 将对局结果记录下来 --------------
             episode_time = time.time() - start_time
             self.statistic.append("sampler/episode_time/{}".format(self.policy_name), episode_time)
-            self.statistic.append("result/edge_average_capacity/{}".format(self.policy_name), mean_edge_average_SE)
+            # self.statistic.append("result/edge_average_capacity/{}".format(self.policy_name), mean_edge_average_SE)
             self.statistic.append("result/instant_capacity_average/{}".format(self.policy_name), mean_instant_SE_sum)
             self.statistic.append("result/average_PF_sum/{}".format(self.policy_name), mean_PF_sum)
-            # -------------- 给logerServer发送每一个用户的调度信息 -------------------------
-            for agent_index in range(self.agent_nums):
-                agent_key = 'sector_' + str(agent_index + 1)
-                self.statistic.append("action/{}/mean_scheduling_numbers/{}/{}".format(agent_key, self.policy_name, 'mean_scheduling_users_per_episode'), np.mean(scheduling_count[agent_index,:]))
+            # -------------- 给logerServer发送每一个用户最后平均se的信息 -------------------------
+            if self.agent_nums == 1:
                 for antenna_index in range(self.total_antenna_nums):
-                    self.statistic.append("action/{}/individual_scheduling_numbers/{}/{}_{}".format(agent_key, self.policy_name, 'antenna', str(antenna_index+1)), scheduling_count[agent_index,antenna_index])
+                    self.statistic.append("Episode_result_{}/{}_{}".format(self.policy_name, 'antenna', str(antenna_index+1)), user_average_se_matrix[antenna_index])
+            else:
+                for agent_index in range(self.agent_nums):
+                    pass
         # ---------- 将统计信息发送到log server -------------
         self.logger.info("--------------- 发送结果日志到logServer上 --------------------")
         result_info = {"container_id": self.uuid}
@@ -97,8 +97,9 @@ class sampler_worker:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser() 
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_multi_cell_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_PF_pointer_network.yaml', help='yaml format config')
     parser.add_argument('--sampler_numbers', type=int, default=1, help='the trajectory numbers')
+    parser.add_argument('--port_num', type=int, default= 0)
     args = parser.parse_args()
     abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path

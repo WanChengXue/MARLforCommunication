@@ -53,7 +53,7 @@ class rollout_sampler:
             data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
             data_dict[-1]['actions'][agent_key] = actions[agent_index]
         # ------------- net work output 的维度为bs×1 -----------
-        data_dict[-1]['old_network_value'] = net_work_output
+        data_dict[-1]['current_state_value'] = net_work_output
         self.agent.send_data(data_dict)
         return instant_SE_sum_list
 

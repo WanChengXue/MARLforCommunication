@@ -70,58 +70,63 @@ class rollout_sampler:
         # --------- 首先同步最新 config server上面的模型 ------
         self.logger.info("==================== 智能体重置，对于训练模式，就是同步configserver上面的模型，测试模式就是加载本地模型 ====================")
         self.agent.reset()
-        done = False
         data_dict = []
+        # ---------- 这里有两个list，第一个表示的是瞬时SE构成的列表，第二个表示的是PF和构成的列表 ----------
         instant_SE_sum_list = []
-        edge_average_capacity_list = []
         PF_sum_list = []
-        while not done:
-            joint_log_prob, actions, net_work_output = self.agent.compute(state)
+        while True:
+            joint_log_prob, actions, net_work_output = self.agent.compute_single_agent(state)
             # -------------- 此处需要给这个current_state_value 进行denormalizeing操作 ----------
             if self.popart_start:
                 current_state_value = self.agent.denormalize_state_value(net_work_output)
             else:
                 current_state_value = net_work_output
             # -------------- 给定动作计算出对应的instant reward, 这个返回的是瞬时PF值，需要额外处理得到PF和，以及边缘用户的SE ------------
-            next_state, PF_matrix, instant_SE, done = self.env.step(actions)
-            PF_sum, edge_average_SE, instant_SE_sum = self.env.specialize_reward(PF_matrix, instant_SE)
+            next_state, instant_reward, done = self.env.step(actions)
             # -------------- 构建一个字典，将current state, action, instant reward, old action log probs, done, current state value, next state 放入到字典 --------------
-            instant_SE_sum_list.append(instant_SE_sum)
-            edge_average_capacity_list.append(edge_average_SE)
-            PF_sum_list.append(PF_sum)
+            instant_SE_sum_list.append(instant_reward[0])
+            PF_sum_list.append(instant_reward[1])
             data_dict.append({'current_state': copy.deepcopy(state)})
-            data_dict[-1]['instant_reward'] = dict()
-            data_dict[-1]['old_action_log_probs'] = dict()
-            data_dict[-1]['actions'] = dict()
-            for agent_index in range(self.agent.agent_nums):
-                agent_key = "agent_" + str(agent_index)
-                data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
-                # ------------ 这个actions[agent_index]的维度是一个长度为16的向量，需要变成16*1
-                data_dict[-1]['actions'][agent_key] = actions[agent_index][:,np.newaxis]
-            data_dict[-1]['done'] = done
-            data_dict[-1]['instant_reward'] = np.sum(instant_SE/60).reshape(1,1)
-            # data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
-            data_dict[-1]['current_state_value'] = current_state_value
-            # ----------- 这个变量是使用采样的方式，得到的网络输出 -------------------
-            data_dict[-1]['old_network_value'] = net_work_output
-            data_dict[-1]['next_state'] = copy.deepcopy(next_state)
+            if self.agent_nums == 1:
+                data_dict[-1]['instant_reward'] = instant_reward[1] # 3*1
+                data_dict[-1]['actions'] = actions 
+                data_dict[-1]['old_action_log_probs'] = joint_log_prob
+                data_dict[-1]['done'] = np.array(done)[:,np.newaxis]
+                data_dict[-1]['current_state_value'] = current_state_value
+            else:
+                data_dict[-1]['instant_reward'] = dict()
+                data_dict[-1]['old_action_log_probs'] = dict()
+                data_dict[-1]['actions'] = dict()
+                for agent_index in range(self.agent.agent_nums):
+                    agent_key = "agent_" + str(agent_index)
+                    data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
+                    # ------------ 这个actions[agent_index]的维度是一个长度为16的向量，需要变成16*1
+                    data_dict[-1]['actions'][agent_key] = actions[agent_index][:,np.newaxis]
+                data_dict[-1]['done'] = done
+                data_dict[-1]['instant_reward'] = instant_reward[1]
+                # data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
+                data_dict[-1]['current_state_value'] = current_state_value
+                data_dict[-1]['next_state'] = copy.deepcopy(next_state)
             state = next_state
-            self.logger.info("------------- 当前样本的数目为 {} --------------".format(len(data_dict)))
             # -----------------------------------------------------------------------------------------
-            if len(data_dict) == self.policy_config['traj_len'] or done:
-                # ------------ 数据打包，然后发送，bootstrap value就给0吧 ----------------
-                objective_number = current_state_value.shape[0]
-                bootstrap_value = np.zeros((objective_number,1))
+            if len(data_dict) == self.policy_config['traj_len'] or done[0]:
+                # ------------ 数据打包，然后发送，bootstrap value就给0吧，计算出来的current_sate_value为3*1，仅针对单小区场景 ----------------
+                objective_number = current_state_value.shape[1]
+                batch_size = current_state_value.shape[0]
+                bootstrap_value = np.zeros((batch_size, objective_number))
                 self.logger.info('---------- worker数据开始打包发送到dataserver -------------')
                 self.pack_data(bootstrap_value, data_dict)
                 self.agent.step()
                 data_dict = []
+                if done[0]:
+                    break
+
         mean_instant_SE_sum = np.mean(instant_SE_sum_list).item()
-        mean_edge_average_SE = np.mean(edge_average_capacity_list).item()
+        # mean_edge_average_SE = np.mean(edge_average_capacity_list).item()
         mean_PF_sum = np.mean(PF_sum_list).item()
-        # ------- 这个返回的scheduling_count的维度是3*20*1的调度矩阵 ---------
-        scheduling_count = next_state['global_state']['global_scheduling_count'].squeeze(-1)
-        return mean_instant_SE_sum, mean_edge_average_SE, mean_PF_sum, scheduling_count
+        user_average_se_matrix = np.mean(self.env.get_user_average_se_matrix,0).squeeze()
+        # ------- 这个返回的user_average_se_matrix的维度是20的用户平均SE矩阵 ---------
+        return mean_instant_SE_sum, mean_PF_sum, user_average_se_matrix
 
     def run_one_episode_single_step(self):
         '''
@@ -186,7 +191,7 @@ class rollout_sampler:
                     data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
                     data_dict[-1]['actions'][agent_key] = actions[agent_index]
                 # ------------- net work output 的维度为bs×1 -----------
-            data_dict[-1]['old_network_value'] = net_work_output
+            data_dict[-1]['current_state_value'] = net_work_output
             self.agent.send_data(data_dict)
             return instant_SE_sum_list
             
@@ -194,7 +199,7 @@ class rollout_sampler:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_eval_single_cell_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_PF_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
@@ -212,4 +217,5 @@ if __name__ == '__main__':
     logger = setup_logger('Rollout_agent_'+process_uid[:6], logger_path)
     statistic = StatisticsUtils()
     roll_out_test = rollout_sampler(parse_config(concatenate_path), statistic, context, logger, process_uid[0:6])
-    roll_out_test.run_one_episode_single_step()
+    # roll_out_test.run_one_episode_single_step()
+    roll_out_test.run_one_episode()
