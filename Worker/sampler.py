@@ -97,7 +97,7 @@ class sampler_worker:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser() 
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_PF_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='', help='yaml format config')
     parser.add_argument('--sampler_numbers', type=int, default=1, help='the trajectory numbers')
     parser.add_argument('--port_num', type=int, default= 0)
     args = parser.parse_args()

@@ -199,7 +199,7 @@ class rollout_sampler:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_PF_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
