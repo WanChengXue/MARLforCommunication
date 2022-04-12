@@ -36,7 +36,7 @@ class rollout_sampler:
         # 收集数据放入到字典中
         self.data_dict = dict()
         # 声明一个智能体
-        
+        self.eps = 1e-4
         self.agent = AgentManager(self.config_dict, context, self.statistic, self.logger, process_uid, port_num)
 
     def pack_data(self, bootstrap_value, traj_data):
@@ -166,7 +166,7 @@ class rollout_sampler:
                 else:
                     joint_log_prob, net_work_output = self.agent.compute_multi_agent(state, actions)
                 data_dict = [{'state': copy.deepcopy(state), 'instant_reward': instant_SE_sum_list}]
-                
+                self.demonstration_threshold = max(0, self.demonstration_threshold-self.eps)
             else:
                 # --------- 首先同步最新 config server上面的模型 ------
                 if self.agent_nums == 1:
