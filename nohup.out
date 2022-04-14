@@ -1,0 +1,266 @@
+/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 5GB of memory.
+/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
+2022-04-15 01:52:30,845,845,INFO,Sampler_ead079::==================== 此智能体要发送数据到: 10.19.93.9, 连接的端口为: 9528 =================
+2022-04-15 01:52:30,846,846,INFO,Sampler_ead079::---------------- policy fetcher将最新的模型存放的地方为: {'policy': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/ead079_policy_default_multi_cell_max_average_SE.model')}, 'critic': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/ead079_critic_default_multi_cell_max_average_SE.model')}} ----------------
+2022-04-15 01:52:30,846,846,INFO,Sampler_ead079::======================= 构建fetcher成功, 创建最新模型请求套接字 ===============
+2022-04-15 01:52:30,848,848,INFO,Sampler_e4ea0f::==================== 此智能体要发送数据到: 10.19.93.9, 连接的端口为: 9527 =================
+2022-04-15 01:52:30,848,848,INFO,Sampler_e4ea0f::---------------- policy fetcher将最新的模型存放的地方为: {'policy': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/e4ea0f_policy_default_multi_cell_max_average_SE.model')}, 'critic': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/e4ea0f_critic_default_multi_cell_max_average_SE.model')}} ----------------
+2022-04-15 01:52:30,848,848,INFO,Sampler_e4ea0f::======================= 构建fetcher成功, 创建最新模型请求套接字 ===============
+2022-04-15 01:52:30,855,855,INFO,Sampler_ead079::------------ 完成AgentManager的构建 -----------
+2022-04-15 01:52:30,855,855,INFO,Sampler_ead079::------------------ 完成采样端的构建，此worker的id为ead079 -----------------
+2022-04-15 01:52:30,855,855,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:30,855,855,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:30,855,855,INFO,Sampler_df43c3::==================== 此智能体要发送数据到: 10.19.93.9, 连接的端口为: 9527 =================
+2022-04-15 01:52:30,856,856,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:30,856,856,INFO,Sampler_ead079::----------- 开始从configserver下载模型 ------------
+2022-04-15 01:52:30,856,856,INFO,Sampler_df43c3::---------------- policy fetcher将最新的模型存放的地方为: {'policy': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/df43c3_policy_default_multi_cell_max_average_SE.model')}, 'critic': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/df43c3_critic_default_multi_cell_max_average_SE.model')}} ----------------
+2022-04-15 01:52:30,856,856,INFO,Sampler_df43c3::======================= 构建fetcher成功, 创建最新模型请求套接字 ===============
+2022-04-15 01:52:30,857,857,INFO,Sampler_e4ea0f::------------ 完成AgentManager的构建 -----------
+2022-04-15 01:52:30,857,857,INFO,Sampler_e4ea0f::------------------ 完成采样端的构建，此worker的id为e4ea0f -----------------
+2022-04-15 01:52:30,857,857,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:30,857,857,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:30,858,858,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:30,858,858,INFO,Sampler_e4ea0f::----------- 开始从configserver下载模型 ------------
+2022-04-15 01:52:30,860,860,INFO,Sampler_b43c2a::==================== 此智能体要发送数据到: 10.19.93.9, 连接的端口为: 9528 =================
+2022-04-15 01:52:30,861,861,INFO,Sampler_b43c2a::---------------- policy fetcher将最新的模型存放的地方为: {'policy': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/b43c2a_policy_default_multi_cell_max_average_SE.model')}, 'critic': {'default': PosixPath('/home/miao/Desktop/ICC/code_part/Worker/Download_model/b43c2a_critic_default_multi_cell_max_average_SE.model')}} ----------------
+2022-04-15 01:52:30,861,861,INFO,Sampler_b43c2a::======================= 构建fetcher成功, 创建最新模型请求套接字 ===============
+2022-04-15 01:52:30,865,865,INFO,Sampler_df43c3::------------ 完成AgentManager的构建 -----------
+2022-04-15 01:52:30,865,865,INFO,Sampler_df43c3::------------------ 完成采样端的构建，此worker的id为df43c3 -----------------
+2022-04-15 01:52:30,865,865,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:30,865,865,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:30,866,866,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:30,866,866,INFO,Sampler_df43c3::----------- 开始从configserver下载模型 ------------
+2022-04-15 01:52:30,867,867,INFO,Sampler_ead079::------------- 完成模型下载 ----------------
+2022-04-15 01:52:30,868,868,INFO,Sampler_ead079::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475} -----------
+2022-04-15 01:52:30,869,869,INFO,Sampler_e4ea0f::------------- 完成模型下载 ----------------
+2022-04-15 01:52:30,869,869,INFO,Sampler_e4ea0f::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475} -----------
+2022-04-15 01:52:30,871,871,INFO,Sampler_b43c2a::------------ 完成AgentManager的构建 -----------
+2022-04-15 01:52:30,871,871,INFO,Sampler_b43c2a::------------------ 完成采样端的构建，此worker的id为b43c2a -----------------
+2022-04-15 01:52:30,872,872,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:30,872,872,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:30,872,872,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:30,872,872,INFO,Sampler_b43c2a::----------- 开始从configserver下载模型 ------------
+2022-04-15 01:52:30,880,880,INFO,Sampler_df43c3::------------- 完成模型下载 ----------------
+2022-04-15 01:52:30,880,880,INFO,Sampler_df43c3::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475} -----------
+2022-04-15 01:52:30,887,887,INFO,Sampler_b43c2a::------------- 完成模型下载 ----------------
+2022-04-15 01:52:30,887,887,INFO,Sampler_b43c2a::----------- 模型重置，使用model_fetcher到的模型数据:{'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475} -----------
+2022-04-15 01:52:32,641,641,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:32,642,642,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:32,642,642,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:32,650,650,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:35,818,818,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:35,818,818,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:35,818,818,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:35,819,819,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:35,913,913,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:35,914,914,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:35,914,914,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:35,930,930,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:35,975,975,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:35,975,975,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:35,976,976,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:35,977,977,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:36,067,67,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:36,068,68,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:36,069,69,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:36,070,70,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:38,141,141,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:38,142,142,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:38,142,142,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:38,160,160,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:38,308,308,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:38,308,308,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:38,308,308,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:38,325,325,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:38,572,572,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:38,573,573,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:38,573,573,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:38,584,584,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:38,662,662,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:38,662,662,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:38,663,663,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:38,663,663,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:40,067,67,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:40,067,67,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:40,067,67,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:40,078,78,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:40,859,859,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:40,860,860,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:40,860,860,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:40,877,877,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:41,021,21,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:41,022,22,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:41,022,22,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:41,033,33,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:41,115,115,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:41,116,116,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:41,116,116,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:41,132,132,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:41,982,982,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:41,983,983,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:41,983,983,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:42,006,6,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:42,866,866,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:42,867,867,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:42,867,867,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:42,877,877,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:43,213,213,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:43,214,214,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:43,214,214,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:43,229,229,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:43,413,413,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:43,413,413,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:43,414,414,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:43,414,414,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:43,858,858,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:43,865,865,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:43,867,867,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:43,880,880,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:44,842,842,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:44,842,842,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:44,843,843,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:44,855,855,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:45,646,646,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:45,646,646,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:45,646,646,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:45,657,657,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:45,975,975,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:45,976,976,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:45,976,976,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:45,988,988,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:46,428,428,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:46,429,429,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:46,429,429,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:46,441,441,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:47,009,9,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:47,009,9,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:47,010,10,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:47,020,20,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:47,380,380,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:47,380,380,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:47,381,381,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:47,382,382,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:48,489,489,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:48,490,490,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:48,490,490,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:48,503,503,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:48,711,711,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:48,711,711,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:48,712,712,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:48,726,726,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:49,212,212,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:49,212,212,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:49,213,213,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:49,214,214,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:49,298,298,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:49,298,298,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:49,298,298,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:49,306,306,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:50,628,628,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:50,628,628,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:50,628,628,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:50,640,640,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:50,986,986,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:50,987,987,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:50,987,987,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:51,004,4,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:51,335,335,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:51,336,336,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:51,336,336,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:51,355,355,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:51,783,783,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:51,784,784,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:51,784,784,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:51,797,797,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:52,311,311,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:52,312,312,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:52,312,312,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:52,316,316,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:53,126,126,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:53,127,127,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:53,127,127,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:53,141,141,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:53,691,691,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:53,691,691,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:53,692,692,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:53,700,700,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:53,792,792,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:53,792,792,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:53,793,793,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:53,803,803,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:54,174,174,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:54,175,175,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:54,176,176,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:54,176,176,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:54,857,857,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:54,858,858,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:54,859,859,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:54,867,867,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:55,854,854,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:55,854,854,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:55,855,855,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:55,872,872,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:56,080,80,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:56,081,81,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:56,082,82,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:56,097,97,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:56,334,334,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:56,350,350,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:56,350,350,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:56,351,351,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:56,762,762,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:56,763,763,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:56,764,764,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:56,765,765,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:58,111,111,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:58,112,112,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:58,112,112,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:58,121,121,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:58,408,408,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:58,409,409,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:52:58,409,409,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:58,427,427,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:58,563,563,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:58,564,564,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:52:58,564,564,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:58,573,573,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:59,112,112,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:59,112,112,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:52:59,112,112,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:52:59,134,134,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:52:59,984,984,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:52:59,984,984,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:52:59,984,984,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:53:00,000,0,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:53:00,838,838,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:53:00,838,838,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:53:00,839,839,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:53:00,848,848,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:53:00,883,883,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:53:00,884,884,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:53:00,884,884,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:53:00,901,901,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:53:01,177,177,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:53:01,178,178,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:53:01,178,178,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:53:01,188,188,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:53:01,666,666,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:53:01,667,667,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:53:01,668,668,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:53:01,677,677,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:53:03,060,60,INFO,Sampler_b43c2a::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:53:03,061,61,INFO,Sampler_b43c2a::======================== 重置环境 =======================
+2022-04-15 01:53:03,061,61,INFO,Sampler_b43c2a::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:53:03,074,74,INFO,Sampler_b43c2a::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:53:03,426,426,INFO,Sampler_e4ea0f::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:53:03,426,426,INFO,Sampler_e4ea0f::======================== 重置环境 =======================
+2022-04-15 01:53:03,427,427,INFO,Sampler_e4ea0f::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:53:03,440,440,INFO,Sampler_e4ea0f::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:53:03,703,703,INFO,Sampler_df43c3::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:53:03,704,704,INFO,Sampler_df43c3::======================== 重置环境 =======================
+2022-04-15 01:53:03,704,704,INFO,Sampler_df43c3::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:53:03,704,704,INFO,Sampler_df43c3::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
+2022-04-15 01:53:03,752,752,INFO,Sampler_ead079::--------------- 发送结果日志到logServer上 --------------------
+2022-04-15 01:53:03,752,752,INFO,Sampler_ead079::======================== 重置环境 =======================
+2022-04-15 01:53:03,753,753,INFO,Sampler_ead079::------------ 等待configserver发送回来的信息 -----------
+2022-04-15 01:53:03,753,753,INFO,Sampler_ead079::-------------- 收到configserver发送回来的信息 {'url': {'policy': {'default': 'http://10.19.93.9:9002/policy_default_1649958744.9618459'}, 'critic': {'default': 'http://10.19.93.9:9002/critic_default_1649958744.9618459'}}, 'policy_name': 'multi_cell_max_average_SE', 'time_stamp': 1649958744.9693475}------------
