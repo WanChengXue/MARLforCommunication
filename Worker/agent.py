@@ -62,6 +62,7 @@ class AgentManager:
         self.statistic = statistic
         self.agent_nums = self.config_dict['env']['agent_nums']
         self.policy_config = self.config_dict['policy_config']
+        self.PF_scheduling = self.policy_config.get('PF_scheduling', False)
         self.data_sender = context.socket(zmq.PUSH)
         self.parameter_sharing = self.policy_config['parameter_sharing']
         self.homogeneous_agent = self.policy_config['homogeneous_agent']
@@ -110,7 +111,12 @@ class AgentManager:
             instant_saved_path = dict()
             scheduling_result_path = dict()
             for sector_index in range(self.config_dict['env']['sector_nums']):
-                instant_saved_path['sector_{}'.format(sector_index)] = os.path.join(self.policy_config['result_save_path'], '{}_sector_{}_se_sum_result.npy'.format(file_index, sector_index))
+                if self.PF_scheduling:
+                    instant_saved_path['sector_{}'.format(sector_index)] = dict()
+                    instant_saved_path['sector_{}'.format(sector_index)]['average_se'] = os.path.join(self.policy_config['result_save_path'], '{}_sector_{}_average_se_result.npy'.format(file_index, sector_index))
+                    instant_saved_path['sector_{}'.format(sector_index)]['PF_sum'] = os.path.join(self.policy_config['result_save_path'], '{}_sector_{}_PF_sum_result.npy'.format(file_index, sector_index))
+                else:
+                    instant_saved_path['sector_{}'.format(sector_index)] = os.path.join(self.policy_config['result_save_path'], '{}_sector_{}_se_sum_result.npy'.format(file_index, sector_index))
                 scheduling_result_path['sector_{}'.format(sector_index)] = os.path.join(self.policy_config['result_save_path'], '{}_sector_{}_scheduling_sequence.npy'.format(file_index, sector_index))
         else:
             scheduling_result_path = dict()
@@ -128,10 +134,19 @@ class AgentManager:
             if self.agent_nums == 1:
                 for sector_index in range(self.config_dict['env']['sector_nums']):
                     # --------- 拆分奖励向量和动作向量 ----------
-                    sector_instant_reward = data['instant_reward'][sector_index*self.config_dict['env']['eval_TTI']:(1+sector_index)*self.config_dict['env']['eval_TTI'],:]
-                    sector_action = data['actions'][sector_index*self.config_dict['env']['eval_TTI']:(1+sector_index)*self.config_dict['env']['eval_TTI'],:]
-                    np.save(scheduling_result_path['sector_{}'.format(sector_index)], sector_action)
-                    np.save(instant_saved_path['sector_{}'.format(sector_index)], sector_instant_reward)
+                    if self.PF_scheduling:
+                        # ------- 单小区PF调度传入的数据的action维度为1000*3*16 -------
+                        sector_action = data['actions'][:,sector_index,:]
+                        sector_average_se = data['instant_reward']['average_se'][sector_index,:]
+                        sector_PF_sum = data['instant_reward']['PF_sum'][:,sector_index,:]
+                        np.save(scheduling_result_path['sector_{}'.format(sector_index)], sector_action)
+                        np.save(instant_saved_path['sector_{}'.format(sector_index)]['average_se'], sector_average_se)
+                        np.save(instant_saved_path['sector_{}'.format(sector_index)]['PF_sum'], sector_PF_sum)
+                    else:
+                        sector_instant_reward = data['instant_reward'][sector_index*self.config_dict['env']['eval_TTI']:(1+sector_index)*self.config_dict['env']['eval_TTI'],:]
+                        sector_action = data['actions'][sector_index*self.config_dict['env']['eval_TTI']:(1+sector_index)*self.config_dict['env']['eval_TTI'],:]
+                        np.save(scheduling_result_path['sector_{}'.format(sector_index)], sector_action)
+                        np.save(instant_saved_path['sector_{}'.format(sector_index)], sector_instant_reward)
             else:
                 np.save(instant_saved_path, data['instant_reward'])
                 for sector_index in range(self.config_dict['env']['sector_nums']):

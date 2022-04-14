@@ -28,6 +28,8 @@ class Environment(gym.Env):
         self.velocity = self.env_dict['velocity']
         # ---------- 文件的路径采用绝对位置 -------------
         self.eval_mode = self.env_dict.get('eval_mode',False)
+        if self.eval_mode:
+            self.sliding_windows_length = self.env_dict['eval_TTI']
         self.save_data_folder = self.generate_abs_path(self.env_dict['save_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
         if not self.eval_mode:
             self.demonstration_data_folder = self.generate_abs_path(self.env_dict['demonstration_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
@@ -85,6 +87,11 @@ class Environment(gym.Env):
         loaded_file_name = self.save_data_folder + '/eval_channel_file_' + str(eval_file_number) + '.npy'
         # ============== TODO 这个地方不是很完善，对于测试文件来说，需要测试所有的文件 ====================
         self.simulation_channel = (np.load(loaded_file_name)).squeeze()
+        # ---------- current_TTI 表示当前的TTI时间点 -----------
+        self.current_TTI = 0
+        # ---------------- 下面两个变量分别表示每一个用户平均se和在过去一段时间内每一个用户被调度了多少次构成的矩阵 -------
+        self.average_user_se = np.zeros((self.sector_nums, self.total_antenna_nums, 1))
+        self.user_scheduling_counts = np.zeros((self.sector_nums, self.total_antenna_nums, 1))
 
 
     def reset(self, file_index=None):
@@ -109,10 +116,11 @@ class Environment(gym.Env):
     
     def construct_state(self):
         state = dict()
+        TTI = min(self.current_TTI, self.sliding_windows_length-1)
         # ========== 三个小区数据进行展开来，得到三倍的数据  =============
-        state['real_part'] = np.stack([self.simulation_channel[sector_index, :, sector_index, 0:self.bs_antenna_nums, self.current_TTI] for sector_index in range(self.sector_nums)],0)
+        state['real_part'] = np.stack([self.simulation_channel[sector_index, :, sector_index, 0:self.bs_antenna_nums, TTI] for sector_index in range(self.sector_nums)],0)
         # -------- 信道部分concatenate之后，得到的维度为3*20*16 -----------
-        state['img_part'] = np.stack([self.simulation_channel[sector_index, :, sector_index, self.bs_antenna_nums: , self.current_TTI]for sector_index in range(self.sector_nums)],0)
+        state['img_part'] = np.stack([self.simulation_channel[sector_index, :, sector_index, self.bs_antenna_nums: , TTI]for sector_index in range(self.sector_nums)],0)
         state['average_user_se'] = self.average_user_se
         state['user_scheduling_counts'] = self.user_scheduling_counts
         return state
@@ -175,7 +183,10 @@ class Environment(gym.Env):
         cliped_current_PF_matrix = np.clip(current_PF_matrix * self.filter_factor,0,self.max_user_pf_value)
         # ------- 更新一下所有用户的平均SE -------
         self.average_user_se = (1-self.filter_factor) * self.average_user_se + self.filter_factor * instant_reward_list
-        return cliped_current_PF_matrix
+        if self.eval_mode:
+            return current_PF_matrix
+        else:
+            return cliped_current_PF_matrix
 
     @property
     def get_user_average_se_matrix(self):

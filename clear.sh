@@ -5,7 +5,7 @@ ps -ef | grep Worker | grep -v grep | awk '{print "kill "$2}' | sh
 rm -rf logs
 # rm -rf Exp/Model/model_pool/*
 rm -rf nohup.out
-rm -rf Exp/Result
+# rm -rf Exp/Result
 # rm -rf Exp/Model/saved_model/*
 rm -rf Worker/Download_model/*
 

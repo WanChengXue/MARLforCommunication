@@ -141,6 +141,53 @@ class model(nn.Module):
         else:
             return res[0]
 
+
+class model_alter(nn.Module):
+    def __init__(self, policy_config):
+        super(model_alter, self).__init__()
+        # 首先需要定义卷积层，嵌入层，将数据变成batch_size * seq_len * 512的形式
+        self.policy_config = policy_config
+        self.state_feature_dim = self.policy_config['state_feature_dim']
+        self.hidden_dim = self.policy_config['hidden_dim']
+        # ------------ 这个地方定义一些线性层，对矩阵进行线性操作,前面两个线性层是对矩阵进行特征提取，后面两个线性层是对干扰矩阵的特征提取 -------------
+        self.main_head_real_part_affine_layer = nn.Linear(self.state_feature_dim, self.hidden_dim)
+        self.main_head_img_partt_affine_layer = nn.Linear(self.state_feature_dim, self.hidden_dim)
+        # self.interference_head_real_part_affine_layer = nn.Linear(self.state_feature_dim, self.hidden_dim)
+        # self.interference_head_img_part_affine_layer = nn.Linear(self.state_feature_dim, self.hidden_dim)
+        self.backbone_linear_layer = nn.Linear(2*self.hidden_dim, self.hidden_dim)
+        self.PN_network = pointer_network(self.policy_config)
+
+
+    def forward(self, src, action_list=None, inference_mode=True):
+        # ===================== 在采样阶段的时候,action list不会传入,并且inference_mode是True
+        # -------------- main head branch ------------
+        real_part = src['channel_matrix']['main_matrix']['real_part'] # bs *20 *16  -
+        img_part = src['channel_matrix']['main_matrix']['img_part']   # bs * 20 * 16
+        # -------------- interference_head_brach ----------
+        # interference_dict = src['channel_matrix']['interference_matrix'] # 是一个字典 {'interfence_1':{'real_part': xx, 'img_part': xx}}
+        # -------------- main head branch affine layer ------------
+        main_head_real_part_affine = torch.tanh(self.main_head_real_part_affine_layer(1e7*real_part))
+        main_head_img_part_affine = torch.tanh(self.main_head_img_partt_affine_layer(1e7**img_part))
+        # -------------- img head branch affine layer ---------------
+        # interference_head_real_part_affine = []
+        # interference_head_img_part_affine = []
+        # for interference_cell in interference_dict.keys():
+        #     interference_head_real_part_affine.append(torch.tanh(self.interference_head_real_part_affine_layer(1e7*interference_dict[interference_cell]['real_part'])))
+        #     interference_head_img_part_affine.append(torch.tanh(self.interference_head_img_part_affine_layer(1e7*interference_dict[interference_cell]['img_part'])))
+        # # -------------- 干扰矩阵实数部分和复数部分分别拼接然后做加法 ---------------------
+        # sum_interference_head_real_part = sum(interference_head_real_part_affine) # bs * 20 * h
+        # sum_interference_head_img_part = sum(interference_head_img_part_affine) # bs * 20 * h
+        # ----------- main head 和 sum_interference 进行拼接 bs * 20 * (hidden*4) ——----------------------
+        backbone = torch.cat([main_head_real_part_affine, main_head_img_part_affine], -1)
+        feature_map = torch.tanh(self.backbone_linear_layer(backbone))
+        # ------------- 把这个特征图送入到指针网络中 ---------------
+        res = self.PN_network(feature_map, action=action_list)
+        if inference_mode:
+            return res[0], res[1]
+        else:
+            return res[0]
+
+
 class critic(nn.Module):
     # 这个是一个critic类,传入全局的状态,返回对应的v值.因为R是一个向量,传入一个状态batch,前向得到一个v向量C: bs * 9 * 20 * 16 -> R^1
     def __init__(self, policy_config):
@@ -193,7 +240,7 @@ class critic(nn.Module):
             return state_value
 
 def init_policy_net(policy_config):
-    generate_model = model(policy_config)
+    generate_model = model_alter(policy_config)
     for m in generate_model.modules():
         if isinstance(m, (nn.Conv2d, nn.Linear)):
             nn.init.xavier_uniform_(m.weight)

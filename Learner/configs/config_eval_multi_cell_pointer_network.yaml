@@ -1,7 +1,7 @@
 env:
   id: "Env.Multi_cell_env"
   user_nums: 20
-  sector_nums: &sense_channel_nums 3
+  sector_nums: &sense_channel_nums 1
   cell_nums: 1
   agent_nums: &agent_nums 3
   bs_antenna_nums: &bs_antenna_nums 16
@@ -31,7 +31,7 @@ env:
   eval_file_number: 50
   eval_mode: &eval_mode True
 
-policy_name: max_average_SE
+policy_name: multi_cell_max_average_SE
 # 定义日志文件的文件夹
 log_dir: "./logs"
 # policy_config related

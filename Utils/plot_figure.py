@@ -66,5 +66,42 @@ def multi_cell_figure():
     plt.savefig(save_path + 'performance_comprison.png')
     plt.close()
 
+def single_cell_PF():
+    function_path = os.path.abspath(__file__)
+    greedy_root_path = '/'.join(function_path.split('/')[:-3]) +'/data_part/Greedy_result/single_cell_scenario_PF/20_user/30KM/'
+    rl_root_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Evaluate/single_cell_max_PF/'
+    save_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Figure/single_cell_max_PF/'
+    create_folder(save_path)
+    mean_RL_result_list = []
+    mean_greedy_result_list = []
+    for i in tqdm(range(1)):
+        for sector_index in range(3):
+            greedy_data = np.load(greedy_root_path+'{}_sector_{}_PF_sum_result.npy'.format(i, sector_index))
+            rl_data = np.load(rl_root_path+'{}_sector_{}_PF_sum_result.npy'.format(i, sector_index))
+            mean_RL_result_list.append(np.mean(rl_data))
+            mean_greedy_result_list.append(np.mean(greedy_data))
+            plt.figure()
+            plt.plot(rl_data[100:])
+            plt.plot(greedy_data[100:])
+            plt.legend(['RL','Greedy'])
+            plt.savefig(save_path+'{}_sector_{}_PF_sum.png'.format(i, sector_index))
+            plt.close()
+        greedy_average_se_data = np.load(greedy_root_path+'{}_sector_{}_average_se_result.npy'.format(i, sector_index))
+        for sector_index in range(3):
+            rl_average_se_data = np.load(rl_root_path+'{}_sector_{}_average_se_result.npy'.format(i, sector_index))
+            plt.figure()
+            plt.plot(rl_average_se_data)
+            plt.plot(greedy_average_se_data[sector_index,:])
+            plt.legend(['RL', 'Greedy'])
+            plt.savefig(save_path+'{}_sector_{}_average_se.png'.format(i, sector_index))
+            plt.close()
+    # plt.figure()
+    # plt.plot(np.array(mean_RL_result_list))
+    # plt.plot(np.array(mean_greedy_result_list))
+    # plt.legend(['RL', 'Greedy'])
+    # plt.savefig(save_path + 'performance_comprison.png')
+    # plt.close()
+
 # multi_cell_figure()
-single_cell_figure()
+# single_cell_figure()
+single_cell_PF()

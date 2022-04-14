@@ -65,68 +65,102 @@ class rollout_sampler:
         '''
         这个函数表示这个worker随机生成一个环境，然后使用当前策略进行交互收集数据, obs的数据格式见
         '''
-        self.logger.info("======================== 重置环境 =======================")
-        state = self.env.reset()
         # --------- 首先同步最新 config server上面的模型 ------
         self.logger.info("==================== 智能体重置，对于训练模式，就是同步configserver上面的模型，测试模式就是加载本地模型 ====================")
-        self.agent.reset()
-        data_dict = []
-        # ---------- 这里有两个list，第一个表示的是瞬时SE构成的列表，第二个表示的是PF和构成的列表 ----------
-        instant_SE_sum_list = []
-        PF_sum_list = []
-        while True:
-            joint_log_prob, actions, net_work_output = self.agent.compute_single_agent(state)
-            # -------------- 此处需要给这个current_state_value 进行denormalizeing操作 ----------
-            if self.popart_start:
-                current_state_value = self.agent.denormalize_state_value(net_work_output)
-            else:
-                current_state_value = net_work_output
-            # -------------- 给定动作计算出对应的instant reward, 这个返回的是瞬时PF值，需要额外处理得到PF和，以及边缘用户的SE ------------
-            next_state, instant_reward, done = self.env.step(actions)
-            # -------------- 构建一个字典，将current state, action, instant reward, old action log probs, done, current state value, next state 放入到字典 --------------
-            instant_SE_sum_list.append(instant_reward[0])
-            PF_sum_list.append(instant_reward[1])
-            data_dict.append({'current_state': copy.deepcopy(state)})
-            if self.agent_nums == 1:
-                data_dict[-1]['instant_reward'] = instant_reward[1] # 3*1
-                data_dict[-1]['actions'] = actions 
-                data_dict[-1]['old_action_log_probs'] = joint_log_prob
-                data_dict[-1]['done'] = np.array(done)[:,np.newaxis]
-                data_dict[-1]['current_state_value'] = current_state_value
-            else:
-                data_dict[-1]['instant_reward'] = dict()
-                data_dict[-1]['old_action_log_probs'] = dict()
-                data_dict[-1]['actions'] = dict()
-                for agent_index in range(self.agent.agent_nums):
-                    agent_key = "agent_" + str(agent_index)
-                    data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
-                    # ------------ 这个actions[agent_index]的维度是一个长度为16的向量，需要变成16*1
-                    data_dict[-1]['actions'][agent_key] = actions[agent_index][:,np.newaxis]
-                data_dict[-1]['done'] = done
-                data_dict[-1]['instant_reward'] = instant_reward[1]
-                # data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
-                data_dict[-1]['current_state_value'] = current_state_value
-                data_dict[-1]['next_state'] = copy.deepcopy(next_state)
-            state = next_state
-            # -----------------------------------------------------------------------------------------
-            if len(data_dict) == self.policy_config['traj_len'] or done[0]:
-                # ------------ 数据打包，然后发送，bootstrap value就给0吧，计算出来的current_sate_value为3*1，仅针对单小区场景 ----------------
-                objective_number = current_state_value.shape[1]
-                batch_size = current_state_value.shape[0]
-                bootstrap_value = np.zeros((batch_size, objective_number))
-                self.logger.info('---------- worker数据开始打包发送到dataserver -------------')
-                self.pack_data(bootstrap_value, data_dict)
-                self.agent.step()
-                data_dict = []
-                if done[0]:
-                    break
+        if self.eval_mode:
+            self.agent.reset()
+            data_dict = dict()
+            # eval_file_number = self.config_dict['env']['eval_file_number']
+            eval_file_number = 1
+            for file_index in tqdm(range(eval_file_number)):
+                state = self.env.reset(file_index=file_index)
+                action_list = []
+                instant_reward_list = []
+                while True:
+                    actions = self.agent.compute_single_agent(state)
+                    # -------------- 给定动作计算出对应的instant reward, 这个返回的是瞬时PF值，需要额外处理得到PF和，以及边缘用户的SE ------------
+                    next_state, instant_reward, done = self.env.step(actions)
+                    if self.agent_nums == 1:
+                        instant_reward_list.append(instant_reward[1])
+                        action_list.append(np.array(actions))
+                    else:
+                        data_dict[-1]['instant_reward'] = dict()
+                        data_dict[-1]['actions'] = dict()
+                        for agent_index in range(self.agent.agent_nums):
+                            agent_key = "agent_" + str(agent_index)
+                            # ------------ 这个actions[agent_index]的维度是一个长度为16的向量，需要变成16*1
+                            data_dict[-1]['actions'][agent_key] = actions[agent_index][:,np.newaxis]
+                        data_dict[-1]['instant_reward'] = np.array(instant_reward[1])
+                    state = next_state
+                    if done[0]:
+                        break
+                data_dict['actions'] = np.stack(action_list, 0)
+                data_dict['instant_reward'] = dict()
+                data_dict['instant_reward']['average_se'] = self.env.get_user_average_se_matrix
+                data_dict['instant_reward']['PF_sum']= np.stack(instant_reward_list)
+                data_dict['file_index'] = str(file_index)
+                self.agent.send_data(data_dict)
+        else:
+            self.logger.info("======================== 重置环境 =======================")
+            state = self.env.reset()
+            self.agent.reset()
+            data_dict = []
+            # ---------- 这里有两个list，第一个表示的是瞬时SE构成的列表，第二个表示的是PF和构成的列表 ----------
+            instant_SE_sum_list = []
+            PF_sum_list = []
+            while True:
+                joint_log_prob, actions, net_work_output = self.agent.compute_single_agent(state)
+                # -------------- 此处需要给这个current_state_value 进行denormalizeing操作 ----------
+                if self.popart_start:
+                    current_state_value = self.agent.denormalize_state_value(net_work_output)
+                else:
+                    current_state_value = net_work_output
+                # -------------- 给定动作计算出对应的instant reward, 这个返回的是瞬时PF值，需要额外处理得到PF和，以及边缘用户的SE ------------
+                next_state, instant_reward, done = self.env.step(actions)
+                # -------------- 构建一个字典，将current state, action, instant reward, old action log probs, done, current state value, next state 放入到字典 --------------
+                instant_SE_sum_list.append(instant_reward[0])
+                PF_sum_list.append(instant_reward[1])
+                data_dict.append({'current_state': copy.deepcopy(state)})
+                if self.agent_nums == 1:
+                    data_dict[-1]['instant_reward'] = instant_reward[1] # 3*1
+                    data_dict[-1]['actions'] = actions 
+                    data_dict[-1]['old_action_log_probs'] = joint_log_prob
+                    data_dict[-1]['done'] = np.array(done)[:,np.newaxis]
+                    data_dict[-1]['current_state_value'] = current_state_value
+                else:
+                    data_dict[-1]['instant_reward'] = dict()
+                    data_dict[-1]['old_action_log_probs'] = dict()
+                    data_dict[-1]['actions'] = dict()
+                    for agent_index in range(self.agent.agent_nums):
+                        agent_key = "agent_" + str(agent_index)
+                        data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
+                        # ------------ 这个actions[agent_index]的维度是一个长度为16的向量，需要变成16*1
+                        data_dict[-1]['actions'][agent_key] = actions[agent_index][:,np.newaxis]
+                    data_dict[-1]['done'] = done
+                    data_dict[-1]['instant_reward'] = instant_reward[1]
+                    # data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
+                    data_dict[-1]['current_state_value'] = current_state_value
+                    data_dict[-1]['next_state'] = copy.deepcopy(next_state)
+                state = next_state
+                # -----------------------------------------------------------------------------------------
+                if len(data_dict) == self.policy_config['traj_len'] or done[0]:
+                    # ------------ 数据打包，然后发送，bootstrap value就给0吧，计算出来的current_sate_value为3*1，仅针对单小区场景 ----------------
+                    objective_number = current_state_value.shape[1]
+                    batch_size = current_state_value.shape[0]
+                    bootstrap_value = np.zeros((batch_size, objective_number))
+                    self.logger.info('---------- worker数据开始打包发送到dataserver -------------')
+                    self.pack_data(bootstrap_value, data_dict)
+                    self.agent.step()
+                    data_dict = []
+                    if done[0]:
+                        break
 
-        mean_instant_SE_sum = np.mean(instant_SE_sum_list).item()
-        # mean_edge_average_SE = np.mean(edge_average_capacity_list).item()
-        mean_PF_sum = np.mean(PF_sum_list).item()
-        user_average_se_matrix = np.mean(self.env.get_user_average_se_matrix,0).squeeze()
-        # ------- 这个返回的user_average_se_matrix的维度是20的用户平均SE矩阵 ---------
-        return mean_instant_SE_sum, mean_PF_sum, user_average_se_matrix
+            mean_instant_SE_sum = np.mean(instant_SE_sum_list).item()
+            # mean_edge_average_SE = np.mean(edge_average_capacity_list).item()
+            mean_PF_sum = np.mean(PF_sum_list).item()
+            user_average_se_matrix = np.mean(self.env.get_user_average_se_matrix,0).squeeze()
+            # ------- 这个返回的user_average_se_matrix的维度是20的用户平均SE矩阵 ---------
+            return mean_instant_SE_sum, mean_PF_sum, user_average_se_matrix
 
     def run_one_episode_single_step(self):
         '''
@@ -135,7 +169,7 @@ class rollout_sampler:
         self.logger.info("======================== 重置环境 =======================")
         if self.eval_mode:
             self.logger.info("================= 使用eval智能体进行验证 =============")
-            self.agent.reset()
+            # self.agent.reset()
             eval_file_number = self.config_dict['env']['eval_file_number']
             for file_index in tqdm(range(eval_file_number)):
                 state = self.env.reset(file_index=file_index)
@@ -199,7 +233,7 @@ class rollout_sampler:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_eval_multi_cell_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
@@ -217,5 +251,5 @@ if __name__ == '__main__':
     logger = setup_logger('Rollout_agent_'+process_uid[:6], logger_path)
     statistic = StatisticsUtils()
     roll_out_test = rollout_sampler(parse_config(concatenate_path), statistic, context, logger, process_uid[0:6])
-    # roll_out_test.run_one_episode_single_step()
-    roll_out_test.run_one_episode()
+    roll_out_test.run_one_episode_single_step()
+    # roll_out_test.run_one_episode()
