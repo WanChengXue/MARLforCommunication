@@ -28,6 +28,7 @@ env:
   parallel_env: 1000
   one_step_env: True
   replay_buffer_name: 'TrainingSet_one_step_multi_cell'
+  eval_TTI: 1000
 policy_name: multi_cell_max_average_SE
 # 要不要保存上一次训练得到的历史队列
 use_history: fasle
@@ -90,6 +91,8 @@ policy_config:
   capacity: &capacity 50000
   # -------- 每训练1000次就保存一下模型 ----------
   model_save_interval: 1000
+  # ------- 每训练10次就评估一下模型 --------
+  evaluate_model_interval: 10
   # ------ 设置模型的保存路径 ——----------
   # ======= 两个路径一个是最新的模型构成的模型池，另外一个是每训练若干次保存下来的模型 =====
   model_pool_path: "Exp/Model/model_pool/"

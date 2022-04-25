@@ -38,8 +38,8 @@ def multi_cell_figure():
     function_path = os.path.abspath(__file__)
     global_greedy_path = '/'.join(function_path.split('/')[:-3]) +'/data_part/Greedy_result/global_greedy/20_user/30KM/'
     single_cell_greedy_path = '/'.join(function_path.split('/')[:-3]) +'/data_part/Greedy_result/single_cell_greedy/20_user/30KM/'
-    rl_root_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Evaluate/max_average_SE/'
-    save_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Figure/max_average_SE/'
+    rl_root_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Evaluate/multi_cell_max_average_SE/'
+    save_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Figure/multi_cell_max_average_SE/'
     mean_rl_result_list = []
     mean_global_greedy_result_list = []
     mean_single_cell_greedy_result_list = []
@@ -102,6 +102,6 @@ def single_cell_PF():
     # plt.savefig(save_path + 'performance_comprison.png')
     # plt.close()
 
-# multi_cell_figure()
+multi_cell_figure()
 # single_cell_figure()
-single_cell_PF()
+# single_cell_PF()

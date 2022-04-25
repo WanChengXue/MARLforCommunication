@@ -36,7 +36,8 @@ class rollout_sampler:
         # 收集数据放入到字典中
         self.data_dict = dict()
         # 声明一个智能体
-        self.eps = 1e-4
+        # self.eps = 1e-4
+        self.eps = 0
         self.agent = AgentManager(self.config_dict, context, self.statistic, self.logger, process_uid, port_num)
 
     def pack_data(self, bootstrap_value, traj_data):
@@ -169,7 +170,7 @@ class rollout_sampler:
         self.logger.info("======================== 重置环境 =======================")
         if self.eval_mode:
             self.logger.info("================= 使用eval智能体进行验证 =============")
-            # self.agent.reset()
+            self.agent.reset()
             eval_file_number = self.config_dict['env']['eval_file_number']
             for file_index in tqdm(range(eval_file_number)):
                 state = self.env.reset(file_index=file_index)
@@ -233,7 +234,7 @@ class rollout_sampler:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_multi_cell_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_eval_multi_cell_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改

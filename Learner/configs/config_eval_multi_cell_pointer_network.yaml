@@ -1,7 +1,8 @@
 env:
   id: "Env.Multi_cell_env"
   user_nums: 20
-  sector_nums: &sense_channel_nums 1
+  sector_nums: 3
+  sense_channel_nums: &sense_channel_nums 1
   cell_nums: 1
   agent_nums: &agent_nums 3
   bs_antenna_nums: &bs_antenna_nums 16

@@ -171,8 +171,8 @@ class learner_server(basic_server):
                 self.wait_data_times = []
             if self.total_training_steps % self.policy_config['model_save_interval'] == 0:
                 self._save_model()
-            if self.total_training_steps % self.policy_config['evaluate_model_interval'] == 0:
-                self._evaluate_model()
+            # if self.total_training_steps % self.policy_config['evaluate_model_interval'] == 0:
+            #     self._evaluate_model()
 
     def _save_model(self):
         timestamp = str(time.time())
