@@ -104,7 +104,7 @@ class rollout_sampler:
         else:
             self.logger.info("======================== 重置环境 =======================")
             state = self.env.reset()
-            self.agent.reset()
+            # self.agent.reset()
             data_dict = []
             # ---------- 这里有两个list，第一个表示的是瞬时SE构成的列表，第二个表示的是PF和构成的列表 ----------
             instant_SE_sum_list = []
@@ -148,7 +148,12 @@ class rollout_sampler:
                     # ------------ 数据打包，然后发送，bootstrap value就给0吧，计算出来的current_sate_value为3*1，仅针对单小区场景 ----------------
                     objective_number = current_state_value.shape[1]
                     batch_size = current_state_value.shape[0]
-                    bootstrap_value = np.zeros((batch_size, objective_number))
+                    if done[0]:
+                        # ------ 如果说采样结束，terminal state的v值就是0
+                        bootstrap_value = np.zeros((batch_size, objective_number))
+                    else:
+                        # ------ 如果没有结束，就使用网络计算出next state的value ---
+                        bootstrap_value = self.agent.compute_state_value(next_state)
                     self.logger.info('---------- worker数据开始打包发送到dataserver -------------')
                     self.pack_data(bootstrap_value, data_dict)
                     self.agent.step()
@@ -234,7 +239,7 @@ class rollout_sampler:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_eval_multi_cell_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_PF_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
@@ -252,5 +257,5 @@ if __name__ == '__main__':
     logger = setup_logger('Rollout_agent_'+process_uid[:6], logger_path)
     statistic = StatisticsUtils()
     roll_out_test = rollout_sampler(parse_config(concatenate_path), statistic, context, logger, process_uid[0:6])
-    roll_out_test.run_one_episode_single_step()
-    # roll_out_test.run_one_episode()
+    # roll_out_test.run_one_episode_single_step()
+    roll_out_test.run_one_episode()

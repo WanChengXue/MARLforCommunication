@@ -170,7 +170,12 @@ class AgentManager:
             return action_log_prob.numpy(), action.numpy(), state_value.numpy()
         else:
             return action_log_prob.numpy(), state_value.numpy()
-
+        
+    def compute_state_value(self, obs):
+        torch_format_data = convert_data_format_to_torch_interference(obs)
+        state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
+        return state_value.numpy()
+        
     def compute_multi_agent(self, obs):
         # -------- 这个函数是用使用神经网络计算动作，以及动作对应的概率 ---------
         # 首先将这个obs_dict变成pytorch支持的数据，由于采样的时候，统一使用cpu就可以了，不需要用 GPU

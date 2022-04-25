@@ -10,3 +10,6 @@ rm -rf nohup.out
 rm -rf Worker/Download_model/*
 
 # ps -ef | grep http_server_process | grep -v grep | awk '{print "kill "$2}' | sh
+
+
+ps -ef | grep .conda/envs/Pytorch/bin/python | grep -v grep | awk '{print "kill "$2}' | sh
