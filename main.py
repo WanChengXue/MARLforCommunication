@@ -26,17 +26,17 @@ def main(args):
     if args.machine_index == 0:
         # ----- 打开plasma server -----------
         plasma_command = "nohup plasma_store -s {} -m 5000000000 &".format(config_dict['policy_config']['plasma_server_location'])
-        # os.system(plasma_command)
+        os.system(plasma_command)
         # ----- 打开log server ----------
         log_command = "nohup python -m Learner.log_server --config {} > {} 2>&1 &".format(args.config_path, log_dir+'/log_output')
-        # os.system(log_command)
+        os.system(log_command)
         # ------ 打开config server -----------
         config_command = "nohup python -m Learner.config_server --config {} > {} 2>&1 &".format(args.config_path, log_dir + '/config_log_output')
         os.system(config_command)
     # ------ 开启learner和data server ----------
     # -------- 计算有多少张卡 ---------
     world_size = len(config_dict['policy_config']['machine_list']) * config_dict['policy_config']['device_number_per_machine']
-    # start_learner_data_server(args.config_path, world_size, args.machine_index, config_dict['policy_config']['device_number_per_machine'], config_dict['policy_config']['server_number_per_device'], log_dir)
+    start_learner_data_server(args.config_path, world_size, args.machine_index, config_dict['policy_config']['device_number_per_machine'], config_dict['policy_config']['server_number_per_device'], log_dir)
     print("---------- main函数顺利启动 -----------")
 
 if __name__=='__main__':

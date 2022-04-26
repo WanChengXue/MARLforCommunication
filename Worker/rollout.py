@@ -239,7 +239,7 @@ class rollout_sampler:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_PF_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_eval_single_cell_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
@@ -257,5 +257,5 @@ if __name__ == '__main__':
     logger = setup_logger('Rollout_agent_'+process_uid[:6], logger_path)
     statistic = StatisticsUtils()
     roll_out_test = rollout_sampler(parse_config(concatenate_path), statistic, context, logger, process_uid[0:6])
-    # roll_out_test.run_one_episode_single_step()
-    roll_out_test.run_one_episode()
+    roll_out_test.run_one_episode_single_step()
+    # roll_out_test.run_one_episode()
