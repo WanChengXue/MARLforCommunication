@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from algos.utils import soft_update, Discrete_space
 
 def get_cls():
     return DDPGTrainer
@@ -30,7 +31,6 @@ class DDPGTrainer:
         # -------- 下面两个值分别表示要不要开启popart算法，以及是不是用多个目标 -----
         self.popart_start = self.policy_config.get("popart_start", False)
         self.multi_objective_start = self.policy_config.get("multi_objective_start", False)     
-        self.action_dim = self.policy_config['action_dim']
         self.policy_net = net['policy']
         self.target_policy_net = target_net['policy']
         self.policy_optimizer = optimizer['policy']
@@ -71,22 +71,6 @@ class DDPGTrainer:
         'old_network_value': R^{bs*1},
         'instant_reward': R^{bs*1}
     }
-    
-        # Actor update
-        self.actor.zero_grad()
-
-        policy_loss = -self.critic([
-            to_tensor(state_batch),
-            self.actor(to_tensor(state_batch))
-        ])
-
-        policy_loss = policy_loss.mean()
-        policy_loss.backward()
-        self.actor_optim.step()
-
-        # Target update
-        soft_update(self.actor_target, self.actor, self.tau)
-        soft_update(self.critic_target, self.critic, self.tau)
 
     '''
 
@@ -145,17 +129,19 @@ class DDPGTrainer:
         policy_loss = -torch.mean(q_value)
         self.policy_optimizer[self.policy_name].zero_grad()
         policy_loss.backward()
-        info_dict['Policy_loss/Policy_loss'] = policy_loss.item()
-        info_dict['Policy_loss/Q_value_std'] = torch.std(q_value).item()
+        policy_dict['Policy_loss'] = policy_loss.item()
+        policy_dict['Q_value_std'] = torch.std(q_value).item()
         if self.grad_clip is not None:
             max_grad_norm = 10
             policy_net_grad = nn.utils.clip_grad_norm_(self.policy_net[self.policy_name].parameters(), max_grad_norm)
-            info_dict['Policy_loss/grad']= policy_net_grad.item()
+            policy_dict['grad']= policy_net_grad.item()
         for name,value in self.policy_net[self.policy_name].named_parameters():
-            info_dict['Policy_model_grad/Layer_{}_max_grad'.format(name)] = torch.max(value).item()
+            policy_dict['Layer_{}_max_grad'.format(name)] = torch.max(value).item()
+        info_dict['Policy_loss'] = policy_dict
         self.policy_optimizer[self.policy_name].step()
         self.policy_scheduler[self.policy_name].step()
-        # ------------------ 这个地方开始用来更新策略网络的参数, 使用PPO算法, 把多个智能体的观测叠加到batch维度上 ----------------------------
+        # ------------ 使用soft update更新target网络 --------
+
         return info_dict
 
 

@@ -10,7 +10,7 @@ sys.path.append(root_path)
 
 import importlib
 from Worker.gae import gae_estimator
-from Worker.agent import AgentManager
+from Worker.agent_manager import AgentManager
 import copy
 import numpy as np
 

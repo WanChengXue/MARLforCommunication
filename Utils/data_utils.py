@@ -1,7 +1,9 @@
+import random
 from random import sample
 import torch
 import numpy as np
 import copy
+
 
 
 class TrainingSet:
@@ -543,3 +545,22 @@ def convert_data_format_to_torch_training(training_batch, device_index, long_ten
             else:
                 torch_format_dict[key] = torch.FloatTensor(value).to(device_index)
     return torch_format_dict
+
+
+class OUNoise:
+    def __init__(self, theta, action_dim, mu=0.,sigma=1., dt=1e-2, action_low=0, action_high=1):
+        self.theta = theta
+        self.mu = mu
+        self.sigma = sigma
+        self.dt = dt
+        self.action_dim = action_dim
+        self.action_low = action_low
+        self.action_high = action_high
+    def reset_state(self):
+        self.prev_state = np.zeros(self.action_dim)
+    
+    def step(self, action):
+        self.prev_state += self.theta * (self.mu-self.prev_state) * self.dt
+        self.prev_state += self.sigma * np.sqrt(self.dt) * np.array([random.gauss(0,1) for _ in range(self.action_dim)])
+        noised_action = action + self.prev_state
+        return np.clip(noised_action, self.action_low, self.action_high)
