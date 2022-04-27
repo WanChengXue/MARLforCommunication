@@ -19,15 +19,16 @@ class Actor(nn.Module):
         # ------------ 这个地方计算出来的是一个bs * 20 * hidden_dim 的矩阵 ------
         self.backbone_linear_layer = nn.Linear(2*self.hidden_dim, self.hidden_dim)
         # ------------ 定义四个卷积核进行特征的提取操作 ----------------
-        self.convs = nn.ModuleList([
-                                nn.Sequential(
-                                    nn.Conv1d(in_channels=self.hidden_dim, out_channels=self.feature_map_size, kernel_size=h),
-                                    nn.ReLU(),
-                                    nn.MaxPool1d(kernel_size=self.action_dim-h + 1)
-                                    )
-                                for h in self.window_size
-                            ])
-        self.fc_layer = nn.Linear(self.feature_map_size*len(self.window_size), self.action_dim)
+        # self.convs = nn.ModuleList([
+        #                         nn.Sequential(
+        #                             nn.Conv1d(in_channels=self.hidden_dim, out_channels=self.feature_map_size, kernel_size=h),
+        #                             nn.ReLU(),
+        #                             nn.MaxPool1d(kernel_size=self.action_dim-h + 1)
+        #                             )
+        #                         for h in self.window_size
+        #                     ])
+        # self.fc_layer = nn.Linear(self.feature_map_size*len(self.window_size), self.action_dim)
+        self.fc_layer = nn.Linear(self.hidden_dim, self.action_dim)
     
     def forward(self, src):
         # ===================== 在采样阶段的时候,action list不会传入,并且inference_mode是True
@@ -40,11 +41,14 @@ class Actor(nn.Module):
         # ----------- main head 和 sum_interference 进行拼接 bs * 20 * (hidden*4) ——----------------------
         backbone = torch.cat([main_head_real_part_affine, main_head_img_part_affine], -1)
         # --------- 通过转置操作，将维度变成 batch_size * hidden_dim * seq_len
-        feature_map = torch.relu(self.backbone_linear_layer(backbone)).permute(0, 2, 1)
-        conv_list = [conv(feature_map).squeeze(-1) for conv in self.convs]
+        # feature_map = torch.relu(self.backbone_linear_layer(backbone)).permute(0, 2, 1)
+        # conv_list = [conv(feature_map).squeeze(-1) for conv in self.convs]
         # -------------- 通过concatenate函数，得到维度为batch size × (n*feature_map_size) --------
-        concatenate_conv_feature = torch.cat(conv_list, -1) 
-        fc_output = torch.sigmoid(self.fc_layer(concatenate_conv_feature))
+        # concatenate_conv_feature = torch.cat(conv_list, -1) 
+        # fc_output = torch.sigmoid(self.fc_layer(concatenate_conv_feature))
+        feature_map = torch.relu(self.backbone_linear_layer(backbone))
+        mean_feature_map = torch.mean(feature_map, 1)
+        fc_output = torch.sigmoid(self.fc_layer(mean_feature_map))
         return fc_output
         
 

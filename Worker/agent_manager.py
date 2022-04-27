@@ -152,7 +152,7 @@ class AgentManager:
                 else:
                     batch_size = action.shape[0]
                     action_dim = action.shape[1]
-                    noise = 0.2 * torch.randn(batch_size, action_dim)
+                    noise = 0.5 * torch.randn(batch_size, action_dim)
                     noised_action = action + noise
                     clamped_action = torch.clamp(noised_action, min=0.0, max=1.0)
                     # ---------------- 进行k近邻搜索,batch size * action dim ------------
