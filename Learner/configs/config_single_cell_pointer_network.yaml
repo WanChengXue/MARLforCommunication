@@ -5,7 +5,7 @@ env:
   cell_nums: 1
   agent_nums: &agent_nums 1
   bs_antenna_nums: &bs_antenna_nums 16
-  total_antenna_nums: &seq_len 20
+  total_antenna_nums: &seq_len 30
   # 这个变量表示的是截取多少长度的TTI作为一个训练样本
   sliding_windows_length: 400
   transmit_power: 0.25
