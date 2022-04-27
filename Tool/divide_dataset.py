@@ -16,12 +16,14 @@ import argparse
 
 class data_preprocess:
     def __init__(self, config_path):
-        self.config_dict = config_parse.parse_config(config_path)
+        self.config_dict = config_parse.load_yaml(config_path)
+        self.env_dict = self.config_dict['env']
         # 由于需要根据不同的配置来产生数据,比如说是不同用户速度和不同用户数量什么的
-        self.source_data_folder = self.config_dict['env']['source_data_folder']
-        self.save_data_folder = self.config_dict['env']['save_data_folder']
+        
         self.user_nums = self.config_dict['env']['user_nums']
         self.velocity = self.config_dict['env']['velocity']
+        self.source_data_folder = self.generate_abs_path(self.env_dict['source_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
+        self.save_data_folder = self.save_data_folder = self.generate_abs_path(self.env_dict['save_data_folder'] + '/' + str(self.user_nums) +'_user/'+str(self.velocity)+'KM')
         self.subcarrier_nums = self.config_dict['env']['sub_carrier_nums']
         # 根据上面的信息组合出原始数据存放的路径,以及要保存的处理好后的文件存放的位置
         # current_file_path的路径是 ~/Desktop/ICC/code_part/Tool
@@ -39,6 +41,11 @@ class data_preprocess:
         else:
             self.logger.info("===================== 用户数目: {}, 移动速度为: {}的配置下,文件需要从源文件进行处理 ===================".format(self.user_nums, self.velocity))
             self.preprocess_data()
+
+    def generate_abs_path(self, related_path):
+        file_path = os.path.abspath(__file__)
+        root_path = '/'.join(file_path.split('/')[:-3])
+        return os.path.join(root_path, related_path)
 
     def preprocess_data(self):
         # 首先需要对数据文件进行排序

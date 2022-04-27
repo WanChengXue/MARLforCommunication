@@ -102,6 +102,39 @@ def single_cell_PF():
     # plt.savefig(save_path + 'performance_comprison.png')
     # plt.close()
 
-multi_cell_figure()
+# multi_cell_figure()
 # single_cell_figure()
 # single_cell_PF()
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd                     
+plt.style.context(['science','ieee'])
+plt.figure(figsize=(15,10))
+def plot_single_cell_com():
+    function_path = os.path.abspath(__file__)
+    greedy_root_path = '/'.join(function_path.split('/')[:-3]) +'/data_part/Greedy_result/single_cell_scenario_greedy/20_user/30KM/'
+    pn_root_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Evaluate/0.2_single_cell_max_se/'
+    ddpg_root_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Evaluate/single_cell_max_se_ddpg/'
+    save_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Figure/single_cell_max_se/'
+    create_folder(save_path)
+    for i in tqdm(range(1)):
+        for sector_index in range(1):
+            greedy_data = np.load(greedy_root_path+'{}sector_{}_se_sum_result.npy'.format(i, sector_index))
+            pn_data = np.load(pn_root_path+'{}_sector_{}_se_sum_result.npy'.format(i, sector_index))
+            ddpg_data = np.load(ddpg_root_path+'{}_sector_{}_se_sum_result.npy'.format(i, sector_index))
+            # with plt.style.context(['science','ieee']):
+            #     fig, ax = plt.subplots()
+            #     ax.plot(greedy_data)
+            #     ax.plot(pn_data)
+            #     ax.plot(ddpg_data)
+            #     plt.figure()
+            #     ax.grid()
+            #     ax.set(xlabel="Transmit Time Interval")
+            #     ax.set(ylabel="Cell spetrum efficiency (bps/Hz)")
+            #     ax.legend(['Greedy method','Pointer Network method','Wolpertinger method'])
+            #     fig.savefig('./20_user_capacity.png', dpi=600)
+            print(np.mean(greedy_data))
+            print(np.mean(pn_data))
+
+plot_single_cell_com()

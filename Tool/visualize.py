@@ -1,56 +1,54 @@
-import pathlib
-import matplotlib.pyplot as plt
 import numpy as np
-def compare_capacity(user_number, velocity):
-    # 读取文件
-    greedy_path = pathlib.Path("../data_part/Greedy_result")/user_number/velocity/"Global_greedy_sum_SE.npy"
-    # sector_greedy_path = pathlib.Path("../data_part/Greedy_result/20_user/30KM/Sector_greedy_sum_SE.npy")
-    GA_path= pathlib.Path("../data_part/Greedy_result")/user_number/velocity/"GA_sum_SE.npy"
-    individual_greedy_path = pathlib.Path("../data_part/Greedy_result")/user_number/velocity/"Individual_greedy_sum_SE.npy"
-    infer_path = pathlib.Path("./Exp/Independent_learning_folder/Max_SE/Sharing_result/")/(user_number+'_'+velocity)/"infer_SE.npy"
-    ablation_infer_path = pathlib.Path("./Exp/Multi_head_input_folder/Max_SE/Sharing_result/")/(user_number+'_'+velocity)/"infer_SE.npy"
-    plt.figure()
-    plt.plot(np.load(greedy_path))
-    # plt.plot(np.load(sector_greedy_path))
-    plt.plot(np.load(individual_greedy_path))
-    # plt.plot(np.load(GA_path).squeeze())
-    plt.plot(np.load(infer_path))
-    plt.plot(np.load(ablation_infer_path))
-    print(np.mean(np.load(greedy_path)))
-    print(np.mean(np.load(individual_greedy_path)))
-    print(np.mean(np.load(infer_path)))
-    print(np.mean(np.load(ablation_infer_path)))
-
-    # plt.legend(['Global_greedy', 'Sector_greedy', 'Individual_greedy', 'GA', 'RL'])
-    plt.legend(['Global_greedy', 'Individual_greedy', 'I_RL', 'F_RL'])
-    # plt.legend(['Global_greedy', 'Individual_greedy', 'RL'])
-    plt.savefig('./Figure/' + user_number+ '_' + velocity +'_' + 'SE_compare.png')
-
-    # # 看一下各个小区的调度用户数目
-    # greedy_scheduling_path = pathlib.Path("../data_part/Greedy_result")/user_number/velocity/"Global_greedy_shceduling_sequence.npy"
-    # # sector_scheduling_path = pathlib.Path("../data_part/Greedy_result/20_user/30KM/Sector_greedy_shceduling_sequence.npy")
-    # individual_scheduling_path = pathlib.Path("../data_part/Greedy_result")/user_number/velocity/"Individual_greedy_shceduling_sequence.npy"
-    # # GA_scheduling_path = pathlib.Path("../data_part/Greedy_result")/user_number/velocity/"GA_shceduling_sequence.npy"
-    # ablation_infer_scheduling_path = pathlib.Path("./Exp/Pointer_network_folder/Max_SE/Sharing_result")/(user_number+'_'+velocity)/"infer_sequence.npy"
-    # infer_scheduling_path = pathlib.Path("./Exp/Pointer_network_folder/Max_SE/Ablation_sharing_result")/(user_number+'_'+velocity)/"infer_sequence.npy"
+import matplotlib.pyplot as plt
+import pandas as pd                     
+plt.style.context(['science','ieee'])
+ddpg_reward = pd.read_csv("./temp_data/20_ddpg_reward.csv")
+pn_reward = pd.read_csv("./temp_data/20_pn_reward.csv")
+plt.figure(figsize=(15,10))
+with plt.style.context(['science','ieee']):
+    # ax1 = plt.subplots(1,3,1)
+    fig, ax = plt.subplots()
+    ax.plot(ddpg_reward['Value'])
+    ax.plot(pn_reward['Value'])
+    ax.grid()
+    ax.set(xlabel="number of policy iterations")
+    ax.set(ylabel="Cell average spetrum efficiency[bps/Hz]")
+    ax.legend(['Wolpertinger', 'Pointer Network'])
+    fig.savefig('./20_user_reward.png', dpi=600)
     
-    # for sector_index in range(3):
-    #     plt.figure()
-    #     plt.plot(np.sum(np.load(greedy_scheduling_path)[:, sector_index,:], -1))
-    #     # plt.plot(np.sum(np.load(sector_scheduling_path)[:, sector_index, :], -1))
-    #     plt.plot(np.sum(np.load(individual_scheduling_path)[:, sector_index, :], -1))
-    #     plt.plot(np.sum(np.load(infer_scheduling_path)[:, sector_index, :], -1))
-    #     plt.plot(np.sum(np.load(ablation_infer_scheduling_path)[:, sector_index, :], -1))
-    #     # plt.legend(['Global_greedy', 'Sector_greedy', 'Individual_greedy' ,'GA', 'RL'])
-    #     plt.legend(['Global_greedy', 'Individual_greedy', 'RL', 'A_RL'])
-    #     # plt.legend(['Global_greedy', 'Individual_greedy', 'RL'])
-    #     plt.savefig("./Figure/sector_" + user_number+ '_' + velocity +'_' +  str(sector_index) + "_scheduling_number.png")
+    
+# with plt.style.context(['science','ieee']):
+#     # ax1 = plt.subplots(1,3,1)
+#     plt.plot(range(1,1001),reward_15_user_value)
+# #     plt.grid()
+#     plt.xlabel('number of policy iterations')
+#     plt.ylabel('Cell average spetrum efficiency[bps/Hz]')
+#     plt.autoscale(tight=True)
+#     plt.savefig("15_user_reward.png")
+#     plt.close()
 
+# greedy_10_user = np.load("./Greedy_10_user_capacity_10_10_0.npy")
+# greedy_15_user = np.load("./Greedy_15_user_capacity_10_10_0.npy")
+# RL_10_user = np.load("./RL_10_user_capacity_10_10_0.npy")
+# RL_15_user = np.load("./RL_15_user_capacity_10_10_0.npy")
+# fig, ax = plt.subplots()
+# ax.plot(range(1,1101), greedy_10_user)
+# ax.plot(range(1,1101), RL_10_user)
+# # plt.plot(range(1,len(capacity)+1),greedy_capacity,label="greedy alg",color='red')
+# # plt.legend()
+# ax.grid()
+# ax.set(xlabel="Transmit Time Interval")
+# ax.set(ylabel="Cell spetrum efficiency (bps/Hz)")
+# ax.legend(['Greedy method', 'Proposed method'])
+# fig.savefig('./10_user_capacity.png', dpi=600)
 
-# user_number = ['20_user','30_user','40_user']
-user_number_list = ['20_user']
-# velocity = ['3KM','30KM','90KM']
-velocity_list = ['30KM']
-for user_number in user_number_list:
-    for velocity in velocity_list:
-        compare_capacity(user_number, velocity)
+# fig, ax = plt.subplots()
+# ax.plot(range(1,1101), greedy_15_user)
+# ax.plot(range(1,1101), RL_15_user)
+# # plt.plot(range(1,len(capacity)+1),greedy_capacity,label="greedy alg",color='red')
+# # plt.legend()
+# ax.grid()
+# ax.set(xlabel="Transmit Time Interval")
+# ax.set(ylabel="Cell spetrum efficiency (bps/Hz)")
+# ax.legend(['Greedy method', 'Proposed method'])
+# fig.savefig('./15_user_capacity.png', dpi=600)
