@@ -1,6 +1,6 @@
 env:
   id: "Env.Single_cell_env"
-  user_nums: 20
+  user_nums: 30
   sector_nums: &sense_channel_nums 3
   cell_nums: 1
   agent_nums: &agent_nums 1
@@ -28,7 +28,7 @@ env:
   parallel_env: 1000
   one_step_env: True
   replay_buffer_name: 'TrainingSet_one_step_single_cell'
-policy_name: single_cell_max_se
+policy_name: single_cell_max_se_30
 # 要不要保存上一次训练得到的历史队列
 use_history: fasle
 # learning rate 为0的时间,用于优化器的初始化
@@ -74,7 +74,7 @@ policy_config:
   gamma: 0.997
   tau: 0.95
   # ------- 和demonstration data相关 ------
-  demonstration_threshold: 0.4
+  demonstration_threshold: 0.0
   # -------------- 模型训练相关 --------------
   training_parameters:
     clip_epsilon: 0.2

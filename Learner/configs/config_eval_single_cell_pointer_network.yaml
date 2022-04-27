@@ -1,6 +1,6 @@
 env:
   id: "Env.Single_cell_env"
-  user_nums: 20
+  user_nums: 30
   sector_nums: &sense_channel_nums 3
   cell_nums: 1
   agent_nums: &agent_nums 1

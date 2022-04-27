@@ -41,7 +41,7 @@ def main(args):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config_path", type=str, default='Learner/configs/config_single_cell_ddpg.yaml')
+    parser.add_argument("--config_path", type=str, default='Learner/configs/config_single_cell_pointer_network.yaml')
     parser.add_argument("--machine_index", type=int, default=0)
     args = parser.parse_args()
     main(args)
