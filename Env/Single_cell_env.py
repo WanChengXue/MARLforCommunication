@@ -105,14 +105,21 @@ class Environment(gym.Env):
 
 
     def convert_action_list_to_scheduling_mask(self, action_list):
-        '''这个函数传入一个用户调度列表，然后转变为一个bool向量, 传入的是16的向量'''
+        '''这个函数传入一个用户调度列表，然后转变为一个bool向量, 传入的是16的向量或者是长度为用户数目的0-1向量'''
         bool_mask = np.zeros(self.total_antenna_nums)
-        for scheduling_user in action_list:
-            if scheduling_user == 0:
-                break
-            else:
-                bool_mask[scheduling_user-1] = 1
-        return bool_mask
+        if action_list.shape[0] == self.total_antenna_nums:
+            for index, scheduling_user in enumerate(action_list):
+                if scheduling_user == 1:
+                    bool_mask[index] = 1
+            return bool_mask
+            
+        else:
+            for scheduling_user in action_list:
+                if scheduling_user == 0:
+                    break
+                else:
+                    bool_mask[scheduling_user-1] = 1
+            return bool_mask
 
     def read_action_from_demonstration(self):
         # ---------- 这个函数表示直接从demonstration中将动作读取出来 ---------

@@ -4,19 +4,18 @@ import itertools
 
 class Space:
     
-    def __init__(self, low, high, points):
+    def __init__(self, low, high, action_dim):
         # ------ 传入的low表示动作的最小值列表 -----
-        self._low = np.array(low)
+        self._low = low
         # ------ 传入的high表示动作的最大值列表 -----
-        self._high = np.array(high)
+        self._high = high
         # ------ 这个_range表示的是每一个维度的动作变化区间 ------
         self._range = self._high - self._low
         # --------- 这个_dimensions表示的是动作的维度 --------
-        self._dimensions = len(low)
+        self._dimensions = action_dim
         # ---------- 均匀撒点，
         self.__space = init_uniform_space([0] * self._dimensions,
-                                          [1] * self._dimensions,
-                                        points)
+                                          [1] * self._dimensions)
         self._flann = pyflann.FLANN()
         self.rebuild_flann()
 
@@ -26,19 +25,16 @@ class Space:
 
     def search_point(self, point, k):
         # ------ 传入一个点point，以及需要找到的最近的k个点 --------
-        p_in = self.import_point(point).reshape(1, -1).astype('float64')
+        # ------ 传入的point的维度是batch_size * action_dim --------
+        assert k>1, '------ 这里的实现必须要保证k大于1 --------'
+        p_in = self.import_point(point).astype('float64')
         # ----- 返回最近的k个目标的索引 ------
         search_res, _ = self._flann.nn_index(p_in, k)
         # ----- 通过动作空间直接返回k个动作 -----
         knns = self.__space[search_res]
-        p_out = []
-        for p in knns:
-            # ----- 动作反演，因为pyflann的模块默认low是0 ------
-            p_out.append(self.export_point(p))
-
-        if k == 1:
-            p_out = [p_out]
-        return np.array(p_out)
+        # ------ 使用这个查找操作，得到的knns的维度是batch_size * k_nearest * 1 -------
+        p_out = self.export_point(knns)
+        return p_out
 
     def import_point(self, point):
         # ------ 这个地方返回的是所有动作在这个动作axis上面的连续值 ------
@@ -73,12 +69,12 @@ class Discrete_space(Space):
         return super().export_point(point).astype(int)
 
 
-def init_uniform_space(low, high, points):
+def init_uniform_space(low, high):
     # ------- 传入的low，high分别表示动作的上下限 -----
     dims = len(low)
     # ----- points表示动作空间的大小 -------
     # ----- 这里的points_in_each_axis表示映射到每一个轴上的动作数目 -----
-    points_in_each_axis = round(points**(1 / dims))
+    points_in_each_axis = 2
 
     axis = []
     for i in range(dims):

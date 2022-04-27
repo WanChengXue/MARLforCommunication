@@ -373,9 +373,13 @@ class TrainingSet_one_step_single_cell:
         # ---------------- 定义一些字典用来存档action，action_log_probs, state --------
         self.data_buffer['actions'] = np.zeros((self.max_capacity, self.max_decoder_time), dtype=int)
         self.data_buffer['old_action_log_probs'] = np.zeros((self.max_capacity, 1))
+        self.data_buffer['done'] = np.ones((self.max_capacity, 1))
         self.data_buffer['state'] = dict()
         self.data_buffer['state']['real_part'] = np.zeros((self.max_capacity, self.seq_len, self.transmit_antenna_dim))
         self.data_buffer['state']['img_part'] = np.zeros((self.max_capacity, self.seq_len, self.transmit_antenna_dim))
+        self.data_buffer['next_state'] = dict()
+        self.data_buffer['next_state']['real_part'] = np.zeros((self.max_capacity, self.seq_len, self.transmit_antenna_dim))
+        self.data_buffer['next_state']['img_part'] = np.zeros((self.max_capacity, self.seq_len, self.transmit_antenna_dim))
         # ------------- 定义一个变量，用来记录当前填了多少条数据进来 ------------------------
         self.cursor = 0
 
@@ -398,12 +402,12 @@ class TrainingSet_one_step_single_cell:
         for sample_index in range(len(instance)):
             for bs_index in range(instance[sample_index]['instant_reward'].shape[0]):
                 local_index = self.cursor % self.max_capacity
-                self.data_buffer['instant_reward'][local_index,:] = instance[sample_index]['instant_reward'][bs_index,:]
-                self.data_buffer['current_state_value'][local_index,:] = instance[sample_index]['current_state_value'][bs_index,:]
-                self.data_buffer['actions'][local_index, :] = instance[sample_index]['actions'][bs_index,:]
-                self.data_buffer['old_action_log_probs'][local_index, :] = instance[sample_index]['old_action_log_probs'][bs_index, :]
-                self.data_buffer['state']['real_part'][local_index, :, :] = instance[sample_index]['state']['real_part'][bs_index,:,:]
-                self.data_buffer['state']['img_part'][local_index, :, :] = instance[sample_index]['state']['img_part'][bs_index,:,:]
+                for key in instance[sample_index].keys():
+                    if key == 'state':
+                        self.data_buffer['state']['real_part'][local_index, :, :] = instance[sample_index]['state']['real_part'][bs_index,:,:]
+                        self.data_buffer['state']['img_part'][local_index, :, :] = instance[sample_index]['state']['img_part'][bs_index,:,:]
+                    else:
+                        self.data_buffer[key][local_index, :] = instance[sample_index][key][bs_index, :]
                 self.cursor += 1
         instant_number = len(instance) * instance[sample_index]['instant_reward'].shape[0]
         logger.info("------------- 此次添加的数据个数为 {} ----------------".format(instant_number))
@@ -417,9 +421,13 @@ class TrainingSet_one_step_single_cell:
         sample_dict['current_state_value'] = self.data_buffer['current_state_value'][random_batch,:]
         sample_dict['actions'] = self.data_buffer['actions'][random_batch, :]
         sample_dict['old_action_log_probs'] = self.data_buffer['old_action_log_probs'][random_batch, :]
+        sample_dict['done'] = self.data_buffer['done'][random_batch, :]
         sample_dict['state'] = dict()
         sample_dict['state']['real_part'] = self.data_buffer['state']['real_part'][random_batch, :, :]
         sample_dict['state']['img_part'] = self.data_buffer['state']['img_part'][random_batch,:, :]
+        sample_dict['next_state'] = dict()
+        sample_dict['next_state']['real_part'] = self.data_buffer['next_state']['real_part'][random_batch, :, :]
+        sample_dict['next_state']['img_part'] = self.data_buffer['next_state']['img_part'][random_batch,:, :]
         return sample_dict
 
 

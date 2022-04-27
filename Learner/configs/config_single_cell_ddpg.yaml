@@ -28,7 +28,7 @@ env:
   parallel_env: 1000
   one_step_env: True
   replay_buffer_name: 'TrainingSet_one_step_single_cell'
-policy_name: single_cell_max_se
+policy_name: single_cell_max_se_ddpg
 # 要不要保存上一次训练得到的历史队列
 use_history: fasle
 # learning rate 为0的时间,用于优化器的初始化
@@ -67,14 +67,17 @@ policy_config:
   eval_mode: False
   # ---------- 策略相关 ------
   policy_type: 'latest'
-  algorithm: 'ppo_single_cell_se'
+  algorithm: 'ddpg'
+  using_target_network: True
   # Pytorch DDP相关
   ddp_port: 50001
   batch_size: &batch_size 2048
   gamma: 0.997
   tau: 0.95
+  # ------- 使用wolpagent --------
+  using_wolpagent: True
   # ------- 和demonstration data相关 ------
-  demonstration_threshold: 0.6
+  demonstration_threshold: 0.0
   # -------------- 模型训练相关 --------------
   training_parameters:
     clip_epsilon: 0.2
@@ -112,37 +115,35 @@ policy_config:
       # -------- 策略网络的相关配置 -----------
       default_single_cell:
         learning_rate: 1e-4
-        model_name: 'Single_cell_model_se'
+        model_name: 'FC_model'
         # ---- model related ----------
         # ------------ 这个32必须是和天线维度一样，天线16根，变成实数就是32
         state_feature_dim: *bs_antenna_nums
         # ---------- hidden_dim是通过数据的预处理之后得到的特征图的维度 ----------
-        hidden_dim: &feature_map_dim 64
-        max_decoder_time: *bs_antenna_nums
-        GRU_hidden_size: 128
-        input_dim: *feature_map_dim
-        weight_dim: 32
-        seq_len: *seq_len
+        hidden_dim: &hidden_dim 64
+        feature_map_size: &feature_map_size 100
+        window_size: [2,3,4,5]
         action_dim: *seq_len
         model_type: 'policy'
         parameter_sharing: *parameter_sharing
-        min_decoder_time: *min_decoder_time
-        user_gumbel_softmax: True
       # -------- 状态维度和动作维度由环境直接给出 -----------
     critic:
       # -------- critic网络的相关配置 ---------
       default_single_cell:      
         learning_rate: 1e-4
-        model_name: 'Single_cell_model_se'
+        model_name: 'FC_model'
         # ------ model_related -----------
         state_feature_dim: *bs_antenna_nums
-        hidden_dim: 128
+        hidden_dim: *hidden_dim
+        feature_map_size: *feature_map_size
+        window_size: [2,3,4,5]
+        action_dim: *seq_len
         # ----- 这个变量一旦打开，表示同时优化边缘用户和系统性能 ------------
         model_type: 'critic'
   # --------- replay buffer相关 -----------
   buffer:
     batch_size: *batch_size
-    max_decoder_time: *bs_antenna_nums
+    max_decoder_time: *seq_len
     seq_len: *seq_len
     max_capacity: *capacity
     bs_antenna_nums: *bs_antenna_nums

@@ -48,17 +48,48 @@ class WolpAgent():
         self.net_work = create_model(policy_config)
         low_value = policy_config.get('action_low', 0)
         high_value = policy_config.get('action_high', 1)
-        points = 2**policy_config.get('action_dim')
-        self.action_space = action_space.Space(low_value, high_value, points)
+        action_dim = policy_config.get('action_dim')
+        self.action_space = action_space.Space(low_value, high_value, action_dim)
+        self.k_nearest_point = policy_config.get('k_nearest_point', 3)
+        self.selected_matrix = torch.LongTensor([[i for i in range(self.k_nearest_point)]])
+
+
+    def add_critic_net(self, critic_net):
+        self.critic_net = critic_net
         
 
-
-    def compute(self, agent_obs, action_list=None):
+    def compute(self, agent_obs):
         # ---------------- 使用了这个算法，默认更新算法为DDPG ------------
         with torch.no_grad():
-            if action_list is not None:
-                pass
-            else:
-                scheduling_action = self.net_work(agent_obs)
-                return scheduling_action
+            scheduling_action = self.net_work(agent_obs)
+            return scheduling_action
+
         
+    def compute_state_value(self, agent_obs, action):
+        with torch.no_grad():
+            state_value = self.critic_net(agent_obs, action)
+        return state_value
+
+    
+    def search_action(self, agent_obs, action):
+        # ------------ 传入的action的维度是batch_size * action_dim  ---------
+        # ------------ 通过search_point函数，返回batch_size * k_nearest_point * action_dim 个点 -------
+        k_nearest_action = self.action_space.search_point(action, self.k_nearest_point)
+        # ------------- 把这个numpy数据变成Tensor --------------
+        k_nearest_action_tensor = torch.FloatTensor(k_nearest_action)
+        q_value_list = []
+        for k in range(self.k_nearest_point):
+            q_value_list.append(self.compute_state_value(agent_obs, k_nearest_action_tensor[:, k, :]))
+        # ----------- 拼接，得到一个维度为batch_size * k 的q值矩阵 -----------
+        concatenate_q_list = torch.cat(q_value_list, -1)
+        # ----------- 使用argmax操作，获取最大的q值索引 --------------
+        max_index = torch.argmax(concatenate_q_list, 1)
+        batch_size = max_index.shape[0]
+        selected_matrix = self.selected_matrix.repeat(batch_size, 1)
+        pointer = selected_matrix == max_index.unsqueeze(-1)
+        selected_action = k_nearest_action_tensor[pointer]
+        return selected_action
+
+    def synchronize_model(self, model_path):
+        # ---------- 这个函数是用来同步本地模型的 ----------
+        deserialize_model(self.net_work, model_path)

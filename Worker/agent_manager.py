@@ -42,7 +42,12 @@ class AgentManager:
             # ------------ 构建智能体 --------------------------------------
         self.construct_agent()
         self.logger.info("------------ 完成AgentManager的构建 -----------")
+
         
+    def _add_critic_net_for_wolpagent(self):
+        for agent_name in self.agent_name_list:
+            self.agent['policy'][agent_name].add_critic_net(self.agent['critic'][agent_name].net_work)
+
 
     def construct_agent(self):
         # --------- 构建一下智能体 -----------
@@ -52,19 +57,22 @@ class AgentManager:
             for agent_name in self.policy_config['agent'][model_type].keys():
                 policy_config = deepcopy(self.policy_config['agent'][model_type][agent_name])
                 if self.using_wolpagent and model_type == 'policy':
-                    self.agent[model_type] = WolpAgent(policy_config)
+                    self.agent[model_type][agent_name] = WolpAgent(policy_config)
                 else:
                     self.agent[model_type][agent_name] = Agent(policy_config)
-        self.agent_name_list = list(self.agent['policy'].keys())     
+        self.agent_name_list = list(self.agent['policy'].keys())    
+        # ----------- 初始化WolpAgent的critic net --------
+        if self.using_wolpagent:
+            self._add_critic_net_for_wolpagent()
 
 
-    def construct_ou_explorator(self):
-        # -------------- 这个函数是用来构建ou探索用的，仅限于DDPG系列的算法 --------------
-        self.ou_explorator = dict()
-        for agent_name in self.policy_config['agent']['policy'].keys():
-            ou_config = self.policy_config['agent']['ou_config']
-            self.ou_explorator = OUNoise(ou_config)
-
+    # def construct_ou_explorator(self):
+    #     # -------------- 这个函数是用来构建ou探索用的，仅限于DDPG系列的算法 --------------
+    #     self.ou_explorator = dict()
+    #     for agent_name in self.policy_config['agent']['policy'].keys():
+    #         ou_config = self.policy_config['agent']['ou_config']
+    #         self.ou_explorator[agent_name] = OUNoise(ou_config)
+    #         self.ou_explorator[agent_name].reset_state()
 
     def choose_target_port(self, port_num=None):
         # 定义这个worker的数据发送到哪一个data server,首先计算一下每台机器会有多少个数据服务
@@ -139,23 +147,41 @@ class AgentManager:
             if self.using_wolpagent:
                 action = self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data)
                 # --------------- 需要做OU探索 --------------
+                if self.eval_mode:
+                    action = self.agent['policy'][self.agent_name_list[0]].search_action(torch_format_data, action.numpy())
+                else:
+                    batch_size = action.shape[0]
+                    action_dim = action.shape[1]
+                    noise = 0.2 * torch.randn(batch_size, action_dim)
+                    noised_action = action + noise
+                    clamped_action = torch.clamp(noised_action, min=0.0, max=1.0)
+                    # ---------------- 进行k近邻搜索,batch size * action dim ------------
+                    action = self.agent['policy'][self.agent_name_list[0]].search_action(torch_format_data, clamped_action.numpy())
             else:
                 action_log_prob, action= self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data)
+                state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
         else:
             if self.using_wolpagent:
                 action = demonstration_ations.astype(np.float64)
             else:
                 torch_format_action = torch.LongTensor(demonstration_ations)
                 action_log_prob = self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data, torch_format_action)
+                state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
+
         if self.eval_mode:
             return action.numpy()
             
-        state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
-
+        
         if demonstration_ations is None:
-            return action_log_prob.numpy(), action.numpy(), state_value.numpy()
+            if self.using_wolpagent:
+                return action.numpy()
+            else:
+                return action_log_prob.numpy(), action.numpy(), state_value.numpy()
         else:
-            return action_log_prob.numpy(), state_value.numpy()
+            if self.using_wolpagent:
+                return action.numpy()
+            else:
+                return action_log_prob.numpy(), state_value.numpy()
         
     def compute_state_value(self, obs):
         torch_format_data = convert_data_format_to_torch_interference(obs)
@@ -212,6 +238,8 @@ class AgentManager:
                 for model_type in self.policy_fetcher.model_path.keys():
                     for model_name in self.policy_fetcher.model_path[model_type]:
                         self.agent[model_type][model_name].synchronize_model(self.policy_fetcher.model_path[model_type][model_name])
+                if self.using_wolpagent:
+                    self._add_critic_net_for_wolpagent()
         # else:
         #     self.logger.info("------------- agent调用reset函数之后没有获取到新模型,检测fetcher函数 ------------")
 
@@ -254,7 +282,7 @@ if __name__ == '__main__':
     import argparse
     from Worker.statistics import StatisticsUtils
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_ddpg.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改

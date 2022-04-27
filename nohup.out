@@ -1,3 +1,0 @@
-/arrow/cpp/src/plasma/store.cc:1274: Allowing the Plasma store to use up to 5GB of memory.
-/arrow/cpp/src/plasma/store.cc:1297: Starting object store with directory /dev/shm and huge page support disabled
-/arrow/cpp/src/plasma/store.cc:1197: SIGTERM Signal received, closing Plasma Server...

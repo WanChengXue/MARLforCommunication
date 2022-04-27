@@ -24,6 +24,7 @@ class rollout_sampler:
         self.statistic = statistic
         self.logger = logger
         self.eval_mode = self.policy_config.get('eval_mode', False)
+        self.using_wolpagent = self.policy_config.get('using_wolpagent', False)
         if not self.eval_mode:
             # 定义强化学习需要的一些参数
             self.gamma = self.policy_config["gamma"]
@@ -210,16 +211,21 @@ class rollout_sampler:
             else:
                 # --------- 首先同步最新 config server上面的模型 ------
                 if self.agent_nums == 1:
-                    joint_log_prob, actions, net_work_output = self.agent.compute_single_agent(state)
+                    if self.using_wolpagent:
+                        actions = self.agent.compute_single_agent(state)
+                    else:
+                        joint_log_prob, actions, net_work_output = self.agent.compute_single_agent(state)
                 else:
                     joint_log_prob, actions, net_work_output = self.agent.compute_multi_agent(state)
                 instant_SE_sum_list = self.env.step(actions)
                 # ------------ instant_SE_sum_list的维度为bs×1 ------------
                 data_dict = [{'state': copy.deepcopy(state), 'instant_reward':np.array(instant_SE_sum_list)}]
 
+
             if self.agent_nums == 1:
                 # ---------- 如果说只有一一个用户，不需要套字典了 --------------
-                data_dict[-1]['old_action_log_probs'] = joint_log_prob
+                if not self.using_wolpagent:
+                    data_dict[-1]['old_action_log_probs'] = joint_log_prob
                 data_dict[-1]['actions'] = actions
             else:
                 # ------------- old_action_log_probs是一个字典，每一个key的维度都bs×1 ---------
@@ -231,7 +237,8 @@ class rollout_sampler:
                     data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
                     data_dict[-1]['actions'][agent_key] = actions[agent_index]
                 # ------------- net work output 的维度为bs×1 -----------
-            data_dict[-1]['current_state_value'] = net_work_output
+            if not self.using_wolpagent:
+                data_dict[-1]['current_state_value'] = net_work_output
             self.agent.send_data(data_dict)
             return instant_SE_sum_list
             
@@ -239,7 +246,7 @@ class rollout_sampler:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_eval_single_cell_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_ddpg.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改

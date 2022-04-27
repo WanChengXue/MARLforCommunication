@@ -5,3 +5,7 @@
 /logs
 /Utils/__pycache__
 /Pretrained_model
+/Learner/__pycache__
+/Learner/algos/__pycache__
+/Worker/__pycache__
+/Utils/__pycache__

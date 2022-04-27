@@ -1,16 +1,15 @@
 import torch
 import torch.nn as nn
-from algos.utils import soft_update, Discrete_space
 
 def get_cls():
     return DDPGTrainer
 
 
-# clip_epsilon: 0.2
-# max_grad_norm: 10
-# dual_clip: 3
-# entropy_coef: 0.01
-# agent_nums: *agent_nums
+def soft_update(current_net, target_net, tau):
+    for target_param, param in zip(target_net.parameters(), current_net.parameters()):
+        target_param.data.copy_(
+            target_param.data * (1.0 - tau) + param.data * tau
+        )
 '''
 net = {
     'policy_net': {
@@ -31,16 +30,12 @@ class DDPGTrainer:
         # -------- 下面两个值分别表示要不要开启popart算法，以及是不是用多个目标 -----
         self.popart_start = self.policy_config.get("popart_start", False)
         self.multi_objective_start = self.policy_config.get("multi_objective_start", False)     
+        self.tau = self.policy_config.get('tau', 1e-3)
         self.policy_net = net['policy']
         self.target_policy_net = target_net['policy']
         self.policy_optimizer = optimizer['policy']
         self.policy_scheduler = scheduler['policy']
         self.policy_name = list(self.policy_net.keys())[0]
-        ##########  增量式修改优势值的均值和方差  #########
-        self.advantage_mean = 0
-        self.advantage_std = 1
-        self.M = 0
-        ##############################################
         self.critic_net = net['critic']
         self.target_critic_net = target_net['critic']
         self.critic_optimizer = optimizer['critic']
@@ -96,8 +91,8 @@ class DDPGTrainer:
             with torch.no_grad():
                 next_action = self.target_policy_net[self.policy_name](next_state)
                 next_q_state_value = self.target_critic_net[self.critic_name](next_state, next_action)
-                target_state_value = instant_reward + next_q_state_value * done
-            predict_state_value = self.critic_net[self.critic_name](current_state, actions)
+                target_state_value = instant_reward + next_q_state_value * (1-done)
+            predict_state_value = self.critic_net[self.critic_name](current_state, actions.float())
             if self.popart_start:
                 # ============ 由于使用了popart算法,因此这里需要对gae估计出来的target V值进行正则化,更新出它的均值和方差 ===============
                 self.critic_net.update(target_state_value)
@@ -110,22 +105,20 @@ class DDPGTrainer:
         mean_loss = torch.mean(value_loss_matrix, 0)
         mse_loss = torch.mean(0.5*(predict_state_value-target_state_value)**2)
         total_state_loss = mean_loss
-
-        if self.seperate_critic:
-            self.critic_optimizer[self.critic_name].zero_grad()
-            total_state_loss.backward()
-            if self.grad_clip is not None:
-                critic_dict['grad'] = nn.utils.clip_grad_norm_(self.critic_net[self.critic_name].parameters(), self.grad_clip)
-            for name, value in self.critic_net[self.critic_name].named_parameters():
-                critic_dict['Layer_max_grad_{}'.format(name)] = torch.max(value.grad).item()
-            critic_dict['Value_loss'] = total_state_loss.item()
-            critic_dict['Mse_loss'] = mse_loss.item()
-            self.critic_optimizer[self.critic_name].step()
-            self.critic_scheduler[self.critic_name].step()
-            info_dict['Critic_loss'] = critic_dict
+        self.critic_optimizer[self.critic_name].zero_grad()
+        total_state_loss.backward()
+        if self.grad_clip is not None:
+            critic_dict['grad'] = nn.utils.clip_grad_norm_(self.critic_net[self.critic_name].parameters(), self.grad_clip)
+        for name, value in self.critic_net[self.critic_name].named_parameters():
+            critic_dict['Layer_max_grad_{}'.format(name)] = torch.max(value.grad).item()
+        critic_dict['Value_loss'] = total_state_loss.item()
+        critic_dict['Mse_loss'] = mse_loss.item()
+        self.critic_optimizer[self.critic_name].step()
+        self.critic_scheduler[self.critic_name].step()
+        info_dict['Critic_loss'] = critic_dict
         # -------------- 策略网络进行更新 -------------
         current_action_value = self.policy_net[self.policy_name](current_state)
-        q_value = self.policy_net[self.policy_name](current_state, current_action_value)
+        q_value = self.critic_net[self.policy_name](current_state, current_action_value)
         policy_loss = -torch.mean(q_value)
         self.policy_optimizer[self.policy_name].zero_grad()
         policy_loss.backward()
@@ -141,7 +134,8 @@ class DDPGTrainer:
         self.policy_optimizer[self.policy_name].step()
         self.policy_scheduler[self.policy_name].step()
         # ------------ 使用soft update更新target网络 --------
-
+        soft_update(self.policy_net[self.policy_name], self.target_policy_net[self.policy_name], self.tau)
+        soft_update(self.critic_net[self.critic_name], self.target_critic_net[self.critic_name], self.tau)
         return info_dict
 
 

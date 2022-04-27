@@ -88,6 +88,19 @@ class learner_server(basic_server):
         # ------------- 定义一个变量，这个是每过一分钟，就朝着log server发送数据的 -------------
         self.next_check_time = time.time()
         self.next_send_log_time = time.time()
+
+
+    def construct_target_model(self):
+        # --------- 这个只有那种需要创建target网络的算法，比如说MADDPG，DQN等，才需要进入 ----------
+        self.target_model = dict()
+        for model_type in self.policy_config['agent'].keys():
+            self.target_model[model_type] = dict()
+            for agent_name in self.policy_config['agent'][model_type].keys():
+                model_config  = deepcopy(self.policy_config['agent'][model_type][agent_name])
+                self.target_model[model_type][agent_name] = create_model(model_config)
+                # ------------- target model参数copy active model -------------
+                self.target_model[model_type][agent_name].load_state_dict(self.model[model_type][agent_name].state_dict())
+
     
     def construct_model(self):
         self.optimizer = {}
@@ -105,18 +118,25 @@ class learner_server(basic_server):
                 self.model[model_type][agent_name] = create_model(model_config)
                 self.optimizer[model_type][agent_name] = torch.optim.Adam(self.model[model_type][agent_name].parameters(), lr=float(self.policy_config['agent'][model_type][agent_name]['learning_rate']))
                 self.scheduler[model_type][agent_name] = CosineAnnealingWarmRestarts(self.optimizer[model_type][agent_name], self.policy_config['T_zero'])
+        if self.policy_config.get('using_target_network', False):
+            self.construct_target_model()
         # ----------- 训练模式, 使用DDP进行包装  --------------
         dist.init_process_group(init_method=self.policy_config["ddp_root_address"], backend="nccl",rank=self.global_rank, world_size=self.world_size)
         # ----- 把模型放入到设备上 ---------
         for model_type in self.model: 
             for sub_model in self.model[model_type]:
                 self.model[model_type][sub_model].to(self.local_rank).train()
+                if self.policy_config.get('using_target_network', False):
+                    self.target_model[model_type][sub_model].to(self.local_rank)
                 self.model[model_type][sub_model] = DDP(self.model[model_type][sub_model], device_ids=[self.local_rank])
         torch.manual_seed(194862226)
         self.logger.info('----------- 完成模型的创建 ---------------')
         # ----------- 调用更新算法 ---------------
         algo_cls = get_algorithm_cls(self.policy_config['algorithm'])
-        self.algo = algo_cls(self.model, self.optimizer, self.scheduler, self.policy_config['training_parameters'], self.local_rank)
+        if self.policy_config.get('using_target_network', False):
+            self.algo = algo_cls(self.model, self.target_model, self.optimizer, self.scheduler, self.policy_config['training_parameters'])
+        else:
+            self.algo = algo_cls(self.model, self.optimizer, self.scheduler, self.policy_config['training_parameters'], self.local_rank)
 
 
     def _send_model(self, training_steps):
@@ -171,8 +191,8 @@ class learner_server(basic_server):
                 self.wait_data_times = []
             if self.total_training_steps % self.policy_config['model_save_interval'] == 0:
                 self._save_model()
-            # if self.total_training_steps % self.policy_config['evaluate_model_interval'] == 0:
-            #     self._evaluate_model()
+            if self.total_training_steps % self.policy_config['evaluate_model_interval'] == 0:
+                self._evaluate_model()
 
     def _save_model(self):
         timestamp = str(time.time())
@@ -223,7 +243,7 @@ if __name__ == '__main__':
     parser.add_argument('--rank', default= 0, type=int, help="rank of current process")
     parser.add_argument('--world_size', default=1, type=int, help='total gpu card')
     parser.add_argument('--init_method', default='tcp://120.0.0.1:23456')
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_ddpg.yaml', help='yaml format config')
     args = parser.parse_args()
     abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path
