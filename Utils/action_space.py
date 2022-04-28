@@ -3,6 +3,7 @@ import numpy as np
 import itertools
 import threading
 from tqdm import tqdm
+
 class Space(object):
     _instance_lock = threading.Lock()
     _instances = None
@@ -111,4 +112,4 @@ def init_uniform_space(low, high):
 #         p = Process(target=new_action_obj, args=(0,1,30))
 #         p.start()
 
-test = Space(0,1,30)
+# test = Space(0,1,30)
