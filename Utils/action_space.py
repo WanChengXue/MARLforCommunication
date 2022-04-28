@@ -1,9 +1,19 @@
 import pyflann
 import numpy as np
 import itertools
+import threading
+from tqdm import tqdm
+class Space(object):
+    _instance_lock = threading.Lock()
+    _instances = None
 
-class Space:
-    
+    def __new__(cls, low, high, action_dim):
+        if cls._instances is None:
+            with cls._instance_lock:
+                cls._instances = object.__new__(cls)
+        return cls._instances
+
+
     def __init__(self, low, high, action_dim):
         # ------ 传入的low表示动作的最小值列表 -----
         self._low = low
@@ -82,7 +92,23 @@ def init_uniform_space(low, high):
         # ----- 这里是添加每一个轴上能够取的值，如果[0,1] ------
     space = []
     # ------ 这个地方通过itertools工具，做笛卡尔直积，得到所有动作构成的大列表 -------
-    for _ in itertools.product(*axis):
+    for _ in tqdm(itertools.product(*axis)):
         space.append(list(_))
 
     return np.array(space)
+
+# def new_action_obj(low, high, dim):
+#     obj = Space(low, high, dim)
+#     print(id(obj))
+
+# from multiprocessing import Process
+# for i in range(4):
+#         # logger_path = pathlib.Path("./config_folder") / ("process_"+ str(i))
+#         # logger_name = "Process_"+ str(i)
+#         # logger = setup_logger(logger_name, logger_path)
+#         # p = Process(target=single_process_generate_sample,args=(logger,))
+#         # p.start()
+#         p = Process(target=new_action_obj, args=(0,1,30))
+#         p.start()
+
+test = Space(0,1,30)
