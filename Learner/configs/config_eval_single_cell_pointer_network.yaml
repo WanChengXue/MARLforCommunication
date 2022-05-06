@@ -1,11 +1,11 @@
 env:
   id: "Env.Single_cell_env"
-  user_nums: 30
+  user_nums: &seq_len 20
   sector_nums: &sense_channel_nums 3
   cell_nums: 1
   agent_nums: &agent_nums 1
   bs_antenna_nums: &bs_antenna_nums 16
-  total_antenna_nums: &seq_len 20
+  total_antenna_nums: *seq_len  
   # 这个变量表示的是截取多少长度的TTI作为一个训练样本
   sliding_windows_length: 400
   transmit_power: 0.25
@@ -30,7 +30,7 @@ env:
   eval_TTI: 1000
   eval_file_number: 50
   eval_mode: &eval_mode True
-policy_name: single_cell_max_se
+policy_name: single_cell_max_se_30
 # 定义日志文件的文件夹
 log_dir: "./logs"
 # policy_config related

@@ -47,7 +47,6 @@ class Environment(gym.Env):
         self.legal_range = [self.env_dict['min_stream_nums'], self.env_dict['max_stream_nums']]
         # ------------ 生成一个cyclic index matrix -------------
         self.reward_calculator = Single_cell_instant_reward(self.transmit_power, self.noise_power, self.user_nums, self.bs_antenna_nums)
-        self.max_user_pf_value = self.env_dict['max_user_pf_value']
         # -------- 为了防止分母除以0 -------
         self.eps = 1e-9
         self.filter_factor = 1/self.sliding_windows_length

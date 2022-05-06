@@ -109,7 +109,7 @@ def single_cell_PF():
     # plt.close()
 
 # multi_cell_figure()
-single_cell_figure()
+# single_cell_figure()
 # single_cell_PF()
 
 # import numpy as np
@@ -142,3 +142,42 @@ single_cell_figure()
 #             fig.savefig('./20_user_capacity.png', dpi=600)
 
 # plot_single_cell_com()
+def demon_com():
+    function_path = os.path.abspath(__file__)
+    greedy_root_path = '/'.join(function_path.split('/')[:-3]) +'/data_part/Greedy_result/single_cell_scenario_greedy/20_user/30KM/'
+    rl_root_path_2 = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Evaluate/0.2_single_cell_max_se/'
+    rl_root_path_4 = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Evaluate/0.4_single_cell_max_se/'
+    rl_root_path_9 = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Evaluate/0.95_single_cell_max_se/'
+    save_path = '/'.join(function_path.split('/')[:-2]) + '/Exp/Result/Figure/single_cell_max_se/'
+    mean_RL_result_2 = []
+    mean_RL_result_4 = []
+    mean_RL_result_9 = []
+    mean_greedy_result_list = []
+    create_folder(save_path)
+    for i in tqdm(range(50)):
+        for sector_index in range(3):
+            greedy_data = np.load(greedy_root_path+'{}sector_{}_se_sum_result.npy'.format(i, sector_index))
+            rl_data_2 = np.load(rl_root_path_2+'{}_sector_{}_se_sum_result.npy'.format(i, sector_index))
+            rl_data_4 = np.load(rl_root_path_4+'{}_sector_{}_se_sum_result.npy'.format(i, sector_index))
+            rl_data_9 = np.load(rl_root_path_9+'{}_sector_{}_se_sum_result.npy'.format(i, sector_index))
+            mean_RL_result_2.append(np.mean(rl_data_2))
+            mean_RL_result_4.append(np.mean(rl_data_4))
+            mean_RL_result_9.append(np.mean(rl_data_9))
+            mean_greedy_result_list.append(np.mean(greedy_data))
+            plt.figure()
+            plt.plot(rl_data_2)
+            plt.plot(rl_data_4)
+            plt.plot(rl_data_9)
+            plt.plot(greedy_data)
+            plt.legend(['RL_0.2','RL_0.4','RL_0.9','Greedy'])
+            plt.savefig(save_path+'{}_sector_{}_se_sum.png'.format(i, sector_index))
+            plt.close()
+    plt.figure()
+    plt.plot(np.array(mean_RL_result_2))
+    plt.plot(np.array(mean_RL_result_4))
+    plt.plot(np.array(mean_RL_result_9))
+    plt.plot(np.array(mean_greedy_result_list))
+    plt.legend(['RL_0.2','RL_0.4','RL_0.9','Greedy'])
+    plt.savefig(save_path + 'performance_comprison.png')
+    plt.close()
+demon_com()

@@ -159,7 +159,8 @@ class AgentManager:
                     action = self.agent['policy'][self.agent_name_list[0]].search_action(torch_format_data, clamped_action.numpy())
             else:
                 action_log_prob, action= self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data)
-                state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
+                if not self.eval_mode:
+                    state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
         else:
             if self.using_wolpagent:
                 action = demonstration_ations.astype(np.float64)
