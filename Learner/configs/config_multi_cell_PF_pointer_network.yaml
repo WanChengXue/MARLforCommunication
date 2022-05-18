@@ -61,7 +61,7 @@ policy_config:
   main_machine_index: 0
   machine_list: ['10.19.93.9']
   # 定义一个设备对应与多少个数据server
-  server_number_per_device: 1
+  server_number_per_device: 2
   # 定义一个机器有多少个设备
   device_number_per_machine: 1
   start_data_server_port: 9527
@@ -92,7 +92,7 @@ policy_config:
     parameter_sharing: *parameter_sharing
   # 环境相关
   traj_len: 128
-  capacity: &capacity 2000
+  capacity: &capacity 10000
   # -------- 每训练1000次就保存一下模型 ----------
   model_save_interval: 1000
   # ------- 每训练10次就评估一下模型 --------

@@ -207,7 +207,7 @@ class PPOTrainer:
                     policy_net_grad = nn.utils.clip_grad_norm_(self.policy_net[agent_name].parameters(), max_grad_norm)
                     info_dict['Policy_loss_{}/grad'.format('agent_'+str(agent_index))]= policy_net_grad.item()
                 for name,value in self.policy_net[agent_name].named_parameters():
-                    if value.required_grad:
+                    if value.requires_grad:
                         info_dict['Policy_model_grad_{}/Layer_{}_max_grad'.format('agent_'+str(agent_index), name)] = torch.max(value).item()
                 
                 self.policy_optimizer[agent_name].step()
