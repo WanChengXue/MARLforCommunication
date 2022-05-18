@@ -41,6 +41,7 @@ class AgentManager:
             self.policy_fetcher = fetcher(context, self.config_dict, statistic, process_uid, logger)
             # ------------ 构建智能体 --------------------------------------
         self.construct_agent()
+        self.multiagent_scenario = self.config_dict['env'].get('multiagent_scenario', False)
         self.logger.info("------------ 完成AgentManager的构建 -----------")
 
         
@@ -142,7 +143,7 @@ class AgentManager:
             self.data_sender.send(compressed_data)
 
     def compute_single_agent(self, obs, demonstration_ations=None):
-        torch_format_data = convert_data_format_to_torch_interference(obs)
+        torch_format_data = convert_data_format_to_torch_interference(obs, add_batch_axis=self.multiagent_scenario)
         if demonstration_ations is None:
             if self.using_wolpagent:
                 action = self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data)
@@ -158,9 +159,25 @@ class AgentManager:
                     # ---------------- 进行k近邻搜索,batch size * action dim ------------
                     action = self.agent['policy'][self.agent_name_list[0]].search_action(torch_format_data, clamped_action.numpy())
             else:
-                action_log_prob, action= self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data)
+                if self.multiagent_scenario:
+                    action_log_prob = dict()
+                    action = dict()
+                    # ---------- 区分使用参数共享和不使用参数共享 -----------
+                    for agent_index in range(self.agent_nums):
+                        if self.parameter_sharing:
+                            agent_name = self.agent_name_list[0]
+                        else:
+                            agent_name = self.agent_name_list[agent_index]
+                        agent_action_log_prob, agent_action = self.agent['policy'][agent_name].compute(torch_format_data['agent_obs'][agent_name])
+                        action_log_prob[agent_name] = agent_action_log_prob
+                        action[agent_name] = agent_action
+                else:
+                    action_log_prob, action= self.agent['policy'][self.agent_name_list[0]].compute(torch_format_data)
                 if not self.eval_mode:
-                    state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
+                    if self.multiagent_scenario:
+                        state_value = self.agent['critic']['centralized_critic'].compute_state_value(torch_format_data['global_state'])
+                    else:
+                        state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
         else:
             if self.using_wolpagent:
                 action = demonstration_ations.astype(np.float64)
@@ -170,14 +187,27 @@ class AgentManager:
                 state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
 
         if self.eval_mode:
-            return action.numpy()
+            if self.multiagent_scenario:
+                for key in action.keys():
+                    action[key] = action[key].numpy()
+            else:
+                action = action.numpy()
+            return action
             
         
         if demonstration_ations is None:
             if self.using_wolpagent:
                 return action.numpy()
             else:
-                return action_log_prob.numpy(), action.numpy(), state_value.numpy()
+                if self.multiagent_scenario:
+                    for key in action.keys():
+                        action[key] = action[key].numpy()
+                        action_log_prob[key] = action_log_prob[key].numpy()
+                else:
+                    action = action.numpy()
+                    action_log_prob = action_log_prob.numpy()
+                state_value = state_value.numpy()
+                return action_log_prob, action, state_value
         else:
             if self.using_wolpagent:
                 return action.numpy()
@@ -185,14 +215,17 @@ class AgentManager:
                 return action_log_prob.numpy(), state_value.numpy()
         
     def compute_state_value(self, obs):
-        torch_format_data = convert_data_format_to_torch_interference(obs)
-        state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
+        torch_format_data = convert_data_format_to_torch_interference(obs, add_batch_axis=self.multiagent_scenario)
+        if self.multiagent_scenario:
+            state_value = self.agent['critic']['centralized_critic'].compute_state_value(torch_format_data['global_state'])
+        else:
+            state_value = self.agent['critic'][self.agent_name_list[0]].compute_state_value(torch_format_data)
         return state_value.numpy()
         
     def compute_multi_agent(self, obs):
         # -------- 这个函数是用使用神经网络计算动作，以及动作对应的概率 ---------
         # 首先将这个obs_dict变成pytorch支持的数据，由于采样的时候，统一使用cpu就可以了，不需要用 GPU
-        torch_format_data = convert_data_format_to_torch_interference(obs)
+        torch_format_data = convert_data_format_to_torch_interference(obs, add_batch_axis=self.multiagent_scenario)
         # ----- 需要将动作构成列表，然后回传，以及将对应的log prob和prob -------
         joint_log_prob_list = []
         actions = []

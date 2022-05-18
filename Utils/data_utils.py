@@ -3,7 +3,7 @@ from random import sample
 import torch
 import numpy as np
 import copy
-
+from threading import Lock
 
 
 class TrainingSet:
@@ -527,14 +527,73 @@ class TrainingSet_single_cell:
         sample_dict['current_state']['user_scheduling_counts'] = self.data_buffer['current_state']['user_scheduling_counts'][random_batch, :, :]
         return sample_dict
 
-def convert_data_format_to_torch_interference(obs_dict):
+
+# --------- 定义一个通用的buffer -----------
+class data_buffer:
+    def __init__(self, config):
+        self.capacity = config['max_capacity']
+        self.batch_size = config['batch_size']
+        # --------- 这个参数决定，采样了的数据要不要从buffer里面删掉 -------
+        self._lock = Lock()
+        self.init_buffer()
+
+    def init_buffer(self):
+        self.cursor = 0
+        self.buffer = []
+
+
+    def slice(self):
+        # ------- 这个函数将从这个buffer中采样一个batch的数据出去 -------
+        random_batch = random.sample(self.buffer, self.batch_size)
+        # ------- 将这个random batch列表缝合在一起，构成一个字典 ---------
+        dict_output = convert_list_to_dict(random_batch)
+        '''
+            这个地方返回的结果是
+            {
+                'state': 
+                    'sub_state': [np.array, np.array]或者[np.array]
+            }
+            因为没有办法区分状态是由一矩阵表示还是两个，就全部采用列表包起来
+        '''
+        return dict_output
+
+    
+    def append_instance(self, recv_data, logger):
+        # --------- 这个函数是将数据添加到replaybuffer里面 ------------
+        instant_number = 0
+        with self._lock:
+            for data_point in recv_data:
+                if self.cursor < self.capacity:
+                    self.buffer.append(data_point)
+                else:
+                    self.buffer[self.cursor % self.capacity] = data_point
+                self.cursor += 1
+                instant_number += 1
+        logger.info("------------- 此次添加的数据个数为 {} ----------------".format(instant_number))
+
+    @property
+    def full_buffer(self):
+        if self.cursor >= 0.2 * self.capacity:
+            return True
+        else:
+            return False
+
+    @property
+    def buffer_size(self):
+        return self.cursor
+
+
+def convert_data_format_to_torch_interference(obs_dict, add_batch_axis=False):
     # 这个函数是将使用rollout和环境交互后得到的数据传入到网络做预处理，总的来说就是放入到torch上面
     torch_format_dict = dict()
     for key,value in obs_dict.items():
         if isinstance(value, dict):
-            torch_format_dict[key] = convert_data_format_to_torch_interference(value)
+            torch_format_dict[key] = convert_data_format_to_torch_interference(value, add_batch_axis)
         else:
-            torch_format_dict[key] = torch.FloatTensor(value)
+            if add_batch_axis:
+                torch_format_dict[key] = torch.FloatTensor(value).unsqueeze(0)
+            else:
+                torch_format_dict[key] = torch.FloatTensor(value)
     return torch_format_dict
 
 def convert_data_format_to_torch_training(training_batch, device_index, long_tensor=False):
@@ -555,6 +614,7 @@ def convert_data_format_to_torch_training(training_batch, device_index, long_ten
     return torch_format_dict
 
 
+
 class OUNoise:
     def __init__(self, theta, action_dim, mu=0.,sigma=1., dt=1e-2, action_low=0, action_high=1):
         self.theta = theta
@@ -572,3 +632,61 @@ class OUNoise:
         self.prev_state += self.sigma * np.sqrt(self.dt) * np.array([random.gauss(0,1) for _ in range(self.action_dim)])
         noised_action = action + self.prev_state
         return np.clip(noised_action, self.action_low, self.action_high)
+
+def convert_list_to_dict(obs_list):
+    # --------- 这个函数是将一个数据列表变成一个字典 -------
+    '''
+    比如说：
+        obs_list = [{
+            'state': [[],[]]
+            'action': np.array(),
+            'instant_reward': np.array(),
+            'done': np.array
+        }]
+    '''
+    '''
+    如果说是这样子的:
+        obs_list = [
+            (dict_1, dict_2),(dict_1, dict_2),(dict_1, dict_2),...(dict_1, dict_2)
+        ]
+    然后使用了zip(*obs_list), 得到所有两个对象(dict_1,....,dict_1)
+    '''
+    # -----------
+    instance_sample = obs_list[0]
+    if isinstance(instance_sample, dict):
+        sub_obs = dict()
+        for key in instance_sample:
+            # -------- 将这个子字典中的所有key获取到 -------
+            sub_obs[key] = convert_list_to_dict([single_sample[key] for single_sample in obs_list])
+
+    elif isinstance(instance_sample, (list, tuple)):
+        # --------- 如果是一个由list，或者是tuple构成的列表，就合并 --------
+        # [[a,b],[a,b],[a,b],...,[a,b]],或者是[(a,b),(a,b),...,(a,b)]形式，instance_sample[0]就是[a,b]，或者(a,b),因此递归拼接 
+        # --------- 如果说instance_sample 中就是一个一个的element，则直接使用np.array就好，不需要维度拼接 -------
+        if isinstance(instance_sample[0], dict):
+            # --------- 如果传入的向量中每一个element都是一个字典，则考虑如何合并 ------
+            flatten_list = []
+            for instance_sample_element in obs_list:
+                flatten_list += instance_sample_element
+            return convert_list_to_dict(flatten_list)
+            
+        elif not isinstance(instance_sample[0], (list, tuple)):
+            # -------- 这样子得到的就是batch_size * state_dim的矩阵
+            sub_obs = np.array(obs_list)
+        else: 
+            sub_obs = [convert_list_to_dict(zip_object) for zip_object in zip(*obs_list)]
+            if isinstance(sub_obs[0], dict):
+                # ----------- 如果合并之后，sub_obs中的两个element都是字典，就update一下
+                merge_dict = dict()
+                for sub_dict in sub_obs:
+                    merge_dict.update(sub_dict)
+                return merge_dict
+    else:
+        if type(obs_list[0]) == np.ndarray:
+            sub_obs = np.stack(obs_list, 0)
+        else:
+            sub_obs = np.array(obs_list)
+        # --- 如果zip之后得到的是一个向量，就增加一个维度 ----------
+        if len(sub_obs.shape) == 1:
+            sub_obs = np.expand_dims(sub_obs, -1)
+    return sub_obs

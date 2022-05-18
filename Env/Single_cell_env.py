@@ -34,7 +34,6 @@ class Environment(gym.Env):
         self.delay_time_window = self.env_dict['delay_time_window']
         self.training_data_total_TTI_length = self.env_dict['training_data_total_TTI_length']
         self.min_user_average_se  = self.env_dict['min_user_average_se']
-        self.max_user_pf_value = self.env_dict['max_user_pf_value']
         
         # ======================================================================
         if random_seed is None:
@@ -77,13 +76,14 @@ class Environment(gym.Env):
         loaded_file_name = self.save_data_folder + '/eval_channel_file_' + str(eval_file_number) + '.npy'
         # ============== TODO 这个地方不是很完善，对于测试文件来说，需要测试所有的文件 ====================
         self.simulation_channel = (np.load(loaded_file_name)).squeeze()
+        self.eval_file_index = eval_file_number
 
-
-    def reset(self, file_index=None):
-        if self.eval_mode:
+    def reset(self, file_index=None, load_eval=False):
+        if self.eval_mode or load_eval:
             # 如果是评估模式,就加载评估数据
             self.load_eval_data(file_index)
         else:
+            self.random_seed = random.randint(0, 1000000)
             self.load_training_data()
         # ------------- 构建输入的状态集 ------------
         '''
@@ -135,6 +135,20 @@ class Environment(gym.Env):
             reward_list.append(sector_demonstration_rewards[:, np.newaxis])
         return np.concatenate(actions_list, 0), np.concatenate(reward_list, 0)
 
+
+    def read_action_from_testing_set(self):
+        actions_list =[]
+        reward_list = []
+        self.training_file_index = self.eval_file_index
+        for sector_index in range(self.sector_nums):
+            action_file_name = self.demonstration_data_folder + '/' + str(self.training_file_index) + '_sector_' + str(sector_index) + '_scheduling_sequence.npy'
+            instant_reward_file_name = self.demonstration_data_folder + '/' + str(self.training_file_index) + '_sector_' + str(sector_index) + '_se_sum_result.npy'
+            # --------- 载入数据 --------
+            sector_demonstration_actions = np.load(action_file_name)
+            sector_demonstration_rewards = np.load(instant_reward_file_name)
+            actions_list.append(sector_demonstration_actions)
+            reward_list.append(sector_demonstration_rewards[:, np.newaxis])
+        return np.concatenate(actions_list, 0), np.concatenate(reward_list, 0)
 
     def step(self, action_list):
         TTI_length = self.simulation_channel.shape[-1]

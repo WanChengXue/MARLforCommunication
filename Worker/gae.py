@@ -1,6 +1,6 @@
 import copy
 
-def gae_estimator(traj_data, gamma, tau, bootstrap_value):
+def gae_estimator(traj_data, gamma, tau, bootstrap_value, multi_agent_scenario):
     '''
     bootstrap_value就是一个(1, 2)的全零numpy类型数据
     这个地方使用了GAE进行估计，现在有的数据有两个:
@@ -17,6 +17,8 @@ def gae_estimator(traj_data, gamma, tau, bootstrap_value):
     '''
     next_step_state_value = bootstrap_value
     gae = 0
+    if multi_agent_scenario:
+        multi_agent_gae = 0
     # 传入的数据有多少个
     point_number = len(traj_data)
     for step in reversed(range(point_number)):
@@ -26,10 +28,19 @@ def gae_estimator(traj_data, gamma, tau, bootstrap_value):
         # np.concatenate(traj_data[step]['denormalize_current_state_value'], 1)是1*2的一个向量
         gae = delta + gamma * tau * gae * (1-traj_data[step]['done'])
         advantages = gae
-        target_state_value = gae + current_step_state_value
+        if multi_agent_scenario:
+            multi_agent_gae = sum(gae)
+            target_state_value = multi_agent_gae + current_step_state_value.squeeze(0)
+        else:
+            target_state_value = gae + current_step_state_value
         next_step_state_value = current_step_state_value
         # advantage和target state value放进去
-        traj_data[step]['advantages'] = copy.deepcopy(advantages)
+        if multi_agent_scenario:
+            traj_data[step]['advantages'] = dict()
+            for agent_index, agent_name in enumerate(traj_data[step]['actions'].keys()):
+                traj_data[step]['advantages'][agent_name] = advantages[agent_index]
+        else:
+            traj_data[step]['advantages'] = copy.deepcopy(advantages)
         traj_data[step]['target_state_value'] = copy.deepcopy(target_state_value)
     return traj_data
 

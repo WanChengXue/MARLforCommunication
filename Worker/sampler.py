@@ -35,6 +35,7 @@ class sampler_worker:
         self.context = zmq.Context()
         logger_path = pathlib.Path(self.config_dict['log_dir']+ '/sampler/'  + self.uuid[:6])
         self.logger = setup_logger('Sampler_'+ self.uuid[:6], logger_path)
+        self.supervised_learning = self.policy_config.get('supervised_learning',False)
         if "main_server_ip" in self.config_dict.keys():
             self.config_dict['log_server_address'] = self.config_dict['main_server_ip']
             self.config_dict['config_server_address'] = self.config_dict['main_server_ip']
@@ -47,8 +48,11 @@ class sampler_worker:
         start_time = time.time()
         # ----------- TODO 这个地方确定好run one episode的结果: 返回所有用户的平均容量和，所有时刻瞬时PF的和，episode结束后边缘用户平均SE情况，以及每一个用户被调度的情况 ------------
         if self.one_step_env:
-            batch_instant_sum_SE = self.rollout.run_one_episode_single_step()
-            self.statistic.append('result/instant_capacity_average/{}'.format(self.policy_name), np.mean(batch_instant_sum_SE))
+            if self.supervised_learning:
+                self.rollout.read_data_from_folder()
+            else:
+                batch_instant_sum_SE = self.rollout.run_one_episode_single_step()
+                self.statistic.append('result/instant_capacity_average/{}'.format(self.policy_name), np.mean(batch_instant_sum_SE))
 
         else:
             mean_instant_SE_sum, mean_PF_sum, user_average_se_matrix = self.rollout.run_one_episode()
@@ -97,7 +101,7 @@ class sampler_worker:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser() 
-    parser.add_argument('--config_path', type=str, default='', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_SL_config.yaml', help='yaml format config')
     parser.add_argument('--sampler_numbers', type=int, default=1, help='the trajectory numbers')
     parser.add_argument('--port_num', type=int, default= 0)
     args = parser.parse_args()

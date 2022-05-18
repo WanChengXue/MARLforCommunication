@@ -59,6 +59,7 @@ class Environment(gym.Env):
 
     def load_training_data(self):
         # 载入训练数据,根据随机数种子来看，首先是对随机数取余数，看看读取哪个载波
+        self.random_seed = random.randint(0, 1000000)
         self.training_file_index = self.random_seed % self.sub_carrier_nums
         loaded_file_name = self.save_data_folder + '/training_channel_file_' +str(self.training_file_index) + '.npy'
         channel_data = np.load(loaded_file_name)

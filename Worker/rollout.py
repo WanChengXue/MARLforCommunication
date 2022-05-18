@@ -1,3 +1,4 @@
+from ensurepip import bootstrap
 import os
 import sys
 import pathlib
@@ -34,13 +35,11 @@ class rollout_sampler:
         self.env_name = self.config_dict['env']['id']
         self.env = importlib.import_module(self.env_name).Environment(self.config_dict['env'])
         self.agent_nums = self.config_dict['env']['agent_nums']
-        # 收集数据放入到字典中
-        self.data_dict = dict()
         # 声明一个智能体
         # self.eps = 1e-4
         self.eps = 0
         self.agent = AgentManager(self.config_dict, context, self.statistic, self.logger, process_uid, port_num)
-
+        self.multiagent_scenario = self.config_dict['env'].get('multiagent_scenario', False)
     def pack_data(self, bootstrap_value, traj_data):
         '''
             这个函数表示将采样得到的数据进行打包，然后发送回去，传入的traj_data是一个列表，每一个列表的element都是一个字典，其数据结构为:
@@ -59,7 +58,7 @@ class rollout_sampler:
             默认只有采样结束后才会将数据进行打包操作，因此这个bootstrap_value的样子是[[0,0]]
         '''
         # -------------- 首先我需要使用GAE算法进行估计出advantage值，target_state_value，然后放到原来的字典里面返回 -------------------
-        modified_traj_data = gae_estimator(traj_data, self.gamma, self.tau, bootstrap_value)
+        modified_traj_data = gae_estimator(traj_data, self.gamma, self.tau, bootstrap_value, self.multiagent_scenario)
         # -------------- 打包，发送到dataserver -------------
         self.agent.send_data(modified_traj_data)
 
@@ -73,17 +72,19 @@ class rollout_sampler:
             self.agent.reset()
             data_dict = dict()
             # eval_file_number = self.config_dict['env']['eval_file_number']
-            eval_file_number = 1
+            eval_file_number = 50
             for file_index in tqdm(range(eval_file_number)):
                 state = self.env.reset(file_index=file_index)
                 action_list = []
                 instant_reward_list = []
+                instant_SE_list  = []
                 while True:
                     actions = self.agent.compute_single_agent(state)
                     # -------------- 给定动作计算出对应的instant reward, 这个返回的是瞬时PF值，需要额外处理得到PF和，以及边缘用户的SE ------------
                     next_state, instant_reward, done = self.env.step(actions)
                     if self.agent_nums == 1:
                         instant_reward_list.append(instant_reward[1])
+                        instant_SE_list.append(instant_reward[0])
                         action_list.append(np.array(actions))
                     else:
                         data_dict[-1]['instant_reward'] = dict()
@@ -100,6 +101,7 @@ class rollout_sampler:
                 data_dict['instant_reward'] = dict()
                 data_dict['instant_reward']['average_se'] = self.env.get_user_average_se_matrix
                 data_dict['instant_reward']['PF_sum']= np.stack(instant_reward_list)
+                data_dict['instant_reward']['instant_SE'] = np.stack(instant_reward_list)
                 data_dict['file_index'] = str(file_index)
                 self.agent.send_data(data_dict)
         else:
@@ -123,44 +125,48 @@ class rollout_sampler:
                 instant_SE_sum_list.append(instant_reward[0])
                 PF_sum_list.append(instant_reward[1])
                 data_dict.append({'current_state': copy.deepcopy(state)})
-                if self.agent_nums == 1:
+                if not self.multiagent_scenario:
                     data_dict[-1]['instant_reward'] = instant_reward[1] # 3*1
                     data_dict[-1]['actions'] = actions 
                     data_dict[-1]['old_action_log_probs'] = joint_log_prob
                     data_dict[-1]['done'] = np.array(done)[:,np.newaxis]
                     data_dict[-1]['current_state_value'] = current_state_value
                 else:
-                    data_dict[-1]['instant_reward'] = dict()
                     data_dict[-1]['old_action_log_probs'] = dict()
                     data_dict[-1]['actions'] = dict()
                     for agent_index in range(self.agent.agent_nums):
                         agent_key = "agent_" + str(agent_index)
-                        data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_index]
-                        # ------------ 这个actions[agent_index]的维度是一个长度为16的向量，需要变成16*1
-                        data_dict[-1]['actions'][agent_key] = actions[agent_index][:,np.newaxis]
+                        data_dict[-1]['old_action_log_probs'][agent_key] = joint_log_prob[agent_key].squeeze()
+                        # ------------ 这个actions[agent_index]的维度是一个长度为16的向量
+                        data_dict[-1]['actions'][agent_key] = actions[agent_key].squeeze()
                     data_dict[-1]['done'] = done
                     data_dict[-1]['instant_reward'] = instant_reward[1]
                     # data_dict[-1]['instant_reward'] = np.array([PF_sum, edge_average_SE])[:,np.newaxis]
-                    data_dict[-1]['current_state_value'] = current_state_value
+                    data_dict[-1]['current_state_value'] = current_state_value.squeeze(0)
                     data_dict[-1]['next_state'] = copy.deepcopy(next_state)
                 state = next_state
                 # -----------------------------------------------------------------------------------------
-                if len(data_dict) == self.policy_config['traj_len'] or done[0]:
+                terminate = False
+                if self.multiagent_scenario:
+                    if done:
+                        terminate = True
+                else:
+                    if done[0]:
+                        terminate = True
                     # ------------ 数据打包，然后发送，bootstrap value就给0吧，计算出来的current_sate_value为3*1，仅针对单小区场景 ----------------
+                if terminate or len(data_dict) == self.policy_config['traj_len']:
                     objective_number = current_state_value.shape[1]
                     batch_size = current_state_value.shape[0]
-                    if done[0]:
-                        # ------ 如果说采样结束，terminal state的v值就是0
-                        bootstrap_value = np.zeros((batch_size, objective_number))
-                    else:
-                        # ------ 如果没有结束，就使用网络计算出next state的value ---
+                    # ------ 如果说采样结束，terminal state的v值就是0
+                    if terminate:
                         bootstrap_value = self.agent.compute_state_value(next_state)
+                    else:
+                        bootstrap_value = np.zeros((batch_size, objective_number))
                     self.logger.info('---------- worker数据开始打包发送到dataserver -------------')
                     self.pack_data(bootstrap_value, data_dict)
                     self.agent.step()
                     data_dict = []
-                    if done[0]:
-                        break
+                    break
 
             mean_instant_SE_sum = np.mean(instant_SE_sum_list).item()
             # mean_edge_average_SE = np.mean(edge_average_capacity_list).item()
@@ -177,7 +183,8 @@ class rollout_sampler:
         if self.eval_mode:
             self.logger.info("================= 使用eval智能体进行验证 =============")
             self.agent.reset()
-            eval_file_number = self.config_dict['env']['eval_file_number']
+            # eval_file_number = self.config_dict['env']['eval_file_number']
+            eval_file_number = 1
             for file_index in tqdm(range(eval_file_number)):
                 state = self.env.reset(file_index=file_index)
                 if self.agent_nums == 1:
@@ -243,10 +250,50 @@ class rollout_sampler:
             return instant_SE_sum_list
             
 
+    def read_data_from_folder(self):
+        # ----------------- 这个函数是说,从本地读取数据发送到dataserver ----------------
+        if self.eval_mode:
+            self.logger.info("================= 使用eval智能体进行验证 =============")
+            self.agent.reset()
+            eval_file_number = self.config_dict['env']['eval_file_number']
+            # eval_file_number = 1
+            for file_index in tqdm(range(eval_file_number)):
+                state = self.env.reset(file_index=file_index)
+                if self.agent_nums == 1:
+                    actions = self.agent.compute_single_agent(state)
+                else:
+                    actions = self.agent.compute_multi_agent(state)
+                instant_SE_sum_list = self.env.step(actions)
+                data_dict = {'instant_reward': np.array(instant_SE_sum_list)}
+                if self.agent_nums == 1:
+                    data_dict['actions'] = actions
+                else:
+                    data_dict['actions'] = dict()
+                    for agent_index in range(self.agent.agent_nums):
+                        agent_key = "agent_" + str(agent_index)
+                        data_dict['actions'][agent_key] = actions[agent_index]
+                data_dict['file_index'] = str(file_index)
+                self.agent.send_data(data_dict)
+        else:
+            state = self.env.reset(load_eval=True)
+            actions, instant_SE_sum_list = self.env.read_action_from_testing_set()
+            data_dict = [{'state': copy.deepcopy(state), 'instant_reward': instant_SE_sum_list}]
+            if self.agent_nums == 1:
+                # ---------- 如果说只有一一个用户，不需要套字典了 --------------
+                data_dict[-1]['actions'] = actions
+            else:
+                # ------------ actions也是一个字典，每一个key的维度都是bs×user_nums ------------
+                data_dict[-1]['actions'] = dict()
+                for agent_index in range(self.agent.agent_nums):
+                    agent_key = "agent_" + str(agent_index)
+                    data_dict[-1]['actions'][agent_key] = actions[agent_index]
+            self.agent.send_data(data_dict)
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_eval_single_cell_pointer_network.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_multi_cell_PF_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     # ------------- 构建绝对地址 --------------
     # Linux下面是用/分割路径，windows下面是用\\，因此需要修改
@@ -264,5 +311,6 @@ if __name__ == '__main__':
     logger = setup_logger('Rollout_agent_'+process_uid[:6], logger_path)
     statistic = StatisticsUtils()
     roll_out_test = rollout_sampler(parse_config(concatenate_path), statistic, context, logger, process_uid[0:6])
-    roll_out_test.run_one_episode_single_step()
-    # roll_out_test.run_one_episode()
+    # roll_out_test.run_one_episode_single_step()
+    roll_out_test.run_one_episode()
+    # roll_out_test.read_data_from_folder()

@@ -157,7 +157,8 @@ class learner_server(basic_server):
         if time.time()>self.warm_up_time:
             torch_training_batch = convert_data_format_to_torch_training(training_batch,self.local_rank)
             info = self.algo.step(torch_training_batch)
-            self.logger.info("----------- 完成一次参数更新，更新的信息为 {} -------------".format(info))
+            # self.logger.info("----------- 完成一次参数更新，更新的信息为 {} -------------".format(info))
+            self.logger.info("----------- 完成一次参数更新 ----------")
             self.recursive_send(info, None, self.policy_name)
         else:
             self.logger.info("----------- 模型处于预热阶段，不更新参数 ----------")
@@ -243,7 +244,7 @@ if __name__ == '__main__':
     parser.add_argument('--rank', default= 0, type=int, help="rank of current process")
     parser.add_argument('--world_size', default=1, type=int, help='total gpu card')
     parser.add_argument('--init_method', default='tcp://120.0.0.1:23456')
-    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_single_cell_ddpg.yaml', help='yaml format config')
+    parser.add_argument('--config_path', type=str, default='/Learner/configs/config_multi_cell_PF_pointer_network.yaml', help='yaml format config')
     args = parser.parse_args()
     abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path

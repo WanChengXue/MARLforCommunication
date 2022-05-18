@@ -19,8 +19,8 @@ class Greedy:
     def __init__(self, env_dict):
         self.env_dict = env_dict
         # ================ 定义工程参数 =================
-        # self.user_nums = self.env_dict['user_nums']
-        self.user_nums = 30
+        self.user_nums = self.env_dict['user_nums']
+        # self.user_nums = 30
         self.sector_nums = self.env_dict['sector_nums']
         self.cell_nums = self.env_dict['cell_nums']
         self.agent_nums = self.env_dict['agent_nums']
@@ -158,7 +158,7 @@ class Greedy:
 
 def start_process_training_data(file_index, config_dict):
     test_greedy = Greedy(config_dict['env'])
-    test_greedy.simulation_training_file(file_index)
+    test_greedy.simulation(file_index)
 
 
 if __name__=='__main__':
@@ -173,11 +173,11 @@ if __name__=='__main__':
     concatenate_path = abs_path + args.config_path
     config_dict = load_yaml(concatenate_path)
     test_greedy = Greedy(config_dict['env']) 
+    # for i in range(1):
+    #     test_greedy.simulation(i)
+    start_process_training_data(0, config_dict)
+    pool = multiprocessing.Pool(processes = 12)
     for i in range(50):
-        test_greedy.simulation(i)
-    # start_process_training_data(0, config_dict)
-    # pool = multiprocessing.Pool(processes = 12)
-    # for i in range(50):
-    #     pool.apply_async(start_process_training_data, (i, config_dict, ))   #维持执行的进程总数为processes，当一个进程执行完毕后会添加新的进程进去
-    # pool.close()
-    # pool.join() 
+        pool.apply_async(start_process_training_data, (i, config_dict, ))   #维持执行的进程总数为processes，当一个进程执行完毕后会添加新的进程进去
+    pool.close()
+    pool.join() 
