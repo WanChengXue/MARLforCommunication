@@ -21,7 +21,7 @@ from Utils import config_parse
 
 class sampler_worker:
     def __init__(self, args):
-        self.config_dict = config_parse.parse_config(args.config_path)
+        self.config_dict = config_parse.parse_config(args.config_path, obj='worker')
         self.uuid = str(uuid.uuid4())
         self.policy_config = self.config_dict['policy_config']
         self.policy_name = self.config_dict['policy_name']

@@ -11,12 +11,13 @@ def load_yaml(config_path):
         config_dict = yaml.load(f, Loader=Loader)
     return config_dict
 
-def parse_config(config_file_path):
+def parse_config(config_file_path, obj='learner'):
     function_path = os.path.abspath(__file__)
     # ------ 这个就是到了Pretrained_model这一层路径下面 ----- ~/Desktop/pretrained_model
     root_path = '/'.join(function_path.split('/')[:-2])
     config_dict = load_yaml(config_file_path)
-    if config_dict['policy_config'].get('eval_mode', False) or config_dict['policy_config'].get('load_checkpoint', False):
+    if config_dict['policy_config'].get('eval_mode', False) or (config_dict['policy_config'].get('load_checkpoint', False) and obj=='learner'):
+        # --------　只有在测试模式下, 如果是训练模式下加载模型，必须是载入checkpoint的learner ----------
         model_pool_path = os.path.join(root_path, 'Exp/Model/model_pool/' + config_dict['policy_name'])
         for model_type in config_dict['policy_config']['agent'].keys():
             # ------------ 构建模型路径的绝对位置 ----------
