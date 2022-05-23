@@ -16,7 +16,7 @@ def parse_config(config_file_path):
     # ------ 这个就是到了Pretrained_model这一层路径下面 ----- ~/Desktop/pretrained_model
     root_path = '/'.join(function_path.split('/')[:-2])
     config_dict = load_yaml(config_file_path)
-    if config_dict['policy_config'].get('eval_mode', False):
+    if config_dict['policy_config'].get('eval_mode', False) or config_dict['policy_config'].get('load_checkpoint', False):
         model_pool_path = os.path.join(root_path, 'Exp/Model/model_pool/' + config_dict['policy_name'])
         for model_type in config_dict['policy_config']['agent'].keys():
             # ------------ 构建模型路径的绝对位置 ----------
@@ -26,14 +26,16 @@ def parse_config(config_file_path):
                 model_pool_file = sorted([file_name for file_name in os.listdir(model_pool_path) if model_type+'_'+agent_name in file_name])
                 config_dict['policy_config']['agent'][model_type][agent_name]['model_path'] = os.path.join(model_pool_path, model_pool_file[-1])
         # ------------   在eval模式下面，需要创建一个文件夹，然后将采样结果放到里面去 -----------
-        result_save_path = os.path.join(root_path, 'Exp/Result/Evaluate/{}'.format(config_dict['policy_name']))
-        create_folder(result_save_path)
-        config_dict['policy_config']['result_save_path'] = result_save_path
-        return config_dict
+        if config_dict['policy_config'].get('eval_mode', False):
+            result_save_path = os.path.join(root_path, 'Exp/Result/Evaluate/{}'.format(config_dict['policy_name']))
+            create_folder(result_save_path)
+            config_dict['policy_config']['result_save_path'] = result_save_path
+            return config_dict
 
     if "main_server_ip" in config_dict:
         config_dict["log_server_address"] = config_dict["main_server_ip"]
         config_dict["config_server_address"] = config_dict["main_server_ip"]
+    config_dict['log_dir'] = os.path.join(config_dict['log_dir'], config_dict['policy_name'])
     create_folder(config_dict['log_dir'])
     # ----------------- 覆盖掉原始的值 ----------------------------------------------------------------------
     # 使用单机多卡去运行

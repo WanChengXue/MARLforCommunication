@@ -7,7 +7,7 @@ env:
   bs_antenna_nums: &bs_antenna_nums 16
   total_antenna_nums: &seq_len 20
   # 这个变量表示的是截取多少长度的TTI作为一个训练样本
-  sliding_windows_length: 3000
+  sliding_windows_length: 2000
   transmit_power: 0.25
   noise_power: 3.1623e-20
   source_data_folder: 'data_part/Source_data'
@@ -37,7 +37,7 @@ warmup_time: 0
 # ip of log server, config_server
 main_server_ip: '10.19.93.9'
 # 定义日志文件的文件夹
-log_dir: "./logs"
+log_dir: "./Exp/Log"
 # 定义日志服务器的端口
 log_server_port: 8100
 # 这个表示的是将历史的模型保存20个
@@ -61,7 +61,7 @@ policy_config:
   main_machine_index: 0
   machine_list: ['10.19.93.9']
   # 定义一个设备对应与多少个数据server
-  server_number_per_device: 2
+  server_number_per_device: 1
   # 定义一个机器有多少个设备
   device_number_per_machine: 1
   start_data_server_port: 9527
@@ -79,6 +79,8 @@ policy_config:
   # ----- 只有一个智能体，显然是参数共享和同质化都是True ---------
   parameter_sharing: &parameter_sharing False
   homogeneous_agent: True
+  # -----------加载预训练模型　－－－－－－－－－－－
+  load_checkpoint: True
   # -------------- 模型训练相关 --------------
   training_parameters:
     clip_epsilon: 0.2
@@ -91,8 +93,8 @@ policy_config:
     seperate_critic: &seperate_critic True
     parameter_sharing: *parameter_sharing
   # 环境相关
-  traj_len: 128
-  capacity: &capacity 10000
+  traj_len: 3000
+  capacity: &capacity 1000
   # -------- 每训练1000次就保存一下模型 ----------
   model_save_interval: 1000
   # ------- 每训练10次就评估一下模型 --------

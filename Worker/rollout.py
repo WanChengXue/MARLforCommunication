@@ -107,7 +107,7 @@ class rollout_sampler:
         else:
             self.logger.info("======================== 重置环境 =======================")
             state = self.env.reset()
-            # self.agent.reset()
+            self.agent.reset()
             data_dict = []
             # ---------- 这里有两个list，第一个表示的是瞬时SE构成的列表，第二个表示的是PF和构成的列表 ----------
             instant_SE_sum_list = []

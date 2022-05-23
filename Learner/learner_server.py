@@ -51,7 +51,10 @@ class learner_server(basic_server):
         self.machine_index = self.global_rank // self.policy_config['device_number_per_machine']
         self.logger.info("============== global rank {}开始创建模型 ==========".format(self.global_rank))
         # --------------------- 开始创建网络,定义两个optimizer，一个优化actor，一个优化critic ------------------
+        # ----------- 从本地加载模型　-----------
+        self.load_checkpoint = self.policy_config.get('load_checkpoint', False)
         self.construct_model()
+        
         self.total_training_steps = 0
         self.training_steps_per_mins = 0
         if self.global_rank == 0:
@@ -116,6 +119,8 @@ class learner_server(basic_server):
             for agent_name in self.policy_config['agent'][model_type].keys():
                 model_config = deepcopy(self.policy_config['agent'][model_type][agent_name])
                 self.model[model_type][agent_name] = create_model(model_config)
+                if self.load_checkpoint:
+                    deserialize_model(self.model[model_type][agent_name], self.policy_config['agent'][model_type][agent_name]['model_path'])
                 self.optimizer[model_type][agent_name] = torch.optim.Adam(self.model[model_type][agent_name].parameters(), lr=float(self.policy_config['agent'][model_type][agent_name]['learning_rate']))
                 self.scheduler[model_type][agent_name] = CosineAnnealingWarmRestarts(self.optimizer[model_type][agent_name], self.policy_config['T_zero'])
         if self.policy_config.get('using_target_network', False):

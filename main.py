@@ -1,7 +1,6 @@
 import argparse
 import os
-import shutil
-from Utils import config_parse
+from Utils import config_parse,create_folder
 
 
 def start_learner_data_server(config_path, world_size, machine_index, device_number_per_machine, server_number_per_device, log_dir):
@@ -19,6 +18,7 @@ def start_learner_data_server(config_path, world_size, machine_index, device_num
 def main(args):
     config_dict = config_parse.parse_config(args.config_path)
     log_dir = config_dict["log_dir"]
+    create_folder(log_dir, delete_origin=True)
     # ------ 如果这个log文件夹存在，就删掉 --------
     # shutil.rmtree(log_dir)
     # ------- 打开plasma server，log server，config server ------

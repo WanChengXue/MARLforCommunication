@@ -190,6 +190,7 @@ class Environment(gym.Env):
         PF_matrix = self.calculate_pf_and_udpate_average_se(active_instant_se)
         instant_reward = [np.sum(active_instant_se,1), np.sum(PF_matrix,1)]
         # ---------- 构建next state -----------------
+        self.current_TTI = min(self.current_TTI, self.sliding_windows_length-1)
         next_state = self.construct_state()
         return next_state, instant_reward, terminate
 

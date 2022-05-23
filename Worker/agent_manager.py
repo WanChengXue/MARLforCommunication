@@ -274,8 +274,22 @@ class AgentManager:
                         self.agent[model_type][model_name].synchronize_model(self.policy_fetcher.model_path[model_type][model_name])
                 if self.using_wolpagent:
                     self._add_critic_net_for_wolpagent()
+            self._comparison_model()
+
         # else:
         #     self.logger.info("------------- agent调用reset函数之后没有获取到新模型,检测fetcher函数 ------------")
+
+    def _comparison_model(self):
+        # ------------　将载入的模型和本地模型进行对比　－－－－－－－－－－－
+        fether_model_path = self.policy_fetcher.model_path
+        for model_type in fether_model_path.keys():
+            for model_name in fether_model_path[model_type]:
+                raw_model_path = fether_model_path[model_type][model_name]
+                model_dict = torch.load(raw_model_path)
+                current_model_dict = self.agent[model_type][model_name].net_work.state_dict()
+                for key in current_model_dict.keys():
+                    assert torch.sum(model_dict['module.'+key].cpu() - current_model_dict[key]) == 0, '----------- 下载的模型并没有成功加载到采样模快 ----------'
+
 
     def reset(self):
         # ---------- 模型重置 ------------------
