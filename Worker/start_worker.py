@@ -29,7 +29,7 @@ if __name__=='__main__':
     abs_path = '/'.join(os.path.abspath(__file__).split('/')[:-2])
     concatenate_path = abs_path + args.config_path
     args.config_path = concatenate_path
-    config_dict = parse_config(args.config_path)
+    config_dict = parse_config(args.config_path, obj='Worker')
     parallel_env_number = min(os.cpu_count()-10, config_dict['env']['parallel_env'])
     # print('---------- 并行化的worker数目为 {} -----------'.format(parallel_env_number))
     parallel_env_number = 2
