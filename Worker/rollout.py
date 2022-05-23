@@ -108,6 +108,7 @@ class rollout_sampler:
             self.logger.info("======================== 重置环境 =======================")
             state = self.env.reset()
             self.agent.reset()
+            self.logger.info('------------- 完成模型的reset,开始采样 ------------------')
             data_dict = []
             # ---------- 这里有两个list，第一个表示的是瞬时SE构成的列表，第二个表示的是PF和构成的列表 ----------
             instant_SE_sum_list = []
@@ -166,6 +167,7 @@ class rollout_sampler:
                     self.pack_data(bootstrap_value, data_dict)
                     self.agent.step()
                     data_dict = []
+                if terminate:
                     break
 
             mean_instant_SE_sum = np.mean(instant_SE_sum_list).item()
@@ -306,11 +308,11 @@ if __name__ == '__main__':
     from Utils import setup_logger
     import uuid
     process_uid = str(uuid.uuid4())
-    config_dict = parse_config(concatenate_path)
+    config_dict = parse_config(concatenate_path,obj='Worker')
     logger_path = pathlib.Path(config_dict['log_dir']+ '/sampler/test_rollout_' + process_uid[:6])
     logger = setup_logger('Rollout_agent_'+process_uid[:6], logger_path)
     statistic = StatisticsUtils()
-    roll_out_test = rollout_sampler(parse_config(concatenate_path), statistic, context, logger, process_uid[0:6])
+    roll_out_test = rollout_sampler(parse_config(concatenate_path, obj='Worker'), statistic, context, logger, process_uid[0:6])
     # roll_out_test.run_one_episode_single_step()
     roll_out_test.run_one_episode()
     # roll_out_test.read_data_from_folder()

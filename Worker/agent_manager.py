@@ -274,7 +274,7 @@ class AgentManager:
                         self.agent[model_type][model_name].synchronize_model(self.policy_fetcher.model_path[model_type][model_name])
                 if self.using_wolpagent:
                     self._add_critic_net_for_wolpagent()
-            self._comparison_model()
+            # self._comparison_model()
 
         # else:
         #     self.logger.info("------------- agent调用reset函数之后没有获取到新模型,检测fetcher函数 ------------")
