@@ -93,8 +93,8 @@ policy_config:
     seperate_critic: &seperate_critic True
     parameter_sharing: *parameter_sharing
   # 环境相关
-  traj_len: 3000
-  capacity: &capacity 1000
+  traj_len: 128
+  capacity: &capacity 20000
   # -------- 每训练1000次就保存一下模型 ----------
   model_save_interval: 1000
   # ------- 每训练10次就评估一下模型 --------
