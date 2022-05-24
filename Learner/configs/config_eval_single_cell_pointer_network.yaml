@@ -32,7 +32,7 @@ env:
   eval_mode: &eval_mode True
 policy_name: single_cell_max_se_30
 # 定义日志文件的文件夹
-log_dir: "./logs"
+log_dir: "./Exp/Log"
 # policy_config related
 policy_config:
   eval_mode: *eval_mode

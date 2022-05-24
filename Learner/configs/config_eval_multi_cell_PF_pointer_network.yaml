@@ -33,7 +33,7 @@ env:
   eval_mode: &eval_mode True
 policy_name: single_cell_max_PF
 # policy_config related
-log_dir: "./logs"
+log_dir: "./Exp/Log"
 policy_config:
   eval_mode: *eval_mode
   PF_scheduling: True

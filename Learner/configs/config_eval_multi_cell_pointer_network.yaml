@@ -34,7 +34,7 @@ env:
 
 policy_name: multi_cell_max_average_SE
 # 定义日志文件的文件夹
-log_dir: "./logs"
+log_dir: "./Exp/Log"
 # policy_config related
 policy_config:
   eval_mode: *eval_mode

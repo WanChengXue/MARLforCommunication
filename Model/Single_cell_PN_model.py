@@ -28,7 +28,7 @@ class pointer_network(nn.Module):
         self.V = nn.Linear(self.weight_dim, 1, bias=False)
         self.affine_decoder_hidden_layer = nn.Linear(2*self.hidden_size, self.hidden_size)
         self.mask = Parameter(torch.ones(1, self.seq_length), requires_grad=False)
-        self.inf = Parameter(torch.FloatTensor([-1e16]).unsqueeze(1).expand(1, self.seq_length).clone(), requires_grad=False)
+        self.inf = Parameter(torch.FloatTensor([-1e9]).unsqueeze(1).expand(1, self.seq_length).clone(), requires_grad=False)
         self.decoder_input = Parameter(torch.FloatTensor(1, self.input_dim))
         # ----------- 这个向量表示feature map中需要添加一个额外的向量——---------
         self.terminate_encoder_vector = Parameter(torch.zeros(1,1,self.input_dim))

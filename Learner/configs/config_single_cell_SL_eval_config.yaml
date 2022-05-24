@@ -35,7 +35,7 @@ warmup_time: 0
 # ip of log server, config_server
 main_server_ip: '10.19.93.9'
 # 定义日志文件的文件夹
-log_dir: "./logs"
+log_dir: "./Exp/Log"
 
 policy_config:
   supervised_learning: True
